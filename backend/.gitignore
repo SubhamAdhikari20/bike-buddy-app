@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.env
+!.env.sample
+src/config/config.env
+public/uploads
+
+# Environment variables
+# .env
+# config/config.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Uploaded files (except defaults)
+public/profile_pictures/*
+!public/profile_pictures/default-profile.png
+public/item_photos/*
+!public/item_photos/default.jpg
+public/item_videos/*
+
+# Testing
+coverage/
+
+# Documentation (exclude internal notes)
+TEACHING_NOTES.md
+FINAL_REVIEW.md
+db_design.md
+API_TESTING.md
+
+# Misc
+*.log

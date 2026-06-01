@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "target": "esnext",
+    "moduleResolution": "nodenext",
+    "esModuleInterop": true,
+    "types": [
+      "node",
+      // "jest"
+    ],
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "allowJs": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "strict": true,
+    "jsx": "react-jsx",
+    // "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "incremental": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.mts",
+    "**/*.js",
+    "**/*.tsx",
+    "src/__tests__/**/*.ts",
+    "__tests__/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
