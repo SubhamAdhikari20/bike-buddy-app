@@ -1,6 +1,7 @@
 import AppError from "../errors/AppError.ts";
 import { userRepository } from "../repositories/user.repository.ts";
 import { renterRepository } from "../repositories/renter.repository.ts";
+import { ownerRepository } from "../repositories/owner.repository.ts";
 import { bikeRepository } from "../repositories/bike.repository.ts";
 import { bookingRepository } from "../repositories/booking.repository.ts";
 import { reviewRepository } from "../repositories/review.repository.ts";
@@ -82,6 +83,30 @@ const adminService = {
         }
 
         return bikeRepository.updateById(bikeId, { status });
+    },
+
+    async listOwners(query: Record<string, unknown>) {
+        const filter: Record<string, unknown> = {};
+        if (query.status) filter.ownerStatus = query.status;
+        return listWithPagination(
+            async (f, sort, skip, limit) => ownerRepository.list(f),
+            ownerRepository.count,
+            filter,
+            query,
+        );
+    },
+
+    // Verified owner badge foundation (TR-01): admin approves or rejects.
+    async verifyOwner(ownerId: string, status: "verified" | "rejected") {
+        const owner = await ownerRepository.findById(ownerId);
+        if (!owner) {
+            throw new AppError(404, "Owner not found", "NOT_FOUND");
+        }
+
+        return ownerRepository.updateById(ownerId, {
+            ownerStatus: status,
+            ownerVerificationDate: status === "verified" ? new Date() : null,
+        });
     },
 
     async reviewKyc(renterId: string, status: "approved" | "rejected") {

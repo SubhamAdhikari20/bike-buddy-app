@@ -87,3 +87,23 @@ export const reviewKyc: RequestHandler = async (req, res, next) => {
         next(error);
     }
 };
+
+export const listOwners: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await adminService.listOwners(req.query as Record<string, unknown>);
+        res.status(200).json(new ApiResponse(200, "Owners fetched successfully", result.items, result.pagination));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const verifyOwner: RequestHandler = async (req, res, next) => {
+    try {
+        const ownerId = String(req.params.ownerId);
+        const status = req.body.status as "verified" | "rejected";
+        const result = await adminService.verifyOwner(ownerId, status);
+        res.status(200).json(new ApiResponse(200, `Owner ${status}`, result));
+    } catch (error) {
+        next(error);
+    }
+};
