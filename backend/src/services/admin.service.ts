@@ -1,5 +1,6 @@
 import AppError from "../errors/AppError.ts";
 import { userRepository } from "../repositories/user.repository.ts";
+import { renterRepository } from "../repositories/renter.repository.ts";
 import { bikeRepository } from "../repositories/bike.repository.ts";
 import { bookingRepository } from "../repositories/booking.repository.ts";
 import { reviewRepository } from "../repositories/review.repository.ts";
@@ -81,6 +82,19 @@ const adminService = {
         }
 
         return bikeRepository.updateById(bikeId, { status });
+    },
+
+    async reviewKyc(renterId: string, status: "approved" | "rejected") {
+        const renter = await renterRepository.findById(renterId);
+        if (!renter) {
+            throw new AppError(404, "Renter not found", "NOT_FOUND");
+        }
+
+        if (renter.kycStatus !== "pending") {
+            throw new AppError(409, "This renter has no pending ID verification", "CONFLICT");
+        }
+
+        return renterRepository.updateById(renterId, { kycStatus: status });
     },
 
     async updateBookingStatus(bookingId: string, status: string) {

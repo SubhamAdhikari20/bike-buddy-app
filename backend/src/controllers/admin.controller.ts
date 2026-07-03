@@ -76,3 +76,14 @@ export const updateBookingStatus: RequestHandler = async (req, res, next) => {
         next(error);
     }
 };
+
+export const reviewKyc: RequestHandler = async (req, res, next) => {
+    try {
+        const renterId = String(req.params.renterId);
+        const status = req.body.status as "approved" | "rejected";
+        const result = await adminService.reviewKyc(renterId, status);
+        res.status(200).json(new ApiResponse(200, `Renter KYC ${status}`, result));
+    } catch (error) {
+        next(error);
+    }
+};
