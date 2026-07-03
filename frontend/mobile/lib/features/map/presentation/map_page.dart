@@ -92,6 +92,29 @@ class _MapPageState extends ConsumerState<MapPage> {
     }
   }
 
+  /// Simple walking route line from the user to the selected bike
+  /// (MAP-02). Turn-by-turn continues in Google Maps via Get Directions.
+  Set<Polyline> get _routeLines {
+    final bike = _selected;
+    if (bike == null ||
+        bike.location.latitude == null ||
+        bike.location.longitude == null) {
+      return const {};
+    }
+    return {
+      Polyline(
+        polylineId: const PolylineId('walking-route'),
+        points: [
+          _center,
+          LatLng(bike.location.latitude!, bike.location.longitude!),
+        ],
+        color: AppColors.primary,
+        width: 4,
+        patterns: [PatternItem.dash(20), PatternItem.gap(12)],
+      ),
+    };
+  }
+
   Set<Marker> get _markers => _bikes
       .where((bike) =>
           bike.location.latitude != null && bike.location.longitude != null)
@@ -120,6 +143,7 @@ class _MapPageState extends ConsumerState<MapPage> {
           GoogleMap(
             initialCameraPosition: CameraPosition(target: _center, zoom: 14),
             markers: _markers,
+            polylines: _routeLines,
             myLocationEnabled: true,
             myLocationButtonEnabled: true,
             zoomControlsEnabled: false,
