@@ -41,6 +41,16 @@ export const getBike: RequestHandler = async (req, res, next) => {
     }
 };
 
+export const compareBikes: RequestHandler = async (req, res, next) => {
+    try {
+        const ids = String(req.query.ids ?? "").split(",").map((id) => id.trim()).filter(Boolean);
+        const result = await bikeService.compareBikes(ids);
+        res.status(200).json(new ApiResponse(200, "Bikes compared successfully", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const listBikes: RequestHandler = async (req, res, next) => {
     try {
         const result = await bikeService.listBikes(req.query as Record<string, unknown>);
