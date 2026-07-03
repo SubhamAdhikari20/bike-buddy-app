@@ -117,6 +117,35 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                 '${bike.location.label}, ${bike.location.address}',
           );
 
+      // Cash at pickup skips the gateway entirely (PR-03).
+      if (_provider == 'cash') {
+        final cash =
+            await ref.read(bookingApiProvider).confirmCash(_booking!.id);
+        await LocalStore.clearBookingDraft();
+        ref.invalidate(myBookingsProvider);
+        if (!mounted) return;
+        await showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.large)),
+            icon: const Icon(Icons.payments_outlined,
+                size: 40, color: AppColors.success),
+            title: Text('Reference: ${cash['reference']}'),
+            content: Text(cash['instructions'] as String? ??
+                'Bring the cash to the pickup point and show this reference.'),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Got it'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) context.pushReplacement('/receipt/${_booking!.id}');
+        return;
+      }
+
       final intent = await ref.read(bookingApiProvider).initiatePayment(
             bookingId: _booking!.id,
             provider: _provider,
@@ -578,9 +607,11 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         ),
         const SizedBox(height: AppSpacing.sm),
 
+        // Cash is an equal option, not an afterthought (PR-03).
         for (final (value, label, icon) in [
           ('esewa', 'eSewa', Icons.wallet),
           ('khalti', 'Khalti', Icons.account_balance_wallet),
+          ('cash', 'Cash at Pickup', Icons.payments_outlined),
         ])
           Card(
             shape: _provider == value

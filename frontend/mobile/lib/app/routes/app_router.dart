@@ -19,7 +19,9 @@ import '../../features/onboarding/presentation/onboarding_page.dart';
 import '../../features/profile/presentation/edit_profile_page.dart';
 import '../../features/profile/presentation/privacy_page.dart';
 import '../../features/support/presentation/chat_page.dart';
+import '../../features/support/presentation/report_issue_page.dart';
 import '../../features/support/presentation/support_page.dart';
+import '../../features/support/presentation/tickets_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -110,6 +112,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/support/chat',
         builder: (context, state) => const ChatPage(),
+      ),
+      GoRoute(
+        path: '/support/tickets',
+        builder: (context, state) => const TicketsPage(),
+      ),
+      GoRoute(
+        path: '/support/report',
+        builder: (context, state) => ReportIssuePage(
+          initialType: state.uri.queryParameters['type'] ?? 'general',
+        ),
       ),
     ],
   );

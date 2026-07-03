@@ -69,6 +69,22 @@ class BookingApi {
     await _client.patch('/bookings/$bookingId/cancel', data: {'reason': reason});
   }
 
+  Future<Map<String, dynamic>> confirmCash(String bookingId) async {
+    final res = await _client.post('/bookings/$bookingId/confirm-cash');
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> cancellationPolicy(String bookingId) async {
+    final res = await _client.get('/bookings/$bookingId/cancellation-policy');
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<void> reschedule(String bookingId, DateTime newStart) async {
+    await _client.patch('/bookings/$bookingId/reschedule', data: {
+      'startDate': newStart.toIso8601String(),
+    });
+  }
+
   Future<PaymentIntent> initiatePayment({
     required String bookingId,
     required String provider,

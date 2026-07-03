@@ -10,6 +10,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
+import '../../reviews/data/review_api.dart';
 import '../data/booking_api.dart';
 import '../data/booking_model.dart';
 
@@ -159,10 +160,164 @@ class _BookingList extends ConsumerWidget {
   }
 }
 
-class _BookingCard extends StatelessWidget {
+class _BookingCard extends ConsumerWidget {
   final Booking booking;
 
   const _BookingCard({required this.booking});
+
+  // Refund policy shown BEFORE cancelling (BK-03, H5).
+  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
+    Map<String, dynamic> policy = const {
+      'policyText': 'Cancelling may be subject to the refund policy.',
+    };
+    try {
+      policy = await ref.read(bookingApiProvider).cancellationPolicy(booking.id);
+    } catch (_) {}
+
+    if (!context.mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.large)),
+        icon: const Icon(Icons.event_busy, size: 40, color: AppColors.warning),
+        title: const Text('Cancel this booking?'),
+        content: Text(policy['policyText'] as String? ?? ''),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep booking'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Cancel booking'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref
+          .read(bookingApiProvider)
+          .cancel(booking.id, 'Cancelled by rider from the app');
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking cancelled.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _reschedule(BuildContext context, WidgetRef ref) async {
+    final picked = await showDatePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 90)),
+      initialDate: booking.startDate,
+      helpText: 'New pickup date (same duration and price)',
+    );
+    if (picked == null || !context.mounted) return;
+
+    final newStart = DateTime(picked.year, picked.month, picked.day,
+        booking.startDate.hour, booking.startDate.minute);
+    try {
+      await ref.read(bookingApiProvider).reschedule(booking.id, newStart);
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking moved. Same price, new dates.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  // Honest reviews - 1 star is never blocked (TR-04).
+  Future<void> _review(BuildContext context, WidgetRef ref) async {
+    var stars = 5;
+    final controller = TextEditingController();
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.large)),
+          title: const Text('How was your ride?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (i) => IconButton(
+                    onPressed: () => setState(() => stars = i + 1),
+                    icon: Icon(
+                      i < stars ? Icons.star : Icons.star_border,
+                      color: AppColors.warning,
+                      size: 32,
+                    ),
+                  ),
+                ),
+              ),
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                maxLength: 500,
+                decoration: const InputDecoration(
+                    hintText: 'Honest feedback helps other riders'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel')),
+            ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Post review')),
+          ],
+        ),
+      ),
+    );
+    if (submitted != true || !context.mounted) return;
+
+    try {
+      await ref.read(reviewApiProvider).create(
+            bikeId: booking.bikeId,
+            bookingId: booking.id,
+            rating: stars,
+            comment: controller.text.trim().isEmpty
+                ? 'No comment'
+                : controller.text.trim(),
+          );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Review posted. Thanks for keeping it real!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
 
   (String, Color) get _statusChip => switch (booking.status) {
         'confirmed' when booking.isActive => ('In Progress', AppColors.success),
@@ -174,7 +329,7 @@ class _BookingCard extends StatelessWidget {
       };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final (statusLabel, statusColor) = _statusChip;
     final bike = booking.bike;
@@ -296,6 +451,56 @@ class _BookingCard extends StatelessWidget {
                 ),
               ],
             ),
+            // Cancel / reschedule for upcoming rides (BK-03) and honest
+            // reviews after completed ones (TR-04).
+            if (booking.isUpcoming)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error),
+                        onPressed: () => _cancel(context, ref),
+                        icon: const Icon(Icons.close, size: 18),
+                        label: const Text('Cancel'),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => _reschedule(context, ref),
+                        icon: const Icon(Icons.edit_calendar, size: 18),
+                        label: const Text('Reschedule'),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (booking.status == 'completed')
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () => _review(context, ref),
+                        icon: const Icon(Icons.star_border, size: 18),
+                        label: const Text('Leave a review'),
+                      ),
+                    ),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () =>
+                            context.push('/damage-report/${booking.id}'),
+                        icon: const Icon(Icons.report_problem_outlined,
+                            size: 18),
+                        label: const Text('Report damage'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
