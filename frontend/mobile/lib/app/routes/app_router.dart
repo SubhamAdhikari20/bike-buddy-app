@@ -7,6 +7,8 @@ import '../../features/auth/presentation/pages/id_verification_page.dart';
 import '../../features/auth/presentation/pages/otp_login_page.dart';
 import '../../features/bikes/presentation/pages/bike_detail_page.dart';
 import '../../features/bikes/presentation/pages/compare_page.dart';
+import '../../features/bookings/presentation/booking_flow_page.dart';
+import '../../features/bookings/presentation/receipt_page.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/map/presentation/map_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
@@ -54,6 +56,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/compare',
         builder: (context, state) =>
             ComparePage(ids: state.uri.queryParameters['ids'] ?? ''),
+      ),
+      GoRoute(
+        path: '/book/:bikeId',
+        builder: (context, state) =>
+            BookingFlowPage(bikeId: state.pathParameters['bikeId']!),
+      ),
+      GoRoute(
+        path: '/receipt/:bookingId',
+        builder: (context, state) =>
+            ReceiptPage(bookingId: state.pathParameters['bookingId']!),
       ),
       GoRoute(
         path: '/verify-id',
