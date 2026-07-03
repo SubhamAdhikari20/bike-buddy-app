@@ -2,7 +2,7 @@ import { Router } from "express";
 import { authenticate, authorize } from "../middlewares/auth.ts";
 import validate from "../middlewares/validate.ts";
 import { bookingListQuerySchema, cancelBookingSchema, createBookingSchema } from "../schemas/booking.schema.ts";
-import { cancelBooking, completeBooking, confirmBooking, createBooking, downloadReceipt, extendBooking, getBikeAvailability, getBooking, listBookings, quoteBooking, returnBike, returnPreview, submitChecklist } from "../controllers/booking.controller.ts";
+import { cancelBooking, cancellationPolicy, completeBooking, confirmBooking, confirmCash, createBooking, downloadReceipt, extendBooking, getBikeAvailability, getBooking, listBookings, quoteBooking, rescheduleBooking, returnBike, returnPreview, submitChecklist } from "../controllers/booking.controller.ts";
 
 const bookingRoutes = Router();
 
@@ -22,5 +22,8 @@ bookingRoutes.post("/:bookingId/checklist", submitChecklist);
 bookingRoutes.get("/:bookingId/return-preview", returnPreview);
 bookingRoutes.patch("/:bookingId/extend", extendBooking);
 bookingRoutes.post("/:bookingId/return", returnBike);
+bookingRoutes.post("/:bookingId/confirm-cash", confirmCash);
+bookingRoutes.patch("/:bookingId/reschedule", rescheduleBooking);
+bookingRoutes.get("/:bookingId/cancellation-policy", cancellationPolicy);
 
 export default bookingRoutes;

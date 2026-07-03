@@ -365,6 +365,77 @@ const bookingService = {
         };
     },
 
+    // Cash at pickup (PR-03): confirms the booking without a wallet.
+    // The rider gets a reference code to show the owner.
+    async confirmCash(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new AppError(404, "Booking not found", "NOT_FOUND");
+        }
+
+        ensureBookingAccess(auth, booking);
+
+        if (booking.paymentStatus === "paid") {
+            throw new AppError(409, "This booking is already paid", "CONFLICT");
+        }
+
+        const updated = await bookingRepository.updateById(bookingId, {
+            status: "confirmed",
+            paymentStatus: "pending",
+        });
+        await bikeRepository.updateById(booking.bikeId.toString(), { status: "unavailable" });
+
+        return {
+            booking: updated,
+            reference: `CASH-${bookingId.slice(-6).toUpperCase()}`,
+            instructions: `Bring ${booking.totalAmount} NPR in cash to the pickup point and show this reference to the owner.`,
+        };
+    },
+
+    // Reschedule keeps the same duration so the locked price holds (BK-03).
+    async rescheduleBooking(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string, newStartDate: Date) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new AppError(404, "Booking not found", "NOT_FOUND");
+        }
+
+        ensureBookingAccess(auth, booking);
+
+        if (booking.status !== "pending" && booking.status !== "confirmed") {
+            throw new AppError(400, "Only upcoming bookings can be rescheduled", "BAD_REQUEST");
+        }
+
+        if (new Date(booking.startDate) <= new Date()) {
+            throw new AppError(400, "The rental already started - use extend instead", "BAD_REQUEST");
+        }
+
+        const durationMs = new Date(booking.endDate).getTime() - new Date(booking.startDate).getTime();
+        const newEndDate = new Date(newStartDate.getTime() + durationMs);
+
+        const overlap = await bookingRepository.findOverlap(booking.bikeId.toString(), newStartDate, newEndDate);
+        if (overlap && overlap._id.toString() !== bookingId) {
+            throw new AppError(409, "The bike is taken at that time - pick another slot", "CONFLICT");
+        }
+
+        return bookingRepository.updateById(bookingId, {
+            startDate: newStartDate,
+            endDate: newEndDate,
+        });
+    },
+
+    // Refund policy summary shown BEFORE the user cancels (BK-03).
+    getCancellationPolicy(booking: any) {
+        const hoursToStart = (new Date(booking.startDate).getTime() - Date.now()) / (60 * 60 * 1000);
+        const fullRefund = hoursToStart >= 12;
+        return {
+            fullRefund,
+            refundPercent: booking.paymentStatus === "paid" ? (fullRefund ? 100 : 80) : 100,
+            policyText: fullRefund
+                ? "Cancelling now refunds the full amount."
+                : "Less than 12 hours to pickup: 80% is refunded, 20% covers the owner's lost time.",
+        };
+    },
+
     async completeBooking(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string) {
         const booking = await bookingRepository.findById(bookingId);
         if (!booking) {

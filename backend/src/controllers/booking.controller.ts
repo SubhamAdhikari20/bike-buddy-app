@@ -156,3 +156,34 @@ export const returnBike: RequestHandler = async (req, res, next) => {
         next(error);
     }
 };
+
+export const confirmCash: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const result = await bookingService.confirmCash(req.auth!, bookingId);
+        res.status(200).json(new ApiResponse(200, "Booking confirmed. Pay cash at pickup.", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const rescheduleBooking: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const result = await bookingService.rescheduleBooking(req.auth!, bookingId, new Date(req.body.startDate));
+        res.status(200).json(new ApiResponse(200, "Booking rescheduled", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const cancellationPolicy: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const booking = await bookingService.getBooking(req.auth!, bookingId);
+        const result = bookingService.getCancellationPolicy(booking);
+        res.status(200).json(new ApiResponse(200, "Cancellation policy", result));
+    } catch (error) {
+        next(error);
+    }
+};
