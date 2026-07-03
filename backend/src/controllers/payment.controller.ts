@@ -30,3 +30,22 @@ export const updatePaymentStatus: RequestHandler = async (req, res, next) => {
         next(error);
     }
 };
+
+export const initiatePayment: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await paymentService.initiatePayment(req.auth!, req.body);
+        res.status(201).json(new ApiResponse(201, "Payment initiated", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const verifyPayment: RequestHandler = async (req, res, next) => {
+    try {
+        const paymentId = String(req.params.paymentId);
+        const result = await paymentService.verifyPayment(req.auth!, paymentId, req.body);
+        res.status(200).json(new ApiResponse(200, result.message, result));
+    } catch (error) {
+        next(error);
+    }
+};
