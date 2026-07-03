@@ -14,7 +14,8 @@
     "start": "tsc && node dist/server.js",
     "dev": "nodemon --watch src -e ts --exec \"ts-node -r tsconfig-paths/register src/server.ts\"",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint 'src/**/*.{ts,js}' --fix"
+    "lint": "eslint 'src/**/*.{ts,js}' --fix",
+    "seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
