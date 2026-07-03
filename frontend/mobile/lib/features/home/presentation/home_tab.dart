@@ -24,11 +24,13 @@ class HomeTab extends ConsumerStatefulWidget {
 
 class _HomeTabState extends ConsumerState<HomeTab> {
   static const _categories = [
-    'All Bikes',
-    'Scooters',
-    'Cruisers',
-    'Electric',
-    'Sports',
+    ('All Bikes', Icons.grid_view_rounded),
+    ('Commuter', Icons.two_wheeler),
+    ('Scooters', Icons.moped),
+    ('Cruisers', Icons.motorcycle),
+    ('Sports', Icons.sports_motorsports),
+    ('Electric', Icons.electric_bolt),
+    ('Mountain', Icons.terrain),
   ];
 
   Map<String, dynamic>? _draft;
@@ -94,14 +96,20 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 separatorBuilder: (context, index) =>
                     const SizedBox(width: AppSpacing.sm),
                 itemBuilder: (context, index) {
-                  final category = _categories[index];
-                  final selected =
-                      (query.category ?? 'All Bikes') == category;
+                  final (label, icon) = _categories[index];
+                  final value = BikeQuery.categoryLabels[label];
+                  final selected = query.category == value;
                   return ChoiceChip(
-                    label: Text(category),
+                    avatar: Icon(icon,
+                        size: 16,
+                        color: selected
+                            ? AppColors.textPrimary
+                            : AppColors.textSecondary),
+                    label: Text(label),
                     selected: selected,
                     selectedColor: AppColors.mint,
                     backgroundColor: AppColors.surface,
+                    showCheckmark: false,
                     labelStyle: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight:
@@ -109,7 +117,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                     ),
                     onSelected: (_) => ref
                         .read(bikeQueryProvider.notifier)
-                        .state = query.copyWith(category: category),
+                        .state = query.copyWith(category: value),
                   );
                 },
               ),
@@ -182,6 +190,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                             const SizedBox(width: AppSpacing.md),
                         itemBuilder: (context, index) => BikeCard(
                           bike: items[index],
+                          onTap: () =>
+                              context.push('/bike/${items[index].id}'),
                         ),
                       ),
               ),
