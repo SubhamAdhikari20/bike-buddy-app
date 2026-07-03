@@ -423,6 +423,39 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               ),
               const SizedBox(height: AppSpacing.md),
 
+              // Hourly / daily / weekly rates up front (PR-06).
+              Text('Pricing', style: textTheme.titleLarge),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _PriceTierCard(
+                      label: 'Hourly',
+                      price: bike.pricePerHour ?? (bike.pricePerDay / 8).ceilToDouble(),
+                      unit: '/hr',
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _PriceTierCard(
+                      label: 'Daily',
+                      price: bike.pricePerDay,
+                      unit: '/day',
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _PriceTierCard(
+                      label: 'Weekly',
+                      price: (bike.pricePerDay * 6.5).roundToDouble(),
+                      unit: '/wk',
+                      bestValue: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+
               // Technical specifications in a 2-column grid (BC-03,
               // law of proximity - related facts grouped).
               Text('Specifications', style: textTheme.titleLarge),
@@ -738,6 +771,57 @@ class _LiveAvailabilityState extends ConsumerState<_LiveAvailability> {
         const Text('· refreshes live',
             style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
       ],
+    );
+  }
+}
+
+/// One of the three pricing tier cards (PR-06).
+class _PriceTierCard extends StatelessWidget {
+  final String label;
+  final double price;
+  final String unit;
+  final bool bestValue;
+
+  const _PriceTierCard({
+    required this.label,
+    required this.price,
+    required this.unit,
+    this.bestValue = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: bestValue ? AppColors.mint : AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+        border: Border.all(
+          color: bestValue ? AppColors.teal : AppColors.divider,
+        ),
+      ),
+      child: Column(
+        children: [
+          if (bestValue)
+            const Text('BEST VALUE',
+                style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.teal)),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12, color: AppColors.textSecondary)),
+          const SizedBox(height: 2),
+          Text('Rs. ${price.toStringAsFixed(0)}',
+              style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary)),
+          Text(unit,
+              style:
+                  const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+        ],
+      ),
     );
   }
 }
