@@ -27,7 +27,62 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
   bool _busy = false;
   bool _submitted = false;
 
+  /// Plain-language data-use summary shown before the camera opens
+  /// (TR-03, transparency principle).
+  Future<bool> _confirmDataUse() async {
+    final agreed = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Before you take the photo',
+                style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.md),
+            const _StepRow(
+              icon: Icons.visibility_outlined,
+              title: 'Who sees it',
+              subtitle:
+                  'Only the Bike Buddy verification team. Never bike owners, never other users.',
+            ),
+            const _StepRow(
+              icon: Icons.storage_outlined,
+              title: 'How it is stored',
+              subtitle:
+                  'Encrypted on our servers and used only to confirm your identity once.',
+            ),
+            const _StepRow(
+              icon: Icons.delete_outline,
+              title: 'Your control',
+              subtitle:
+                  'Delete your account any time and the ID photo is removed with it.',
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('I understand, continue'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Not now'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return agreed == true;
+  }
+
   Future<void> _capture(ImageSource source) async {
+    final consented = await _confirmDataUse();
+    if (!consented || !mounted) return;
+
     if (source == ImageSource.camera) {
       final granted = await PermissionService.requestCamera(context);
       if (!granted) {
