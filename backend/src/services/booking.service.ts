@@ -240,6 +240,131 @@ const bookingService = {
         return updated;
     },
 
+    // Pre-ride handover checklist (BC-02): brakes, tires, lights, fuel.
+    async submitChecklist(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string, payload: { items: { key: string; ok: boolean; note?: string | null }[]; photos?: string[]; acknowledged: boolean }) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new AppError(404, "Booking not found", "NOT_FOUND");
+        }
+
+        ensureBookingAccess(auth, booking);
+
+        if (booking.status !== "confirmed") {
+            throw new AppError(400, "The checklist is filled at pickup, after the booking is confirmed", "BAD_REQUEST");
+        }
+
+        return bookingRepository.updateById(bookingId, {
+            preRideChecklist: {
+                items: payload.items,
+                photos: payload.photos ?? [],
+                acknowledged: payload.acknowledged,
+                completedAt: new Date(),
+            },
+        });
+    },
+
+    // Shows the rider what a return right now would mean, including any
+    // late fee, BEFORE anything is charged (RET-02, transparency).
+    async returnPreview(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new AppError(404, "Booking not found", "NOT_FOUND");
+        }
+
+        ensureBookingAccess(auth, booking);
+
+        const bike = await bikeRepository.findById(booking.bikeId.toString());
+        const hourlyRate = bike?.pricePerHour ?? Math.ceil((bike?.pricePerDay ?? 0) / 8);
+
+        const now = new Date();
+        const lateMs = now.getTime() - new Date(booking.endDate).getTime();
+        const lateMinutes = Math.max(0, Math.ceil(lateMs / 60000));
+        const lateFeeAmount = lateMinutes > 15 ? Math.ceil(lateMinutes / 60) * hourlyRate : 0;
+
+        return {
+            endDate: booking.endDate,
+            now,
+            onTime: lateMinutes <= 15,
+            lateMinutes,
+            lateFeeAmount,
+            graceMinutes: 15,
+            extendCostPerHour: hourlyRate,
+        };
+    },
+
+    // Extend the rental straight from the return screen (RET-03). The
+    // old and new totals are both returned so the change is explicit.
+    async extendBooking(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string, extraHours: number) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new AppError(404, "Booking not found", "NOT_FOUND");
+        }
+
+        ensureBookingAccess(auth, booking);
+
+        if (booking.status !== "confirmed") {
+            throw new AppError(400, "Only an active booking can be extended", "BAD_REQUEST");
+        }
+
+        const bike = await bikeRepository.findById(booking.bikeId.toString());
+        const hourlyRate = bike?.pricePerHour ?? Math.ceil((bike?.pricePerDay ?? 0) / 8);
+        const extensionCost = hourlyRate * extraHours;
+
+        const newEndDate = new Date(new Date(booking.endDate).getTime() + extraHours * 60 * 60 * 1000);
+        const overlap = await bookingRepository.findOverlap(booking.bikeId.toString(), booking.endDate, newEndDate);
+        if (overlap && overlap._id.toString() !== bookingId) {
+            throw new AppError(409, "Another rider has the bike right after you - extension not possible", "CONFLICT");
+        }
+
+        const oldTotal = booking.totalAmount;
+        const updated = await bookingRepository.updateById(bookingId, {
+            endDate: newEndDate,
+            extensionHours: (booking.extensionHours ?? 0) + extraHours,
+            extensionAmount: (booking.extensionAmount ?? 0) + extensionCost,
+            totalAmount: oldTotal + extensionCost,
+        });
+
+        return {
+            booking: updated,
+            oldTotal,
+            newTotal: oldTotal + extensionCost,
+            extensionCost,
+            newEndDate,
+        };
+    },
+
+    // Rider returns the bike (RET-01/02): records the time, shows
+    // on-time or late, and frees the bike for the next rider.
+    async returnBike(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string) {
+        const booking = await bookingRepository.findById(bookingId);
+        if (!booking) {
+            throw new AppError(404, "Booking not found", "NOT_FOUND");
+        }
+
+        ensureBookingAccess(auth, booking);
+
+        if (booking.status !== "confirmed") {
+            throw new AppError(400, "This booking is not active", "BAD_REQUEST");
+        }
+
+        const preview = await this.returnPreview(auth, bookingId);
+        const updated = await bookingRepository.updateById(bookingId, {
+            status: "completed",
+            returnedAt: preview.now,
+            lateMinutes: preview.lateMinutes,
+            lateFeeAmount: preview.lateFeeAmount,
+        });
+
+        await refreshBikeAvailability(booking.bikeId.toString());
+
+        return {
+            booking: updated,
+            onTime: preview.onTime,
+            lateMinutes: preview.lateMinutes,
+            lateFeeAmount: preview.lateFeeAmount,
+        };
+    },
+
     async completeBooking(auth: { userId: string; role: AuthRole; profileId?: string }, bookingId: string) {
         const booking = await bookingRepository.findById(bookingId);
         if (!booking) {

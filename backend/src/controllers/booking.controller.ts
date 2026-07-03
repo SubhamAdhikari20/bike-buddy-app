@@ -115,3 +115,44 @@ export const downloadReceipt: RequestHandler = async (req, res, next) => {
         next(error);
     }
 };
+
+export const submitChecklist: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const result = await bookingService.submitChecklist(req.auth!, bookingId, req.body);
+        res.status(200).json(new ApiResponse(200, "Checklist saved. Ride safe!", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const returnPreview: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const result = await bookingService.returnPreview(req.auth!, bookingId);
+        res.status(200).json(new ApiResponse(200, "Return preview", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const extendBooking: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const extraHours = Number(req.body.extraHours ?? 1);
+        const result = await bookingService.extendBooking(req.auth!, bookingId, extraHours);
+        res.status(200).json(new ApiResponse(200, "Rental extended", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const returnBike: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const result = await bookingService.returnBike(req.auth!, bookingId);
+        res.status(200).json(new ApiResponse(200, result.onTime ? "Returned on time. Thank you!" : "Return recorded", result));
+    } catch (error) {
+        next(error);
+    }
+};

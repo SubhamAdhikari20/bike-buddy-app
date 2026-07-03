@@ -34,6 +34,22 @@ const bookingSchema: Schema<IBooking> = new Schema({
         total: { type: Number, default: 0 },
     },
     priceLockedAt: { type: Date, default: null },
+    // Pre-ride handover checklist (BC-02).
+    preRideChecklist: {
+        items: {
+            type: [{ key: { type: String, required: true }, ok: { type: Boolean, default: false }, note: { type: String, default: null } }],
+            default: [],
+        },
+        photos: { type: [String], default: [] },
+        acknowledged: { type: Boolean, default: false },
+        completedAt: { type: Date, default: null },
+    },
+    // Return flow (RET-01/02/03).
+    returnedAt: { type: Date, default: null },
+    lateMinutes: { type: Number, default: 0 },
+    lateFeeAmount: { type: Number, default: 0 },
+    extensionHours: { type: Number, default: 0 },
+    extensionAmount: { type: Number, default: 0 },
 }, {
     timestamps: true,
 });

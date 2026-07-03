@@ -24,6 +24,17 @@ const bookingTypeSchema = z.object({
         total: z.number(),
     }).nullish(),
     priceLockedAt: z.date().nullish(),
+    preRideChecklist: z.object({
+        items: z.array(z.object({ key: z.string(), ok: z.boolean(), note: z.string().nullish() })),
+        photos: z.array(z.string()),
+        acknowledged: z.boolean(),
+        completedAt: z.date().nullish(),
+    }).nullish(),
+    returnedAt: z.date().nullish(),
+    lateMinutes: z.number().nullish(),
+    lateFeeAmount: z.number().nullish(),
+    extensionHours: z.number().nullish(),
+    extensionAmount: z.number().nullish(),
 });
 
 export type Booking = z.infer<typeof bookingTypeSchema>;
