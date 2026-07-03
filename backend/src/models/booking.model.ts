@@ -23,6 +23,17 @@ const bookingSchema: Schema<IBooking> = new Schema({
     totalAmount: { type: Number, required: true },
     currency: { type: String, required: true, default: "NPR" },
     cancellationReason: { type: String, default: null },
+    // Itemised breakdown shown before payment; locked at booking time so
+    // the checkout total can never silently change (PR-01, PR-07).
+    priceBreakdown: {
+        pricePerDay: { type: Number, default: 0 },
+        rentalDays: { type: Number, default: 0 },
+        baseAmount: { type: Number, default: 0 },
+        serviceFee: { type: Number, default: 0 },
+        securityDeposit: { type: Number, default: 0 },
+        total: { type: Number, default: 0 },
+    },
+    priceLockedAt: { type: Date, default: null },
 }, {
     timestamps: true,
 });

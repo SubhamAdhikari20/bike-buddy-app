@@ -43,7 +43,81 @@ const refreshBikeAvailability = async (bikeId: string) => {
     }
 };
 
+const buildPriceBreakdown = (bike: any, startDate: Date, endDate: Date) => {
+    const rentalDays = calculateRentalDays(startDate, endDate);
+    const pricePerDay = bike.pricePerDay as number;
+    const baseAmount = pricePerDay * rentalDays;
+    const serviceFee = bike.serviceFee ?? 0;
+    const securityDeposit = bike.securityDeposit ?? 0;
+
+    return {
+        pricePerDay,
+        rentalDays,
+        baseAmount,
+        serviceFee,
+        securityDeposit,
+        total: baseAmount + serviceFee,
+    };
+};
+
 const bookingService = {
+    // Live fare estimate for the duration slider - no booking is created
+    // and there are no fees beyond what is listed here (PR-02, PR-01).
+    async quote(payload: { bikeId: string; startDate: Date; endDate: Date }) {
+        const bike = await bikeRepository.findById(payload.bikeId);
+        if (!bike) {
+            throw new AppError(404, "Bike not found", "NOT_FOUND");
+        }
+
+        if (payload.endDate <= payload.startDate) {
+            throw new AppError(400, "End date must be after start date", "BAD_REQUEST");
+        }
+
+        const breakdown = buildPriceBreakdown(bike, payload.startDate, payload.endDate);
+        return {
+            ...breakdown,
+            pricePerHour: bike.pricePerHour ?? null,
+            currency: "NPR",
+            noHiddenFees: true,
+        };
+    },
+
+    // "Available Now" vs "Next available at ..." for listings (BK-05).
+    async getBikeAvailability(bikeId: string) {
+        const bike = await bikeRepository.findById(bikeId);
+        if (!bike) {
+            throw new AppError(404, "Bike not found", "NOT_FOUND");
+        }
+
+        if (bike.status === "maintenance" || bike.status === "inactive") {
+            return { availableNow: false, nextAvailableAt: null, reason: bike.status };
+        }
+
+        const now = new Date();
+        const activeBookings = await bookingRepository.list(
+            {
+                bikeId,
+                status: { $in: ["pending", "confirmed"] },
+                endDate: { $gt: now },
+                startDate: { $lte: now },
+            },
+            { endDate: 1 },
+            0,
+            1,
+        );
+
+        const current = activeBookings[0];
+        if (!current && bike.status === "available") {
+            return { availableNow: true, nextAvailableAt: null, reason: null };
+        }
+
+        return {
+            availableNow: false,
+            nextAvailableAt: current?.endDate ?? null,
+            reason: "booked",
+        };
+    },
+
     async createBooking(auth: { userId: string; role: AuthRole; profileId?: string }, payload: { bikeId: string; startDate: Date; endDate: Date; pickupLocation: string; dropoffLocation?: string; notes?: string }) {
         if (auth.role !== "renter") {
             throw new AppError(403, "Only renters can create bookings", "FORBIDDEN");
@@ -71,8 +145,7 @@ const bookingService = {
             throw new AppError(409, "Bike is already booked for the selected period", "CONFLICT");
         }
 
-        const rentalDays = calculateRentalDays(payload.startDate, payload.endDate);
-        const totalAmount = (bike.pricePerDay * rentalDays) + (bike.serviceFee ?? 0);
+        const priceBreakdown = buildPriceBreakdown(bike, payload.startDate, payload.endDate);
 
         return bookingRepository.create({
             bikeId: payload.bikeId,
@@ -85,8 +158,11 @@ const bookingService = {
             notes: payload.notes ?? null,
             status: "pending",
             paymentStatus: "unpaid",
-            totalAmount,
+            totalAmount: priceBreakdown.total,
             currency: "NPR",
+            priceBreakdown,
+            // Price locked from this moment (PR-07).
+            priceLockedAt: new Date(),
         });
     },
 

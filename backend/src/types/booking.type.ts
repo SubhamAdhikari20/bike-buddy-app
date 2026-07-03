@@ -15,6 +15,15 @@ const bookingTypeSchema = z.object({
     totalAmount: z.number(),
     currency: z.string(),
     cancellationReason: z.string().nullish(),
+    priceBreakdown: z.object({
+        pricePerDay: z.number(),
+        rentalDays: z.number(),
+        baseAmount: z.number(),
+        serviceFee: z.number(),
+        securityDeposit: z.number(),
+        total: z.number(),
+    }).nullish(),
+    priceLockedAt: z.date().nullish(),
 });
 
 export type Booking = z.infer<typeof bookingTypeSchema>;
