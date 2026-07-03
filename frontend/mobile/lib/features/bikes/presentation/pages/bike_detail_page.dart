@@ -35,6 +35,15 @@ class BikeDetailPage extends ConsumerStatefulWidget {
 class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
   int _photoIndex = 0;
 
+  // Full-screen swipeable gallery with photo dates (BC-01).
+  void _openGallery(Bike bike, int startIndex) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => _GalleryPage(bike: bike, startIndex: startIndex),
+      ),
+    );
+  }
+
   Future<void> _openDirections(Bike bike) async {
     final lat = bike.location.latitude;
     final lng = bike.location.longitude;
@@ -228,21 +237,26 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               PageView.builder(
                 itemCount: bike.imageUrls.isEmpty ? 1 : bike.imageUrls.length,
                 onPageChanged: (index) => setState(() => _photoIndex = index),
-                itemBuilder: (context, index) => bike.imageUrls.isEmpty
-                    ? Container(
-                        color: AppColors.primaryLight,
-                        child: const Icon(Icons.two_wheeler,
-                            size: 96, color: AppColors.primary),
-                      )
-                    : CachedNetworkImage(
-                        imageUrl: bike.imageUrls[index],
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
+                itemBuilder: (context, index) => GestureDetector(
+                  onTap: bike.imageUrls.isEmpty
+                      ? null
+                      : () => _openGallery(bike, index),
+                  child: bike.imageUrls.isEmpty
+                      ? Container(
                           color: AppColors.primaryLight,
                           child: const Icon(Icons.two_wheeler,
                               size: 96, color: AppColors.primary),
+                        )
+                      : CachedNetworkImage(
+                          imageUrl: bike.imageUrls[index],
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => Container(
+                            color: AppColors.primaryLight,
+                            child: const Icon(Icons.two_wheeler,
+                                size: 96, color: AppColors.primary),
+                          ),
                         ),
-                      ),
+                ),
               ),
               if (bike.imageUrls.length > 1)
                 Positioned(
@@ -409,35 +423,115 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Quick specs (full specs tab arrives in Sprint 4).
-              Text('About this bike', style: textTheme.titleLarge),
+              // Technical specifications in a 2-column grid (BC-03,
+              // law of proximity - related facts grouped).
+              Text('Specifications', style: textTheme.titleLarge),
               const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                children: [
-                  _SpecChip(
-                      icon: Icons.speed, label: '${bike.engineCc} cc'),
-                  _SpecChip(
-                      icon: Icons.local_gas_station,
-                      label: bike.fuelType[0].toUpperCase() +
-                          bike.fuelType.substring(1)),
-                  _SpecChip(
-                      icon: Icons.settings,
-                      label: bike.transmission == 'manual'
-                          ? 'Manual'
-                          : 'Automatic'),
-                  _SpecChip(
-                      icon: Icons.category_outlined,
-                      label: bike.category[0].toUpperCase() +
-                          bike.category.substring(1)),
-                ],
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 3.4,
+                    mainAxisSpacing: AppSpacing.sm,
+                    crossAxisSpacing: AppSpacing.sm,
+                    children: [
+                      _SpecCell(icon: Icons.speed, label: 'Engine', value: '${bike.engineCc} cc'),
+                      _SpecCell(
+                          icon: Icons.local_gas_station,
+                          label: 'Fuel',
+                          value: bike.fuelType[0].toUpperCase() + bike.fuelType.substring(1)),
+                      _SpecCell(
+                          icon: Icons.settings,
+                          label: 'Gears',
+                          value: bike.transmission == 'manual' ? 'Manual' : 'Automatic'),
+                      _SpecCell(
+                          icon: Icons.category_outlined,
+                          label: 'Type',
+                          value: bike.category[0].toUpperCase() + bike.category.substring(1)),
+                      if (bike.weightKg != null)
+                        _SpecCell(
+                            icon: Icons.monitor_weight_outlined,
+                            label: 'Weight',
+                            value: '${bike.weightKg!.round()} kg'),
+                      if (bike.mileageKmPerL != null)
+                        _SpecCell(
+                            icon: Icons.route_outlined,
+                            label: 'Mileage',
+                            value: '${bike.mileageKmPerL!.round()} km/l'),
+                      _SpecCell(
+                        icon: Icons.sports_motorsports_outlined,
+                        label: 'Helmet',
+                        value: bike.helmetIncluded ? 'Included' : 'Bring own',
+                        valueColor: bike.helmetIncluded
+                            ? AppColors.success
+                            : AppColors.warning,
+                      ),
+                    ],
+                  ),
+                ),
               ),
+              const SizedBox(height: AppSpacing.md),
+
+              // Verified condition details (BC-05, trust signals).
+              if (bike.serviceDate != null || bike.odometerKm != null) ...[
+                Text('Condition', style: textTheme.titleLarge),
+                const SizedBox(height: AppSpacing.sm),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.verified, size: 18, color: AppColors.success),
+                            SizedBox(width: 6),
+                            Text('Verified by Bike Buddy',
+                                style: TextStyle(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        if (bike.serviceDate != null)
+                          Row(
+                            children: [
+                              const Icon(Icons.build_outlined,
+                                  size: 18, color: AppColors.textMuted),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text(
+                                  'Last serviced ${DateFormat('d MMM yyyy').format(bike.serviceDate!)}',
+                                  style: textTheme.bodyMedium),
+                            ],
+                          ),
+                        if (bike.odometerKm != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              const Icon(Icons.pin_outlined,
+                                  size: 18, color: AppColors.textMuted),
+                              const SizedBox(width: AppSpacing.sm),
+                              Text('${bike.odometerKm} km on the odometer',
+                                  style: textTheme.bodyMedium),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+              ],
+
               if (bike.description != null) ...[
+                Text('About this bike', style: textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.sm),
                 Text(bike.description!, style: textTheme.bodyMedium),
+                const SizedBox(height: AppSpacing.md),
               ],
-              const SizedBox(height: AppSpacing.md),
 
               // Damage & dispute policy, expandable (TR-06).
               Card(
@@ -648,28 +742,146 @@ class _LiveAvailabilityState extends ConsumerState<_LiveAvailability> {
   }
 }
 
-class _SpecChip extends StatelessWidget {
+/// One cell of the 2-column specs grid (BC-03).
+class _SpecCell extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String value;
+  final Color? valueColor;
 
-  const _SpecChip({required this.icon, required this.label});
+  const _SpecCell({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: AppColors.divider),
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppColors.primary),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.textMuted)),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: valueColor ?? AppColors.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Full-screen swipeable photo gallery with dots and date labels (BC-01).
+class _GalleryPage extends StatefulWidget {
+  final Bike bike;
+  final int startIndex;
+
+  const _GalleryPage({required this.bike, required this.startIndex});
+
+  @override
+  State<_GalleryPage> createState() => _GalleryPageState();
+}
+
+class _GalleryPageState extends State<_GalleryPage> {
+  late final PageController _controller =
+      PageController(initialPage: widget.startIndex);
+  late int _index = widget.startIndex;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urls = widget.bike.imageUrls;
+    final conditionPhotos = widget.bike.conditionPhotos;
+
+    // Match a condition-photo date to the shown image when available.
+    DateTime? dateFor(String url) {
+      for (final photo in conditionPhotos) {
+        if (photo.url == url) return photo.takenAt;
+      }
+      return null;
+    }
+
+    final takenAt = _index < urls.length ? dateFor(urls[_index]) : null;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text('${_index + 1} of ${urls.length}'),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+      body: Column(
         children: [
-          Icon(icon, size: 16, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(fontSize: 13)),
+          Expanded(
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: urls.length,
+              onPageChanged: (index) => setState(() => _index = index),
+              itemBuilder: (context, index) => InteractiveViewer(
+                child: CachedNetworkImage(
+                  imageUrl: urls[index],
+                  fit: BoxFit.contain,
+                  errorWidget: (context, url, error) => const Center(
+                    child: Icon(Icons.broken_image_outlined,
+                        color: Colors.white54, size: 64),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                children: [
+                  if (takenAt != null)
+                    Text(
+                      'Taken ${DateFormat('d MMM yyyy').format(takenAt)}',
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      urls.length,
+                      (index) => Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        width: index == _index ? 20 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color:
+                              index == _index ? Colors.white : Colors.white38,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

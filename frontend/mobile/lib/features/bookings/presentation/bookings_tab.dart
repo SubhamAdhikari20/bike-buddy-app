@@ -266,11 +266,17 @@ class _BookingCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => context.push('/receipt/${booking.id}'),
+                    onPressed: () => booking.isActive
+                        ? context.push(booking.checklistDone
+                            ? '/ride/${booking.id}'
+                            : '/checklist/${booking.id}')
+                        : context.push('/receipt/${booking.id}'),
                     child: Text(
-                      booking.paymentStatus == 'paid'
-                          ? 'View Receipt'
-                          : 'View Details',
+                      booking.isActive
+                          ? 'Manage Ride'
+                          : booking.paymentStatus == 'paid'
+                              ? 'View Receipt'
+                              : 'View Details',
                     ),
                   ),
                 ),

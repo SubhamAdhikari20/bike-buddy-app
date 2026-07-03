@@ -10,6 +10,10 @@ import '../../features/bikes/presentation/pages/compare_page.dart';
 import '../../features/bookings/presentation/booking_flow_page.dart';
 import '../../features/bookings/presentation/receipt_page.dart';
 import '../../features/home/presentation/home_shell.dart';
+import '../../features/rides/presentation/active_ride_page.dart';
+import '../../features/rides/presentation/checklist_page.dart';
+import '../../features/rides/presentation/damage_report_page.dart';
+import '../../features/rides/presentation/return_page.dart';
 import '../../features/map/presentation/map_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
 import '../../features/profile/presentation/edit_profile_page.dart';
@@ -66,6 +70,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/receipt/:bookingId',
         builder: (context, state) =>
             ReceiptPage(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(
+        path: '/checklist/:bookingId',
+        builder: (context, state) =>
+            ChecklistPage(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(
+        path: '/ride/:bookingId',
+        builder: (context, state) =>
+            ActiveRidePage(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(
+        path: '/return/:bookingId',
+        builder: (context, state) =>
+            ReturnPage(bookingId: state.pathParameters['bookingId']!),
+      ),
+      GoRoute(
+        path: '/damage-report/:bookingId',
+        builder: (context, state) =>
+            DamageReportPage(bookingId: state.pathParameters['bookingId']!),
       ),
       GoRoute(
         path: '/verify-id',

@@ -83,6 +83,12 @@ class Bike {
   final double securityDeposit;
   final BikeOwner? owner;
   final bool isBestValue;
+  final double? weightKg;
+  final double? mileageKmPerL;
+  final bool helmetIncluded;
+  final DateTime? serviceDate;
+  final int? odometerKm;
+  final List<({String url, DateTime? takenAt})> conditionPhotos;
 
   const Bike({
     required this.id,
@@ -108,6 +114,12 @@ class Bike {
     this.securityDeposit = 0,
     this.owner,
     this.isBestValue = false,
+    this.weightKg,
+    this.mileageKmPerL,
+    this.helmetIncluded = false,
+    this.serviceDate,
+    this.odometerKm,
+    this.conditionPhotos = const [],
   });
 
   bool get isAvailable => status == 'available';
@@ -146,6 +158,24 @@ class Bike {
           ? BikeOwner.fromJson((json['ownerId'] as Map).cast<String, dynamic>())
           : null,
       isBestValue: json['isBestValue'] as bool? ?? false,
+      weightKg: ((json['specs'] as Map?)?['weightKg'] as num?)?.toDouble(),
+      mileageKmPerL:
+          ((json['specs'] as Map?)?['mileageKmPerL'] as num?)?.toDouble(),
+      helmetIncluded:
+          (json['specs'] as Map?)?['helmetIncluded'] as bool? ?? false,
+      serviceDate: DateTime.tryParse(
+          (json['conditionInfo'] as Map?)?['serviceDate'] as String? ?? ''),
+      odometerKm:
+          ((json['conditionInfo'] as Map?)?['odometerKm'] as num?)?.toInt(),
+      conditionPhotos:
+          ((json['conditionInfo'] as Map?)?['photos'] as List? ?? const [])
+              .map((photo) => (
+                    url: (photo as Map)['url'] as String? ?? '',
+                    takenAt:
+                        DateTime.tryParse(photo['takenAt'] as String? ?? ''),
+                  ))
+              .where((photo) => photo.url.isNotEmpty)
+              .toList(),
     );
   }
 }
