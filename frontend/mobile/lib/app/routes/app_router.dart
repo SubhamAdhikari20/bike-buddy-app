@@ -5,6 +5,8 @@ import '../../core/services/local_store.dart';
 import '../../features/auth/presentation/pages/auth_page.dart';
 import '../../features/auth/presentation/pages/id_verification_page.dart';
 import '../../features/auth/presentation/pages/otp_login_page.dart';
+import '../../features/bikes/presentation/pages/bike_detail_page.dart';
+import '../../features/bikes/presentation/pages/compare_page.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/map/presentation/map_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
@@ -42,6 +44,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/map',
         builder: (context, state) => const MapPage(),
+      ),
+      GoRoute(
+        path: '/bike/:bikeId',
+        builder: (context, state) =>
+            BikeDetailPage(bikeId: state.pathParameters['bikeId']!),
+      ),
+      GoRoute(
+        path: '/compare',
+        builder: (context, state) =>
+            ComparePage(ids: state.uri.queryParameters['ids'] ?? ''),
       ),
       GoRoute(
         path: '/verify-id',
