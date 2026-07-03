@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../bookings/data/booking_api.dart';
 import '../../../reviews/data/review_api.dart';
 import '../../data/bike_model.dart';
 import '../providers/bikes_provider.dart';
@@ -79,12 +82,7 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
       return;
     }
 
-    // Full booking flow ships in Sprint 3.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content:
-              Text('Booking saved as draft - the 3-tap booking flow is coming next sprint.')),
-    );
+    context.push('/book/${bike.id}');
   }
 
   void _showOwnerDetails(BikeOwner owner) {
@@ -312,6 +310,8 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                       style: textTheme.bodyMedium),
                 ],
               ),
+              const SizedBox(height: AppSpacing.xs),
+              _LiveAvailability(bikeId: bike.id),
               const SizedBox(height: AppSpacing.md),
 
               // Verified owner badge (TR-01) - tap for details.
@@ -567,6 +567,82 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Live "Available Now" / "Next available at ..." line that refreshes
+/// every 30 seconds (BK-05, H1 - visibility of system status).
+class _LiveAvailability extends ConsumerStatefulWidget {
+  final String bikeId;
+
+  const _LiveAvailability({required this.bikeId});
+
+  @override
+  ConsumerState<_LiveAvailability> createState() => _LiveAvailabilityState();
+}
+
+class _LiveAvailabilityState extends ConsumerState<_LiveAvailability> {
+  Timer? _timer;
+  bool? _availableNow;
+  DateTime? _nextAvailableAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _load());
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    try {
+      final data =
+          await ref.read(bookingApiProvider).availability(widget.bikeId);
+      if (!mounted) return;
+      setState(() {
+        _availableNow = data['availableNow'] as bool?;
+        _nextAvailableAt =
+            DateTime.tryParse(data['nextAvailableAt'] as String? ?? '');
+      });
+    } catch (_) {
+      // Keep the last known state on a failed refresh.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_availableNow == null) return const SizedBox.shrink();
+
+    final available = _availableNow!;
+    final label = available
+        ? 'Available Now'
+        : _nextAvailableAt != null
+            ? 'Next available at ${DateFormat('EEE h:mm a').format(_nextAvailableAt!)}'
+            : 'Currently in use';
+
+    return Row(
+      children: [
+        Icon(Icons.circle,
+            size: 10, color: available ? AppColors.success : AppColors.warning),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: available ? AppColors.success : AppColors.warning,
+          ),
+        ),
+        const SizedBox(width: 6),
+        const Text('· refreshes live',
+            style: TextStyle(fontSize: 11, color: AppColors.textMuted)),
       ],
     );
   }
