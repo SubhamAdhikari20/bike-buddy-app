@@ -1,81 +1,78 @@
 # Bike Buddy
 
-**Bike Buddy** is a premium, state-of-the-art bike rental platform designed for urban explorers and cycling enthusiasts. This repository contains the complete source code for our dynamic, feature-packed website that transforms the way you rent bikes—making it fast, secure, and stylish.
+Bike Buddy is a motorbike rental platform for Nepal (Kathmandu, Lalitpur, Bhaktapur), built for the ST6012CEM User Experience Design coursework. Renting a bike here is manual, confusing and hard to trust - Bike Buddy fixes that with verified owners, clear prices, live availability and 24/7 support.
 
----
+The whole product is designed around Nielsen's 10 usability heuristics and core UX laws (Fitts's, Hick's, Jakob's, Miller's, proximity, cognitive load). Every screen traces back to a user story from the research phase (57 stories across 5 sprints).
 
-## Table of Contents
+## What's in this repo
 
-- [Bike Buddy](#bike-buddy)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Features](#features)
-  - [Technologies Used](#technologies-used)
-  - [Demo](#demo)
-  - [Installation](#installation)
+| Folder | What it is |
+|---|---|
+| `backend/` | Node.js + Express + TypeScript REST API with MongoDB (Mongoose) |
+| `frontend/mobile/` | Flutter app for renters and owners (Riverpod, go_router, clean architecture) |
+| `frontend/web/` | Next.js portal for admins and owners (shadcn/ui on base-ui, Tailwind) |
 
----
+## Main features
 
-## Overview
+**Mobile app (renters)**
+- Guest browsing - sign-up is only asked at booking time
+- 3-step onboarding, OTP sign-in, one-time ID verification with a clear data-use note
+- Search with filters, category chips, list/map toggle and side-by-side bike comparison
+- Bike detail with verified owner badge, dated photo gallery, specs, damage policy and real reviews (verified rides only, 1-star never blocked)
+- 3-step booking with a live fare estimate, itemised breakdown, price lock and no hidden fees
+- eSewa / Khalti (sandbox) and cash-at-pickup payments, PDF receipts
+- Pre-ride handover checklist with photo evidence, active ride screen with an always-visible SOS button
+- Step-by-step return with late-fee preview, extend-by-an-hour and damage reports
+- 24/7 support: phone, chat, searchable FAQ, photo tickets with status tracking
+- Dark mode (system / light / dark)
 
-Bike Buddy brings luxury and convenience to urban mobility. Whether you're a tourist looking to explore new cityscapes or a local in need of a quick, reliable ride, our platform offers a seamless bike rental experience. With real-time updates, secure transactions, and an elegant design, Bike Buddy ensures every ride is an adventure in style.
+**Web portal**
+- Admin: dashboard, owner verification, bike suspension, bookings, support ticket queue
+- Owner: fleet dashboard, list a new bike, confirm/complete bookings, damage reports
 
----
+## Getting started
 
-## Features
+### Backend
 
-- **Dynamic Bike Inventory**  
-  Browse a comprehensive, real-time updated catalog of bikes available for rental.
-- **Instant Booking & Reservation**  
-  Reserve your bike with just a few clicks through our fast, user-friendly booking system.
-- **Secure Payment Integration**  
-  Enjoy peace of mind with our integrated, secure payment gateway via **Khalti** and **Esewa**.
-- **Interactive Map Integration**  
-  Easily locate rental stations and check bike availability via an intuitive, interactive map.
-- **User Profiles & Dashboards**  
-  Create and manage your account, track your rental history, manage payments, and leave feedback—all from your personalized dashboard.
-- **Mobile-Responsive Design**  
-  Experience seamless performance across all devices—smartphones, tablets, and desktops.
-- **Real-Time Bike Tracking**  
-  Monitor your bike’s status and location live, ensuring a safe and efficient rental journey.
-- **Customer Reviews & Ratings**  
-  Read reviews from other riders and share your own experiences to help build our community.
-- **Administrative Dashboard**  
-  A powerful admin panel lets you manage inventory, oversee bookings, process payments, and handle customer inquiries effortlessly.
+```bash
+cd backend
+npm install
+cp .env.sample .env   # fill in MONGODB_URI, JWT_SECRET, GMAIL_USER, GMAIL_APP_PASSWORD
+npm run seed          # demo admin, owners, renters and Kathmandu bikes
+npm run dev           # http://localhost:5050
+```
 
----
+Seeded logins (password `Password@123`):
+- Admin: `admin@bikebuddy.com`
+- Owner: `ramesh.owner@bikebuddy.com` (verified), `sita.owner@bikebuddy.com` (pending)
+- Renter: `aashish@student.com` (KYC approved), `maya@student.com`
 
-## Technologies Used
+### Mobile app
 
-- **Database:**  
-  **MySQL**, managed through **Prisma** as our ORM.
-- **Frontend:**  
-  Built with **Next.js** for a fast, SEO-friendly experience combined with **Tailwind CSS** for rapid, responsive UI development.
-- **Authentication:**  
-  Secure authentication powered by **NextAuth**.
-- **Payment Integration:**  
-  Integrated via **Khalti** and **Esewa** for secure and seamless transactions.
-- **Mapping & Geolocation:**  
-  Interactive mapping features using popular mapping APIs like **Google Maps API** or **Leaflet** for precise, interactive mapping features.
-- **Real-Time Communication:**  
-  Implemented using modern web technologies like **WebSockets** (socket.io) or use of RTDB (Real Time Database) like **Firebase** for live bike tracking and notifications.
+```bash
+cd frontend/mobile
+flutter pub get
+flutter run
+```
 
----
+Notes:
+- The API base URL is `http://10.0.2.2:5050` (Android emulator). Change it in `lib/core/constants/app_constants.dart` for a physical device.
+- Add your Google Maps key in `android/app/src/main/AndroidManifest.xml` to see the map tiles.
 
-## Demo
+### Web portal
 
-Experience Bike Buddy in action!  
-Check out our [live demo](#) or watch a quick walkthrough video to see the platform’s features in motion.
+```bash
+cd frontend/web
+npm install
+npm run dev           # http://localhost:3000
+```
 
-![Bike Buddy Demo Screenshot](./assets/bike-bg-1.jpg)
+Set `NEXT_PUBLIC_API_URL=http://localhost:5050/api/v1` in `frontend/web/.env`.
 
----
+## Branches
 
-## Installation
+Work happened sprint by sprint: `sprint-1` (foundation and onboarding), `sprint-2` (discovery, trust and maps), `sprint-3` (booking and payment), `sprint-4` (condition, return and emergency), `sprint-5` (polish, accessibility and the web portal). Each sprint merged into `main` when done.
 
-To set up Bike Buddy locally, follow these steps:
+## Author
 
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/SubhamAdhikari20/Bike-Buddy.git
-    ```
+Subham Adhikari · 14812262 · Softwarica College of IT and E-Commerce / Coventry University
