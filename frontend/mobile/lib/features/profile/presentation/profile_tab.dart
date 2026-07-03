@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/app.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/services/local_store.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 
 /// Profile tab: account header, ID verification status, and clearly
@@ -146,6 +148,15 @@ class ProfileTab extends ConsumerWidget {
                 if (auth != null) ...[
                   const Divider(height: 1),
                   ListTile(
+                    leading: const Icon(Icons.confirmation_number_outlined,
+                        color: AppColors.primary),
+                    title: const Text('My Support Tickets'),
+                    subtitle: const Text('Track your reported issues'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.push('/support/tickets'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
                     leading: const Icon(Icons.privacy_tip_outlined,
                         color: AppColors.primary),
                     title: const Text('Privacy & Account'),
@@ -155,6 +166,55 @@ class ProfileTab extends ConsumerWidget {
                   ),
                 ],
               ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // Appearance: system, light or dark (UI-05).
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.dark_mode_outlined,
+                          color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text('Appearance', style: textTheme.titleMedium),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(
+                          value: ThemeMode.system,
+                          icon: Icon(Icons.brightness_auto, size: 18),
+                          label: Text('System')),
+                      ButtonSegment(
+                          value: ThemeMode.light,
+                          icon: Icon(Icons.light_mode, size: 18),
+                          label: Text('Light')),
+                      ButtonSegment(
+                          value: ThemeMode.dark,
+                          icon: Icon(Icons.dark_mode, size: 18),
+                          label: Text('Dark')),
+                    ],
+                    selected: {ref.watch(themeModeProvider)},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) {
+                      final mode = selection.first;
+                      ref.read(themeModeProvider.notifier).state = mode;
+                      LocalStore.setThemeMode(switch (mode) {
+                        ThemeMode.light => 'light',
+                        ThemeMode.dark => 'dark',
+                        _ => 'system',
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),

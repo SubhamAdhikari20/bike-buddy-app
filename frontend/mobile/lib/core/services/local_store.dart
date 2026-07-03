@@ -15,6 +15,7 @@ class LocalStore {
   static const _kOnboardingSeen = 'onboarding_seen';
   static const _kRecentSearches = 'recent_searches';
   static const _kBookingDraft = 'booking_draft';
+  static const _kThemeMode = 'theme_mode';
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -73,4 +74,11 @@ class LocalStore {
   }
 
   static Future<void> clearBookingDraft() => _prefs.remove(_kBookingDraft);
+
+  // --- Appearance (UI-05): system, light or dark ---
+
+  static String get themeMode => _prefs.getString(_kThemeMode) ?? 'system';
+
+  static Future<void> setThemeMode(String mode) =>
+      _prefs.setString(_kThemeMode, mode);
 }
