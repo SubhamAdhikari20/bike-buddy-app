@@ -57,4 +57,8 @@ export const bikeListQuerySchema = z.object({
     endDate: z.coerce.date().optional(),
     sortBy: z.enum(["pricePerDay", "rating", "createdAt", "year"]).default("createdAt"),
     sortOrder: z.enum(["asc", "desc"]).default("desc"),
+    lat: z.coerce.number().min(-90).max(90).optional(),
+    lng: z.coerce.number().min(-180).max(180).optional(),
+    radiusKm: z.coerce.number().positive().max(100).default(5),
+    includeUnavailable: z.coerce.boolean().default(false),
 });

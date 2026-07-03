@@ -1,4 +1,5 @@
 import AppError from "../errors/AppError.ts";
+import { haversineKm, roundKm } from "../utils/geo.ts";
 import { bikeRepository } from "../repositories/bike.repository.ts";
 import { ownerRepository } from "../repositories/owner.repository.ts";
 import { bookingRepository } from "../repositories/booking.repository.ts";
@@ -116,6 +117,44 @@ const bikeService = {
         const filter = await buildBikeFilter(query);
         const sortBy = String(query.sortBy ?? "createdAt");
         const sortOrder = String(query.sortOrder ?? "desc") === "asc" ? 1 : -1;
+
+        const lat = typeof query.lat === "number" ? query.lat : undefined;
+        const lng = typeof query.lng === "number" ? query.lng : undefined;
+
+        // Nearby search: only available bikes by default, sorted by distance (MAP-05)
+        if (lat !== undefined && lng !== undefined) {
+            const radiusKm = Number(query.radiusKm ?? 5);
+            if (!query.status && !query.includeUnavailable) {
+                filter.status = "available";
+            }
+            filter["location.latitude"] = { $ne: null };
+            filter["location.longitude"] = { $ne: null };
+
+            const candidates = await bikeRepository.list(filter, { createdAt: -1 }, 0, 500);
+            const withDistance = candidates
+                .map((bike) => {
+                    const distanceKm = haversineKm(lat, lng, bike.location.latitude as number, bike.location.longitude as number);
+                    return { bike, distanceKm };
+                })
+                .filter((entry) => entry.distanceKm <= radiusKm)
+                .sort((a, b) => a.distanceKm - b.distanceKm);
+
+            const total = withDistance.length;
+            const pageItems = withDistance.slice(skip, skip + limit).map(({ bike, distanceKm }) => ({
+                ...bike.toObject(),
+                distanceKm: roundKm(distanceKm),
+            }));
+
+            return {
+                items: pageItems,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit),
+                },
+            };
+        }
 
         const [items, total] = await Promise.all([
             bikeRepository.list(filter, { [sortBy]: sortOrder } as Record<string, 1 | -1>, skip, limit),
