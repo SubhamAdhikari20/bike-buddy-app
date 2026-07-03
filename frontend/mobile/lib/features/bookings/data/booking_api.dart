@@ -92,6 +92,61 @@ class BookingApi {
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
+  Future<void> submitChecklist({
+    required String bookingId,
+    required List<Map<String, dynamic>> items,
+    List<String> photos = const [],
+    required bool acknowledged,
+  }) async {
+    await _client.post('/bookings/$bookingId/checklist', data: {
+      'items': items,
+      'photos': photos,
+      'acknowledged': acknowledged,
+    });
+  }
+
+  Future<Map<String, dynamic>> returnPreview(String bookingId) async {
+    final res = await _client.get('/bookings/$bookingId/return-preview');
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> extend(String bookingId, int extraHours) async {
+    final res = await _client.patch('/bookings/$bookingId/extend', data: {
+      'extraHours': extraHours,
+    });
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> returnBike(String bookingId) async {
+    final res = await _client.post('/bookings/$bookingId/return');
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<void> reportDamage({
+    required String bookingId,
+    required List<String> photos,
+    required String description,
+  }) async {
+    await _client.post('/safety/damage-reports', data: {
+      'bookingId': bookingId,
+      'photos': photos,
+      'description': description,
+    });
+  }
+
+  Future<Map<String, dynamic>> sendSos({
+    String? bookingId,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final res = await _client.post('/safety/sos', data: {
+      'bookingId': ?bookingId,
+      'latitude': ?latitude,
+      'longitude': ?longitude,
+    });
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
   String receiptPdfUrl(String bookingId) =>
       '${AppConstants.apiBaseUrl}/bookings/$bookingId/receipt.pdf';
 

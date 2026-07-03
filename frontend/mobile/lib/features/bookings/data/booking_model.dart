@@ -40,6 +40,10 @@ class Booking {
   final PriceBreakdown? priceBreakdown;
   final DateTime? priceLockedAt;
   final DateTime? createdAt;
+  final bool checklistDone;
+  final DateTime? returnedAt;
+  final int lateMinutes;
+  final double lateFeeAmount;
 
   const Booking({
     required this.id,
@@ -54,6 +58,10 @@ class Booking {
     this.priceBreakdown,
     this.priceLockedAt,
     this.createdAt,
+    this.checklistDone = false,
+    this.returnedAt,
+    this.lateMinutes = 0,
+    this.lateFeeAmount = 0,
   });
 
   bool get isActive {
@@ -98,6 +106,11 @@ class Booking {
       priceLockedAt:
           DateTime.tryParse(json['priceLockedAt'] as String? ?? ''),
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      checklistDone:
+          (json['preRideChecklist'] as Map?)?['completedAt'] != null,
+      returnedAt: DateTime.tryParse(json['returnedAt'] as String? ?? ''),
+      lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
+      lateFeeAmount: (json['lateFeeAmount'] as num?)?.toDouble() ?? 0,
     );
   }
 }
