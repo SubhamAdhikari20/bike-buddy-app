@@ -33,6 +33,16 @@ export const createBikeSchema = z.object({
     serviceFee: z.number().nonnegative().optional(),
     location: locationSchema,
     images: z.array(bikeImageSchema).default([]),
+    specs: z.object({
+        weightKg: z.number().positive().optional(),
+        mileageKmPerL: z.number().positive().optional(),
+        helmetIncluded: z.boolean().optional(),
+    }).optional(),
+    conditionInfo: z.object({
+        serviceDate: z.coerce.date().optional(),
+        odometerKm: z.number().nonnegative().optional(),
+        photos: z.array(z.object({ url: z.string().url(), takenAt: z.coerce.date().optional() })).optional(),
+    }).optional(),
     status: z.enum(["available", "unavailable", "maintenance", "inactive"]).default("available"),
     verifiedBike: z.boolean().default(false),
     safetyScore: z.number().min(0).max(100).default(0),

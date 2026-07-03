@@ -28,6 +28,16 @@ const bikeTypeSchema = z.object({
         longitude: z.number().nullish(),
     }),
     images: z.array(bikeImageSchema),
+    specs: z.object({
+        weightKg: z.number().nullish(),
+        mileageKmPerL: z.number().nullish(),
+        helmetIncluded: z.boolean().nullish(),
+    }).nullish(),
+    conditionInfo: z.object({
+        serviceDate: z.date().nullish(),
+        odometerKm: z.number().nullish(),
+        photos: z.array(z.object({ url: z.string(), takenAt: z.date().nullish() })).nullish(),
+    }).nullish(),
     status: z.enum(["available", "unavailable", "maintenance", "inactive"]),
     verifiedBike: z.boolean(),
     safetyScore: z.number(),

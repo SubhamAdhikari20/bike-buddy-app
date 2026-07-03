@@ -41,6 +41,21 @@ const bikeSchema: Schema<IBike> = new Schema({
         type: [{ url: { type: String, required: true }, alt: { type: String, default: null } }],
         default: [],
     },
+    // Technical specs for the enthusiast tab (BC-03).
+    specs: {
+        weightKg: { type: Number, default: null },
+        mileageKmPerL: { type: Number, default: null },
+        helmetIncluded: { type: Boolean, default: false },
+    },
+    // Verified condition details shown on the listing (BC-01, BC-05).
+    conditionInfo: {
+        serviceDate: { type: Date, default: null },
+        odometerKm: { type: Number, default: null },
+        photos: {
+            type: [{ url: { type: String, required: true }, takenAt: { type: Date, default: Date.now } }],
+            default: [],
+        },
+    },
     status: { type: String, required: true, enum: ["available", "unavailable", "maintenance", "inactive"], default: "available", index: true },
     verifiedBike: { type: Boolean, default: false },
     safetyScore: { type: Number, default: 0, min: 0, max: 100 },
