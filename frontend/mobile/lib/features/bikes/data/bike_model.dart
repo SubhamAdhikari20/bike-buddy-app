@@ -3,6 +3,7 @@ class BikeLocation {
   final String address;
   final String city;
   final String? area;
+  final String? landmark;
   final double? latitude;
   final double? longitude;
 
@@ -11,6 +12,7 @@ class BikeLocation {
     required this.address,
     required this.city,
     this.area,
+    this.landmark,
     this.latitude,
     this.longitude,
   });
@@ -20,8 +22,40 @@ class BikeLocation {
         address: json['address'] as String? ?? '',
         city: json['city'] as String? ?? '',
         area: json['area'] as String?,
+        landmark: json['landmark'] as String?,
         latitude: (json['latitude'] as num?)?.toDouble(),
         longitude: (json['longitude'] as num?)?.toDouble(),
+      );
+}
+
+/// Owner summary as populated in bike responses. Backs the verified
+/// owner badge and its detail modal (TR-01).
+class BikeOwner {
+  final String id;
+  final String fullName;
+  final String ownerStatus;
+  final DateTime? verifiedAt;
+  final String? bio;
+  final String? profilePictureUrl;
+
+  const BikeOwner({
+    required this.id,
+    required this.fullName,
+    required this.ownerStatus,
+    this.verifiedAt,
+    this.bio,
+    this.profilePictureUrl,
+  });
+
+  bool get isVerified => ownerStatus == 'verified';
+
+  factory BikeOwner.fromJson(Map<String, dynamic> json) => BikeOwner(
+        id: (json['_id'] ?? '').toString(),
+        fullName: json['fullName'] as String? ?? 'Bike owner',
+        ownerStatus: json['ownerStatus'] as String? ?? 'none',
+        verifiedAt: DateTime.tryParse(json['ownerVerificationDate'] as String? ?? ''),
+        bio: json['bio'] as String?,
+        profilePictureUrl: json['profilePictureUrl'] as String?,
       );
 }
 
@@ -45,6 +79,10 @@ class Bike {
   final double averageRating;
   final int ratingCount;
   final double? distanceKm;
+  final String category;
+  final double securityDeposit;
+  final BikeOwner? owner;
+  final bool isBestValue;
 
   const Bike({
     required this.id,
@@ -66,6 +104,10 @@ class Bike {
     required this.averageRating,
     required this.ratingCount,
     this.distanceKm,
+    this.category = 'commuter',
+    this.securityDeposit = 0,
+    this.owner,
+    this.isBestValue = false,
   });
 
   bool get isAvailable => status == 'available';
@@ -98,6 +140,12 @@ class Bike {
       averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0,
       ratingCount: (json['ratingCount'] as num?)?.toInt() ?? 0,
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
+      category: json['category'] as String? ?? 'commuter',
+      securityDeposit: (json['securityDeposit'] as num?)?.toDouble() ?? 0,
+      owner: json['ownerId'] is Map
+          ? BikeOwner.fromJson((json['ownerId'] as Map).cast<String, dynamic>())
+          : null,
+      isBestValue: json['isBestValue'] as bool? ?? false,
     );
   }
 }
