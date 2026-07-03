@@ -9,6 +9,7 @@ import AppError from "../errors/AppError.ts";
 import DamageReportModel from "../models/damage-report.model.ts";
 import SosAlertModel from "../models/sos-alert.model.ts";
 import BookingModel from "../models/booking.model.ts";
+import BikeModel from "../models/bike.model.ts";
 
 const damageReportSchema = z.object({
     bookingId: z.string().min(1),
@@ -53,7 +54,13 @@ safetyRoutes.post("/damage-reports", validate(damageReportSchema), async (req, r
 
 safetyRoutes.get("/damage-reports/mine", async (req, res, next) => {
     try {
-        const reports = await DamageReportModel.find({ reportedBy: req.auth!.userId }).sort({ createdAt: -1 });
+        // Renters see reports they filed; owners see reports on their bikes.
+        let filter: Record<string, unknown> = { reportedBy: req.auth!.userId };
+        if (req.auth!.role === "owner" && req.auth!.profileId) {
+            const ownedBikes = await BikeModel.find({ ownerId: req.auth!.profileId }).select("_id");
+            filter = { bikeId: { $in: ownedBikes.map((bike) => bike._id) } };
+        }
+        const reports = await DamageReportModel.find(filter).sort({ createdAt: -1 });
         res.status(200).json(new ApiResponse(200, "Your damage reports", reports));
     } catch (error) {
         next(error);

@@ -9,6 +9,7 @@ const buildBikeFilter = async (query: Record<string, unknown>) => {
     const filter: Record<string, unknown> = {};
 
     if (query.status) filter.status = query.status;
+    if (query.ownerId) filter.ownerId = query.ownerId;
     if (query.category) filter.category = query.category;
     if (query.brand) filter.brand = query.brand;
     if (query.model) filter.model = query.model;

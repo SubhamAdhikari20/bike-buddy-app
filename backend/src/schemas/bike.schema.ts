@@ -56,6 +56,7 @@ export const bikeListQuerySchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
     search: z.string().optional(),
+    ownerId: z.string().optional(),
     brand: z.string().optional(),
     model: z.string().optional(),
     city: z.string().optional(),
