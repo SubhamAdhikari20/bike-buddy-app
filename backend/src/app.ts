@@ -9,6 +9,10 @@ import cookieParser from "cookie-parser";
 import morgan from "morgan";
 import helmet from "helmet";
 import "colors";
+import apiRoutes from "./routes/index.ts";
+import authRoutes from "./routes/auth.routes.ts";
+import notFound from "./middlewares/notFound.ts";
+import errorHandler from "./middlewares/errorHandler.ts";
 
 // dotenv.config();
 
@@ -33,6 +37,7 @@ const authLimiter = rateLimit({
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev")); // Logging middleware
 app.use(cookieParser());
 
@@ -99,13 +104,23 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// app.use(limiter); // Apply rate limiting to all requests
+app.use(limiter);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
+app.get("/health", (req: Request, res: Response) => {
+    res.status(200).json({ success: true, message: "Bike Buddy backend is healthy" });
+});
+
+app.use("/api/v1/auth", authLimiter, authRoutes);
+app.use("/api/v1", apiRoutes);
 
 
 
 app.get("/", (req: Request, res: Response) => {
     res.send("Hello, World!");
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
