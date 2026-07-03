@@ -5,6 +5,7 @@ const locationSchema = z.object({
     address: z.string().min(3).max(255),
     city: z.string().min(2).max(80),
     area: z.string().min(2).max(80).optional(),
+    landmark: z.string().min(2).max(120).optional(),
     latitude: z.number().finite().optional(),
     longitude: z.number().finite().optional(),
 });
@@ -24,6 +25,7 @@ export const createBikeSchema = z.object({
     fuelType: z.enum(["petrol", "diesel", "electric", "hybrid"]),
     transmission: z.enum(["manual", "automatic"]),
     condition: z.enum(["excellent", "good", "fair", "needs_service"]),
+    category: z.enum(["commuter", "scooter", "cruiser", "sports", "electric", "mountain"]).default("commuter"),
     description: z.string().max(4000).optional(),
     pricePerDay: z.number().positive(),
     pricePerHour: z.number().positive().optional(),
@@ -50,6 +52,7 @@ export const bikeListQuerySchema = z.object({
     fuelType: z.enum(["petrol", "diesel", "electric", "hybrid"]).optional(),
     transmission: z.enum(["manual", "automatic"]).optional(),
     condition: z.enum(["excellent", "good", "fair", "needs_service"]).optional(),
+    category: z.enum(["commuter", "scooter", "cruiser", "sports", "electric", "mountain"]).optional(),
     status: z.enum(["available", "unavailable", "maintenance", "inactive"]).optional(),
     minPrice: z.coerce.number().nonnegative().optional(),
     maxPrice: z.coerce.number().nonnegative().optional(),

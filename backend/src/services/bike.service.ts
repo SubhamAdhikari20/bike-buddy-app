@@ -9,6 +9,7 @@ const buildBikeFilter = async (query: Record<string, unknown>) => {
     const filter: Record<string, unknown> = {};
 
     if (query.status) filter.status = query.status;
+    if (query.category) filter.category = query.category;
     if (query.brand) filter.brand = query.brand;
     if (query.model) filter.model = query.model;
     if (query.city) filter["location.city"] = query.city;
@@ -99,6 +100,26 @@ const bikeService = {
 
         await ensureOwnerAccess(auth, bike.ownerId.toString());
         return bikeRepository.deleteById(bikeId);
+    },
+
+    // Side-by-side comparison of up to 3 bikes (UI-04, Miller's law).
+    async compareBikes(ids: string[]) {
+        if (ids.length < 2 || ids.length > 3) {
+            throw new AppError(400, "Pick 2 or 3 bikes to compare", "BAD_REQUEST");
+        }
+
+        const bikes = await Promise.all(ids.map((id) => bikeRepository.findById(id)));
+        const found = bikes.filter((bike) => bike !== null);
+        if (found.length !== ids.length) {
+            throw new AppError(404, "One of the selected bikes no longer exists", "NOT_FOUND");
+        }
+
+        // Flag the cheapest per-day bike so the UI can highlight best value.
+        const cheapest = found.reduce((min, bike) => (bike!.pricePerDay < min!.pricePerDay ? bike : min), found[0]);
+        return found.map((bike) => ({
+            ...bike!.toObject(),
+            isBestValue: bike!._id.toString() === cheapest!._id.toString(),
+        }));
     },
 
     async getBike(bikeId: string) {
