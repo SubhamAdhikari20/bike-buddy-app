@@ -14,6 +14,9 @@ const renterSchema = z.object({
 
     googleId: z.string().nullish(),
     bio: bioValidation,
+    idDocumentUrl: z.string().nullish(),
+    kycStatus: z.enum(["unverified", "pending", "approved", "rejected"]).nullish(),
+    kycSubmittedAt: z.date().nullish(),
 });
 
 export type Renter = z.infer<typeof renterSchema>;

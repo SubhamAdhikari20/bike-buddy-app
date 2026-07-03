@@ -81,3 +81,50 @@ export const assignRole: RequestHandler = async (req, res, next) => {
         next(error);
     }
 };
+
+export const sendOtp: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await authService.sendOtp(req.body);
+        res.status(200).json(new ApiResponse(200, "We sent a 6-digit code to your email", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const verifyOtp: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await authService.verifyOtp(req.body);
+        res.cookie("accessToken", result.token, { httpOnly: true, sameSite: "lax", secure: false });
+        res.status(200).json(new ApiResponse(200, "Signed in successfully", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const submitKyc: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await authService.submitKyc(req.auth!, req.body);
+        res.status(200).json(new ApiResponse(200, "ID submitted. We will review it within 24 hours", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getKycStatus: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await authService.getKycStatus(req.auth!);
+        res.status(200).json(new ApiResponse(200, "KYC status fetched", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteAccount: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await authService.deleteAccount(req.auth!);
+        res.clearCookie("accessToken");
+        res.status(200).json(new ApiResponse(200, "Your account and data were deleted", result));
+    } catch (error) {
+        next(error);
+    }
+};

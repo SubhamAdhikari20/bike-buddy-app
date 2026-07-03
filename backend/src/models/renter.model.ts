@@ -55,6 +55,19 @@ const renterSchema: Schema<IRenter> = new Schema({
         required: true,
         default: false
     },
+    idDocumentUrl: {
+        type: String,
+        default: null
+    },
+    kycStatus: {
+        type: String,
+        enum: ["unverified", "pending", "approved", "rejected"],
+        default: "unverified"
+    },
+    kycSubmittedAt: {
+        type: Date,
+        default: null
+    },
 },
     {
         timestamps: true

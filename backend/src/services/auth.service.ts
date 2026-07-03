@@ -3,6 +3,7 @@ import AppError from "../errors/AppError.ts";
 import { comparePassword, hashPassword } from "../utils/password.ts";
 import { signToken } from "../utils/jwt.ts";
 import { JWT_LOGIN_EXPIRES_IN, JWT_SIGNUP_EXPIRES_IN } from "../config/index.ts";
+import { sendOtpEmail } from "../helpers/send-otp-email.ts";
 import { userRepository } from "../repositories/user.repository.ts";
 import { ownerRepository } from "../repositories/owner.repository.ts";
 import { renterRepository } from "../repositories/renter.repository.ts";
@@ -212,6 +213,122 @@ const authService = {
         });
 
         return { message: "Password reset successfully" };
+    },
+
+    async sendOtp(payload: { email: string }) {
+        const baseUser = await userRepository.findByEmail(payload.email);
+        if (!baseUser) {
+            throw new AppError(404, "No account found with this email. Please sign up first.", "NOT_FOUND");
+        }
+
+        const otp = String(crypto.randomInt(100000, 1000000));
+        const otpHash = crypto.createHash("sha256").update(otp).digest("hex");
+        await userRepository.updateById(baseUser._id.toString(), {
+            verifyCode: otpHash,
+            verifyCodeExpiryDate: new Date(Date.now() + 10 * 60 * 1000),
+        });
+
+        const profile = await getProfileByUser(baseUser);
+        const emailResult = await sendOtpEmail(profile?.fullName ?? "there", baseUser.email, otp);
+        if (!emailResult.success) {
+            throw new AppError(500, "Could not send the OTP email. Please try again.", "EMAIL_FAILED");
+        }
+
+        return {
+            email: baseUser.email,
+            expiresInMinutes: 10,
+            resendAfterSeconds: 30,
+        };
+    },
+
+    async verifyOtp(payload: { email: string; code: string }) {
+        const baseUser = await userRepository.findByEmail(payload.email);
+        if (!baseUser) {
+            throw new AppError(404, "No account found with this email.", "NOT_FOUND");
+        }
+
+        const codeHash = crypto.createHash("sha256").update(payload.code).digest("hex");
+        const isCodeValid = baseUser.verifyCode === codeHash;
+        const isCodeAlive = baseUser.verifyCodeExpiryDate && new Date(baseUser.verifyCodeExpiryDate) > new Date();
+
+        if (!isCodeValid || !isCodeAlive) {
+            throw new AppError(401, "The code is wrong or has expired. Please request a new one.", "UNAUTHORIZED");
+        }
+
+        await userRepository.updateById(baseUser._id.toString(), {
+            verifyCode: null,
+            verifyCodeExpiryDate: null,
+            isVerified: true,
+        });
+
+        const profile = await getProfileByUser(baseUser);
+        if (!profile) {
+            throw new AppError(401, "Invalid account configuration", "UNAUTHORIZED");
+        }
+
+        return buildSession(baseUser, profile, baseUser.role as AuthRole);
+    },
+
+    async submitKyc(auth: { userId: string; role: AuthRole }, payload: { idDocumentUrl: string }) {
+        if (auth.role !== "renter") {
+            throw new AppError(403, "Only renters submit ID verification", "FORBIDDEN");
+        }
+
+        const renter = await renterRepository.findByBaseUserId(auth.userId);
+        if (!renter) {
+            throw new AppError(404, "Profile not found", "NOT_FOUND");
+        }
+
+        if (renter.kycStatus === "approved") {
+            throw new AppError(409, "Your ID is already verified", "CONFLICT");
+        }
+
+        const updated = await renterRepository.updateById(renter._id.toString(), {
+            idDocumentUrl: payload.idDocumentUrl,
+            kycStatus: "pending",
+            kycSubmittedAt: new Date(),
+        });
+
+        return {
+            kycStatus: updated?.kycStatus,
+            kycSubmittedAt: updated?.kycSubmittedAt,
+            reviewWithinHours: 24,
+        };
+    },
+
+    async getKycStatus(auth: { userId: string; role: AuthRole }) {
+        if (auth.role !== "renter") {
+            return { kycStatus: "approved" };
+        }
+
+        const renter = await renterRepository.findByBaseUserId(auth.userId);
+        if (!renter) {
+            throw new AppError(404, "Profile not found", "NOT_FOUND");
+        }
+
+        return {
+            kycStatus: renter.kycStatus ?? "unverified",
+            kycSubmittedAt: renter.kycSubmittedAt ?? null,
+        };
+    },
+
+    async deleteAccount(auth: { userId: string; role: AuthRole }) {
+        const baseUser = await userRepository.findById(auth.userId);
+        if (!baseUser) {
+            throw new AppError(404, "User not found", "NOT_FOUND");
+        }
+
+        const repository = getProfileRepository(auth.role);
+        const profile = await repository.findByBaseUserId(auth.userId);
+        if (profile) {
+            await repository.deleteById(profile._id.toString());
+        }
+        await userRepository.deleteById(auth.userId);
+
+        return {
+            deleted: true,
+            email: baseUser.email,
+        };
     },
 
     async assignRole(adminUserId: string, payload: { userId: string; role: AuthRole }) {

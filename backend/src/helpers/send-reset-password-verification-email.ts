@@ -63,9 +63,9 @@ export const sendResetPasswordVerificationEmail = async (
     });
 
     await transporter.sendMail({
-      from: `"Leelame" <${process.env.GMAIL_USER}>`,
+      from: `"Bike Buddy" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: "Leelame | Your Verification Code",
+      subject: "Bike Buddy | Your Verification Code",
       html,
     });
 

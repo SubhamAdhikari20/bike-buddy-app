@@ -44,3 +44,16 @@ export const adminAssignRoleSchema = z.object({
     userId: z.string().min(1),
     role: roleValidation,
 });
+
+export const sendOtpSchema = z.object({
+    email: emailValidation,
+});
+
+export const verifyOtpSchema = z.object({
+    email: emailValidation,
+    code: z.string().length(6, "Code must be 6 digits").regex(/^\d{6}$/, "Code must be 6 digits"),
+});
+
+export const submitKycSchema = z.object({
+    idDocumentUrl: z.string().url(),
+});
