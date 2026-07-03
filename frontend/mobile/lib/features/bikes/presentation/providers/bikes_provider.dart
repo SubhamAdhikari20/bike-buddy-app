@@ -3,53 +3,108 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/bike_api.dart';
 import '../../data/bike_model.dart';
 
-/// Query for the bike list. Category chips and the search bar both feed
-/// into this (Hick's law: one simple filter model in Sprint 1).
+/// One simple filter model feeds the whole discovery experience:
+/// category chips, search bar and the filter sheet (Hick's law).
 class BikeQuery {
   final String? search;
-  final String? category;
+  final String? category; // backend enum value, null = all
+  final String? city;
+  final double? minPrice;
+  final double? maxPrice;
+  final String sortBy;
+  final String sortOrder;
   final bool availableOnly;
 
-  const BikeQuery({this.search, this.category, this.availableOnly = true});
+  const BikeQuery({
+    this.search,
+    this.category,
+    this.city,
+    this.minPrice,
+    this.maxPrice,
+    this.sortBy = 'createdAt',
+    this.sortOrder = 'desc',
+    this.availableOnly = true,
+  });
 
-  BikeQuery copyWith({String? search, String? category, bool? availableOnly}) =>
+  static const categoryLabels = <String, String?>{
+    'All Bikes': null,
+    'Commuter': 'commuter',
+    'Scooters': 'scooter',
+    'Cruisers': 'cruiser',
+    'Sports': 'sports',
+    'Electric': 'electric',
+    'Mountain': 'mountain',
+  };
+
+  int get activeFilterCount => [
+        if (category != null) 1,
+        if (city != null) 1,
+        if (minPrice != null || maxPrice != null) 1,
+        if (!availableOnly) 1,
+      ].length;
+
+  BikeQuery copyWith({
+    Object? search = _sentinel,
+    Object? category = _sentinel,
+    Object? city = _sentinel,
+    Object? minPrice = _sentinel,
+    Object? maxPrice = _sentinel,
+    String? sortBy,
+    String? sortOrder,
+    bool? availableOnly,
+  }) =>
       BikeQuery(
-        search: search ?? this.search,
-        category: category ?? this.category,
+        search: search == _sentinel ? this.search : search as String?,
+        category: category == _sentinel ? this.category : category as String?,
+        city: city == _sentinel ? this.city : city as String?,
+        minPrice: minPrice == _sentinel ? this.minPrice : minPrice as double?,
+        maxPrice: maxPrice == _sentinel ? this.maxPrice : maxPrice as double?,
+        sortBy: sortBy ?? this.sortBy,
+        sortOrder: sortOrder ?? this.sortOrder,
         availableOnly: availableOnly ?? this.availableOnly,
       );
+
+  static const _sentinel = Object();
 
   @override
   bool operator ==(Object other) =>
       other is BikeQuery &&
       other.search == search &&
       other.category == category &&
+      other.city == city &&
+      other.minPrice == minPrice &&
+      other.maxPrice == maxPrice &&
+      other.sortBy == sortBy &&
+      other.sortOrder == sortOrder &&
       other.availableOnly == availableOnly;
 
   @override
-  int get hashCode => Object.hash(search, category, availableOnly);
+  int get hashCode => Object.hash(
+      search, category, city, minPrice, maxPrice, sortBy, sortOrder, availableOnly);
 }
 
 final bikeQueryProvider = StateProvider<BikeQuery>((ref) => const BikeQuery());
 
-final bikesProvider = FutureProvider<List<Bike>>((ref) async {
+final bikesProvider = FutureProvider<List<Bike>>((ref) {
   final query = ref.watch(bikeQueryProvider);
   final api = ref.watch(bikeApiProvider);
 
-  final bikes = await api.listBikes(
+  return api.listBikes(
     search: query.search,
     status: query.availableOnly ? 'available' : null,
+    category: query.category,
+    city: query.city,
+    minPrice: query.minPrice,
+    maxPrice: query.maxPrice,
+    sortBy: query.sortBy,
+    sortOrder: query.sortOrder,
   );
-
-  // Category chips: electric maps to fuel type, the rest match on
-  // tags/title until dedicated categories arrive in Sprint 2.
-  final category = query.category;
-  if (category == null || category == 'All Bikes') return bikes;
-
-  final needle = category.toLowerCase().replaceAll(RegExp(r's$'), '');
-  return bikes.where((bike) {
-    if (needle == 'electric') return bike.fuelType == 'electric';
-    final haystack = '${bike.title} ${bike.brand} ${bike.model}'.toLowerCase();
-    return haystack.contains(needle);
-  }).toList();
 });
+
+/// Single bike with populated owner for the detail page.
+final bikeDetailProvider = FutureProvider.family<Bike, String>((ref, bikeId) {
+  return ref.watch(bikeApiProvider).getBike(bikeId);
+});
+
+/// Bikes picked for comparison from the search results (UI-04).
+final compareSelectionProvider = StateProvider<List<Bike>>((ref) => []);
