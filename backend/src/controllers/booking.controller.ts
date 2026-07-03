@@ -1,6 +1,8 @@
 import type { RequestHandler } from "express";
 import ApiResponse from "../utils/ApiResponse.ts";
 import bookingService from "../services/booking.service.ts";
+import BookingModel from "../models/booking.model.ts";
+import { streamReceiptPdf } from "../helpers/generate-receipt-pdf.ts";
 
 export const createBooking: RequestHandler = async (req, res, next) => {
     try {
@@ -55,6 +57,60 @@ export const completeBooking: RequestHandler = async (req, res, next) => {
         const bookingId = String(req.params.bookingId);
         const result = await bookingService.completeBooking(req.auth!, bookingId);
         res.status(200).json(new ApiResponse(200, "Booking completed successfully", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const quoteBooking: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await bookingService.quote({
+            bikeId: String(req.body.bikeId),
+            startDate: new Date(req.body.startDate),
+            endDate: new Date(req.body.endDate),
+        });
+        res.status(200).json(new ApiResponse(200, "Fare estimate calculated", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getBikeAvailability: RequestHandler = async (req, res, next) => {
+    try {
+        const result = await bookingService.getBikeAvailability(String(req.params.bikeId));
+        res.status(200).json(new ApiResponse(200, "Availability fetched", result));
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const downloadReceipt: RequestHandler = async (req, res, next) => {
+    try {
+        const bookingId = String(req.params.bookingId);
+        const booking: any = await bookingService.getBooking(req.auth!, bookingId);
+        const populated = await BookingModel.findById(bookingId).populate("bikeId").populate("renterId");
+        const bike: any = populated?.bikeId;
+        const renter: any = populated?.renterId;
+
+        streamReceiptPdf(res, {
+            receiptNumber: bookingId.slice(-8).toUpperCase(),
+            issuedAt: new Date(),
+            renterName: renter?.fullName ?? "Bike Buddy rider",
+            bikeTitle: bike?.title ?? "Bike",
+            startDate: booking.startDate,
+            endDate: booking.endDate,
+            pickupLocation: booking.pickupLocation,
+            breakdown: booking.priceBreakdown ?? {
+                pricePerDay: 0,
+                rentalDays: 0,
+                baseAmount: booking.totalAmount,
+                serviceFee: 0,
+                securityDeposit: 0,
+                total: booking.totalAmount,
+            },
+            paymentProvider: null,
+            paymentStatus: booking.paymentStatus,
+        });
     } catch (error) {
         next(error);
     }
