@@ -37,7 +37,8 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
     final lng = bike.location.longitude;
     if (lat == null || lng == null) return;
     final uri = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=walking');
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=walking',
+    );
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
@@ -58,11 +59,13 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
         context: context,
         builder: (context) => AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.large)),
+            borderRadius: BorderRadius.circular(AppRadius.large),
+          ),
           icon: const Icon(Icons.lock_open, size: 40, color: AppColors.primary),
           title: const Text('Sign in to book'),
           content: const Text(
-              'Browsing is free forever. To book this bike we just need an account so the owner knows who is riding.'),
+            'Browsing is free forever. To book this bike we just need an account so the owner knows who is riding.',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -82,8 +85,10 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
     // Full booking flow ships in Sprint 3.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-          content:
-              Text('Booking saved as draft - the 3-tap booking flow is coming next sprint.')),
+        content: Text(
+          'Booking saved as draft - the 3-tap booking flow is coming next sprint.',
+        ),
+      ),
     );
   }
 
@@ -91,8 +96,9 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.large),
+        ),
       ),
       builder: (context) => Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -117,25 +123,36 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(owner.fullName,
-                          style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        owner.fullName,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
                       if (owner.isVerified)
                         Row(
                           children: [
-                            const Icon(Icons.verified,
-                                size: 16, color: AppColors.success),
+                            const Icon(
+                              Icons.verified,
+                              size: 16,
+                              color: AppColors.success,
+                            ),
                             Text(
                               ' Verified by Bike Buddy'
                               '${owner.verifiedAt != null ? ' · ${DateFormat('MMM yyyy').format(owner.verifiedAt!)}' : ''}',
                               style: const TextStyle(
-                                  fontSize: 13, color: AppColors.success),
+                                fontSize: 13,
+                                color: AppColors.success,
+                              ),
                             ),
                           ],
                         )
                       else
-                        const Text('Not verified yet',
-                            style: TextStyle(
-                                fontSize: 13, color: AppColors.warning)),
+                        const Text(
+                          'Not verified yet',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.warning,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -150,11 +167,12 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
             ),
             if (owner.bio != null) ...[
               const SizedBox(height: AppSpacing.sm),
-              Text('"${owner.bio!}"',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(fontStyle: FontStyle.italic)),
+              Text(
+                '"${owner.bio!}"',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+              ),
             ],
             const SizedBox(height: AppSpacing.md),
           ],
@@ -188,22 +206,25 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                   children: [
                     Text(
                       Formatters.npr(bike.pricePerDay),
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleLarge
-                          ?.copyWith(color: AppColors.primary),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                      ),
                     ),
-                    Text('per day',
-                        style: Theme.of(context).textTheme.labelSmall),
+                    Text(
+                      'per day',
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
                   ],
                 ),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed:
-                        bike.isAvailable ? () => _startBooking(bike) : null,
+                    onPressed: bike.isAvailable
+                        ? () => _startBooking(bike)
+                        : null,
                     child: Text(
-                        bike.isAvailable ? 'Book Now' : 'Not available now'),
+                      bike.isAvailable ? 'Book Now' : 'Not available now',
+                    ),
                   ),
                 ),
               ],
@@ -233,16 +254,22 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                 itemBuilder: (context, index) => bike.imageUrls.isEmpty
                     ? Container(
                         color: AppColors.primaryLight,
-                        child: const Icon(Icons.two_wheeler,
-                            size: 96, color: AppColors.primary),
+                        child: const Icon(
+                          Icons.two_wheeler,
+                          size: 96,
+                          color: AppColors.primary,
+                        ),
                       )
                     : CachedNetworkImage(
                         imageUrl: bike.imageUrls[index],
                         fit: BoxFit.cover,
                         errorWidget: (context, url, error) => Container(
                           color: AppColors.primaryLight,
-                          child: const Icon(Icons.two_wheeler,
-                              size: 96, color: AppColors.primary),
+                          child: const Icon(
+                            Icons.two_wheeler,
+                            size: 96,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
               ),
@@ -281,18 +308,26 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               // Title, rating and availability grouped (proximity).
               Row(
                 children: [
-                  Expanded(child: Text(bike.title, style: textTheme.displayLarge)),
+                  Expanded(
+                    child: Text(bike.title, style: textTheme.displayLarge),
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm, vertical: 4),
+                      horizontal: AppSpacing.sm,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: bike.isAvailable ? AppColors.mint : AppColors.divider,
+                      color: bike.isAvailable
+                          ? AppColors.mint
+                          : AppColors.divider,
                       borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: Text(
                       bike.isAvailable ? 'AVAILABLE' : 'BUSY',
                       style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w700),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -308,8 +343,10 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                     ),
                     const SizedBox(width: AppSpacing.md),
                   ],
-                  Text('${bike.brand} · ${bike.year}',
-                      style: textTheme.bodyMedium),
+                  Text(
+                    '${bike.brand} · ${bike.year}',
+                    style: textTheme.bodyMedium,
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
@@ -328,18 +365,31 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                         ? const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified,
-                                  size: 14, color: AppColors.success),
-                              Text(' Verified Owner',
-                                  style: TextStyle(
-                                      color: AppColors.success, fontSize: 13)),
+                              Icon(
+                                Icons.verified,
+                                size: 14,
+                                color: AppColors.success,
+                              ),
+                              Text(
+                                ' Verified Owner',
+                                style: TextStyle(
+                                  color: AppColors.success,
+                                  fontSize: 13,
+                                ),
+                              ),
                             ],
                           )
-                        : const Text('Not verified yet',
+                        : const Text(
+                            'Not verified yet',
                             style: TextStyle(
-                                color: AppColors.warning, fontSize: 13)),
-                    trailing: const Icon(Icons.info_outline,
-                        color: AppColors.textMuted),
+                              color: AppColors.warning,
+                              fontSize: 13,
+                            ),
+                          ),
+                    trailing: const Icon(
+                      Icons.info_outline,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ),
               const SizedBox(height: AppSpacing.md),
@@ -355,8 +405,10 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.location_on,
-                              color: AppColors.primary),
+                          const Icon(
+                            Icons.location_on,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
@@ -370,14 +422,18 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                         const SizedBox(height: AppSpacing.sm),
                         Row(
                           children: [
-                            const Icon(Icons.flag_outlined,
-                                size: 18, color: AppColors.teal),
+                            const Icon(
+                              Icons.flag_outlined,
+                              size: 18,
+                              color: AppColors.teal,
+                            ),
                             const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 bike.location.landmark!,
-                                style: textTheme.bodyMedium
-                                    ?.copyWith(color: AppColors.teal),
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.teal,
+                                ),
                               ),
                             ),
                           ],
@@ -387,8 +443,11 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                         const SizedBox(height: AppSpacing.sm),
                         Row(
                           children: [
-                            const Icon(Icons.directions_walk,
-                                size: 18, color: AppColors.accent),
+                            const Icon(
+                              Icons.directions_walk,
+                              size: 18,
+                              color: AppColors.accent,
+                            ),
                             const SizedBox(width: AppSpacing.sm),
                             Text(
                               '${bike.distanceKm!.toStringAsFixed(1)} km · ${Formatters.walkingMinutes(bike.distanceKm!)}',
@@ -416,21 +475,25 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                 spacing: AppSpacing.sm,
                 runSpacing: AppSpacing.sm,
                 children: [
+                  _SpecChip(icon: Icons.speed, label: '${bike.engineCc} cc'),
                   _SpecChip(
-                      icon: Icons.speed, label: '${bike.engineCc} cc'),
+                    icon: Icons.local_gas_station,
+                    label:
+                        bike.fuelType[0].toUpperCase() +
+                        bike.fuelType.substring(1),
+                  ),
                   _SpecChip(
-                      icon: Icons.local_gas_station,
-                      label: bike.fuelType[0].toUpperCase() +
-                          bike.fuelType.substring(1)),
+                    icon: Icons.settings,
+                    label: bike.transmission == 'manual'
+                        ? 'Manual'
+                        : 'Automatic',
+                  ),
                   _SpecChip(
-                      icon: Icons.settings,
-                      label: bike.transmission == 'manual'
-                          ? 'Manual'
-                          : 'Automatic'),
-                  _SpecChip(
-                      icon: Icons.category_outlined,
-                      label: bike.category[0].toUpperCase() +
-                          bike.category.substring(1)),
+                    icon: Icons.category_outlined,
+                    label:
+                        bike.category[0].toUpperCase() +
+                        bike.category.substring(1),
+                  ),
                 ],
               ),
               if (bike.description != null) ...[
@@ -442,22 +505,31 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               // Damage & dispute policy, expandable (TR-06).
               Card(
                 child: ExpansionTile(
-                  leading: const Icon(Icons.shield_outlined,
-                      color: AppColors.primary),
+                  leading: const Icon(
+                    Icons.shield_outlined,
+                    color: AppColors.primary,
+                  ),
                   title: const Text('Damage & Dispute Policy'),
                   subtitle: const Text('Know what happens before you ride'),
                   childrenPadding: const EdgeInsets.fromLTRB(
-                      AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
+                    AppSpacing.md,
+                    0,
+                    AppSpacing.md,
+                    AppSpacing.md,
+                  ),
                   children: const [
                     _PolicyPoint(
-                        text:
-                            'Photograph the bike at pickup - your photos are proof of its condition.'),
+                      text:
+                          'Photograph the bike at pickup - your photos are proof of its condition.',
+                    ),
                     _PolicyPoint(
-                        text:
-                            'Minor wear is covered by the deposit. Bigger damage is settled through Bike Buddy, never in cash on the street.'),
+                      text:
+                          'Minor wear is covered by the deposit. Bigger damage is settled through Bike Buddy, never in cash on the street.',
+                    ),
                     _PolicyPoint(
-                        text:
-                            'Any dispute is reviewed by our team within 24 hours with both sides heard.'),
+                      text:
+                          'Any dispute is reviewed by our team within 24 hours with both sides heard.',
+                    ),
                   ],
                 ),
               ),
@@ -465,8 +537,11 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                 const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
-                    const Icon(Icons.lock_outline,
-                        size: 16, color: AppColors.textMuted),
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 16,
+                      color: AppColors.textMuted,
+                    ),
                     Text(
                       ' Refundable deposit: ${Formatters.npr(bike.securityDeposit)}',
                       style: textTheme.bodyMedium,
@@ -484,8 +559,10 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                   padding: EdgeInsets.all(AppSpacing.md),
                   child: Center(child: CircularProgressIndicator()),
                 ),
-                error: (error, _) => Text('Could not load reviews.',
-                    style: textTheme.bodyMedium),
+                error: (error, _) => Text(
+                  'Could not load reviews.',
+                  style: textTheme.bodyMedium,
+                ),
                 data: (items) => items.isEmpty
                     ? Card(
                         child: Padding(
@@ -498,69 +575,74 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                       )
                     : Column(
                         children: items
-                            .map((review) => Card(
-                                  margin: const EdgeInsets.only(
-                                      bottom: AppSpacing.sm),
-                                  child: Padding(
-                                    padding:
-                                        const EdgeInsets.all(AppSpacing.md),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Row(
-                                              children: List.generate(
-                                                5,
-                                                (i) => Icon(
-                                                  i < review.rating
-                                                      ? Icons.star
-                                                      : Icons.star_border,
-                                                  size: 16,
-                                                  color: AppColors.warning,
+                            .map(
+                              (review) => Card(
+                                margin: const EdgeInsets.only(
+                                  bottom: AppSpacing.sm,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(AppSpacing.md),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Row(
+                                            children: List.generate(
+                                              5,
+                                              (i) => Icon(
+                                                i < review.rating
+                                                    ? Icons.star
+                                                    : Icons.star_border,
+                                                size: 16,
+                                                color: AppColors.warning,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: AppSpacing.sm),
+                                          if (review.isVerifiedRide)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6,
+                                                    vertical: 2,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.mint,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      AppRadius.pill,
+                                                    ),
+                                              ),
+                                              child: const Text(
+                                                'Verified ride',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
                                                 ),
                                               ),
                                             ),
-                                            const SizedBox(
-                                                width: AppSpacing.sm),
-                                            if (review.isVerifiedRide)
-                                              Container(
-                                                padding: const EdgeInsets
-                                                    .symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2),
-                                                decoration: BoxDecoration(
-                                                  color: AppColors.mint,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          AppRadius.pill),
-                                                ),
-                                                child: const Text(
-                                                  'Verified ride',
-                                                  style: TextStyle(
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.w700),
-                                                ),
-                                              ),
-                                            const Spacer(),
-                                            if (review.createdAt != null)
-                                              Text(
-                                                DateFormat('d MMM yyyy')
-                                                    .format(
-                                                        review.createdAt!),
-                                                style: textTheme.labelSmall,
-                                              ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: AppSpacing.sm),
-                                        Text(review.comment,
-                                            style: textTheme.bodyMedium),
-                                      ],
-                                    ),
+                                          const Spacer(),
+                                          if (review.createdAt != null)
+                                            Text(
+                                              DateFormat(
+                                                'd MMM yyyy',
+                                              ).format(review.createdAt!),
+                                              style: textTheme.labelSmall,
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Text(
+                                        review.comment,
+                                        style: textTheme.bodyMedium,
+                                      ),
+                                    ],
                                   ),
-                                ))
+                                ),
+                              ),
+                            )
                             .toList(),
                       ),
               ),
@@ -582,7 +664,9 @@ class _SpecChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -612,8 +696,11 @@ class _PolicyPoint extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.check_circle_outline,
-              size: 18, color: AppColors.success),
+          const Icon(
+            Icons.check_circle_outline,
+            size: 18,
+            color: AppColors.success,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(text, style: Theme.of(context).textTheme.bodyMedium),

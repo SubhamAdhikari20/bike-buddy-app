@@ -33,8 +33,9 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
     final agreed = await showModalBottomSheet<bool>(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.large),
+        ),
       ),
       builder: (context) => Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -42,8 +43,10 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Before you take the photo',
-                style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              'Before you take the photo',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: AppSpacing.md),
             const _StepRow(
               icon: Icons.visibility_outlined,
@@ -90,7 +93,8 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                  'Camera not allowed. You can also pick a photo from your gallery.'),
+                'Camera not allowed. You can also pick a photo from your gallery.',
+              ),
             ),
           );
         }
@@ -99,8 +103,11 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
     }
 
     final picker = ImagePicker();
-    final photo =
-        await picker.pickImage(source: source, maxWidth: 1600, imageQuality: 85);
+    final photo = await picker.pickImage(
+      source: source,
+      maxWidth: 1600,
+      imageQuality: 85,
+    );
     if (photo != null && mounted) {
       setState(() {
         _photo = photo;
@@ -121,9 +128,11 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not submit your ID. Please try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not submit your ID. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -152,11 +161,17 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
                     color: AppColors.primaryLight,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.hourglass_top,
-                      size: 48, color: AppColors.primary),
+                  child: const Icon(
+                    Icons.hourglass_top,
+                    size: 48,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Text('ID submitted - under review', style: textTheme.titleLarge),
+                Text(
+                  'ID submitted - under review',
+                  style: textTheme.titleLarge,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'We usually finish the check within 24 hours and will notify you as soon as it is done.',
@@ -192,7 +207,9 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
                   final active = index <= _step;
                   return Expanded(
                     child: Container(
-                      margin: EdgeInsets.only(right: index < 2 ? AppSpacing.sm : 0),
+                      margin: EdgeInsets.only(
+                        right: index < 2 ? AppSpacing.sm : 0,
+                      ),
                       height: 6,
                       decoration: BoxDecoration(
                         color: active ? AppColors.primary : AppColors.divider,
@@ -224,7 +241,8 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
             const _StepRow(
               icon: Icons.photo_camera_outlined,
               title: 'Take one photo',
-              subtitle: 'Citizenship card, licence or passport - any one works.',
+              subtitle:
+                  'Citizenship card, licence or passport - any one works.',
             ),
             const _StepRow(
               icon: Icons.lock_outline,
@@ -263,8 +281,11 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
                   borderRadius: BorderRadius.circular(AppRadius.large),
                   border: Border.all(color: AppColors.primary, width: 2),
                 ),
-                child: const Icon(Icons.badge_outlined,
-                    size: 72, color: AppColors.primary),
+                child: const Icon(
+                  Icons.badge_outlined,
+                  size: 72,
+                  color: AppColors.primary,
+                ),
               ),
             ),
             const Spacer(),
@@ -295,8 +316,11 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
             if (_photo != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.large),
-                child: Image.file(File(_photo!.path),
-                    height: 220, fit: BoxFit.cover),
+                child: Image.file(
+                  File(_photo!.path),
+                  height: 220,
+                  fit: BoxFit.cover,
+                ),
               ),
             const Spacer(),
             ElevatedButton(
@@ -306,7 +330,9 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Submit for Review'),
             ),

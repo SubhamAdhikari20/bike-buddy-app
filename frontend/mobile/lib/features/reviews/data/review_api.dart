@@ -9,8 +9,10 @@ final reviewApiProvider = Provider<ReviewApi>(
 
 /// Reviews for a bike; only renters with a completed booking can write
 /// one, so every review is a verified ride (TR-02).
-final bikeReviewsProvider =
-    FutureProvider.family<List<Review>, String>((ref, bikeId) {
+final bikeReviewsProvider = FutureProvider.family<List<Review>, String>((
+  ref,
+  bikeId,
+) {
   return ref.watch(reviewApiProvider).listByBike(bikeId);
 });
 
@@ -33,11 +35,14 @@ class ReviewApi {
     required int rating,
     required String comment,
   }) async {
-    await _client.post('/reviews', data: {
-      'bikeId': bikeId,
-      'bookingId': bookingId,
-      'rating': rating,
-      'comment': comment,
-    });
+    await _client.post(
+      '/reviews',
+      data: {
+        'bikeId': bikeId,
+        'bookingId': bookingId,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
   }
 }

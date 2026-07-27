@@ -92,9 +92,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           height: 240,
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
-                            borderRadius: BorderRadius.circular(AppRadius.large),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.large,
+                            ),
                           ),
-                          child: Icon(step.icon, size: 96, color: AppColors.primary),
+                          child: Icon(
+                            step.icon,
+                            size: 96,
+                            color: AppColors.primary,
+                          ),
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         Text(
@@ -104,10 +110,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                         const SizedBox(height: AppSpacing.sm),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
                           child: Text(
                             step.subtitle,
-                            style: textTheme.bodyLarge?.copyWith(color: AppColors.textSecondary),
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -144,10 +154,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ],
                 ),
               ),
-              TextButton(
-                onPressed: _finish,
-                child: const Text('Skip'),
-              ),
+              TextButton(onPressed: _finish, child: const Text('Skip')),
             ],
           ),
         ),

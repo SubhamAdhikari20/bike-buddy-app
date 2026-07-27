@@ -2,3 +2,4 @@
 # Build output
 dist/
 *.tsbuildinfo
+frontend/mobile/android/build/

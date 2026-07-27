@@ -63,9 +63,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not save. Your changes are still here - try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not save. Your changes are still here - try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -100,8 +102,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         ),
                         validator: (value) =>
                             value == null || value.trim().length < 3
-                                ? 'Enter your full name'
-                                : null,
+                            ? 'Enter your full name'
+                            : null,
                       ),
                       const SizedBox(height: AppSpacing.md),
                       TextFormField(
@@ -121,7 +123,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                           prefixIcon: Icon(Icons.phone_outlined),
                         ),
                         validator: (value) {
-                          if (value == null || value.trim().isEmpty) return null;
+                          if (value == null || value.trim().isEmpty) {
+                            return null;
+                          }
                           return value.trim().length == 10
                               ? null
                               : 'Phone must be 10 digits';
@@ -146,7 +150,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Text('Save Changes'),
                       ),

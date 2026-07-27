@@ -13,7 +13,8 @@ class SecureBadge extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         icon: const Icon(Icons.lock, size: 40, color: AppColors.success),
         title: const Text('Your payment is protected'),
         content: const Text(
@@ -38,7 +39,9 @@ class SecureBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: AppColors.success.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppRadius.pill),
