@@ -37,11 +37,11 @@ class BikeQuery {
   };
 
   int get activeFilterCount => [
-        if (category != null) 1,
-        if (city != null) 1,
-        if (minPrice != null || maxPrice != null) 1,
-        if (!availableOnly) 1,
-      ].length;
+    if (category != null) 1,
+    if (city != null) 1,
+    if (minPrice != null || maxPrice != null) 1,
+    if (!availableOnly) 1,
+  ].length;
 
   BikeQuery copyWith({
     Object? search = _sentinel,
@@ -52,17 +52,16 @@ class BikeQuery {
     String? sortBy,
     String? sortOrder,
     bool? availableOnly,
-  }) =>
-      BikeQuery(
-        search: search == _sentinel ? this.search : search as String?,
-        category: category == _sentinel ? this.category : category as String?,
-        city: city == _sentinel ? this.city : city as String?,
-        minPrice: minPrice == _sentinel ? this.minPrice : minPrice as double?,
-        maxPrice: maxPrice == _sentinel ? this.maxPrice : maxPrice as double?,
-        sortBy: sortBy ?? this.sortBy,
-        sortOrder: sortOrder ?? this.sortOrder,
-        availableOnly: availableOnly ?? this.availableOnly,
-      );
+  }) => BikeQuery(
+    search: search == _sentinel ? this.search : search as String?,
+    category: category == _sentinel ? this.category : category as String?,
+    city: city == _sentinel ? this.city : city as String?,
+    minPrice: minPrice == _sentinel ? this.minPrice : minPrice as double?,
+    maxPrice: maxPrice == _sentinel ? this.maxPrice : maxPrice as double?,
+    sortBy: sortBy ?? this.sortBy,
+    sortOrder: sortOrder ?? this.sortOrder,
+    availableOnly: availableOnly ?? this.availableOnly,
+  );
 
   static const _sentinel = Object();
 
@@ -80,7 +79,15 @@ class BikeQuery {
 
   @override
   int get hashCode => Object.hash(
-      search, category, city, minPrice, maxPrice, sortBy, sortOrder, availableOnly);
+    search,
+    category,
+    city,
+    minPrice,
+    maxPrice,
+    sortBy,
+    sortOrder,
+    availableOnly,
+  );
 }
 
 final bikeQueryProvider = StateProvider<BikeQuery>((ref) => const BikeQuery());

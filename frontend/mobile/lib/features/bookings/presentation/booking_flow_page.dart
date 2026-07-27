@@ -23,8 +23,13 @@ import '../data/booking_model.dart';
 /// all times (H1) and Back never loses data (H3, BK-06).
 class BookingFlowPage extends ConsumerStatefulWidget {
   final String bikeId;
+  final String? initialBookingId;
 
-  const BookingFlowPage({super.key, required this.bikeId});
+  const BookingFlowPage({
+    super.key,
+    required this.bikeId,
+    this.initialBookingId,
+  });
 
   @override
   ConsumerState<BookingFlowPage> createState() => _BookingFlowPageState();
@@ -45,6 +50,51 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.initialBookingId != null) {
+      Future.microtask(_restorePendingBooking);
+    }
+  }
+
+  Future<void> _restorePendingBooking() async {
+    setState(() => _busy = true);
+    try {
+      final booking = await ref
+          .read(bookingApiProvider)
+          .getBooking(widget.initialBookingId!);
+      final quote = await ref
+          .read(bookingApiProvider)
+          .quote(
+            bikeId: widget.bikeId,
+            start: booking.startDate,
+            end: booking.endDate,
+          );
+      if (!mounted) return;
+      setState(() {
+        _booking = booking;
+        _dates = DateTimeRange(start: booking.startDate, end: booking.endDate);
+        _quote = quote;
+        _step = 2;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error is AppException
+                ? error.message
+                : 'Could not restore this booking.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
   void dispose() {
     _quoteDebounce?.cancel();
     super.dispose();
@@ -61,17 +111,23 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
       saveText: 'Done',
     );
     if (picked != null) {
-      setState(() => _dates = picked);
+      setState(() {
+        _dates = picked;
+        _booking = null;
+      });
       _refreshQuote();
     }
   }
 
   void _quickDuration(int days) {
     final start = DateTime.now().add(const Duration(hours: 1));
-    setState(() => _dates = DateTimeRange(
-          start: start,
-          end: start.add(Duration(days: days)),
-        ));
+    setState(() {
+      _dates = DateTimeRange(
+        start: start,
+        end: start.add(Duration(days: days)),
+      );
+      _booking = null;
+    });
     _refreshQuote();
   }
 
@@ -86,16 +142,17 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     });
     _quoteDebounce = Timer(const Duration(milliseconds: 350), () async {
       try {
-        final quote = await ref.read(bookingApiProvider).quote(
-              bikeId: widget.bikeId,
-              start: dates.start,
-              end: dates.end,
-            );
+        final quote = await ref
+            .read(bookingApiProvider)
+            .quote(bikeId: widget.bikeId, start: dates.start, end: dates.end);
         if (mounted) setState(() => _quote = quote);
       } catch (e) {
         if (mounted) {
-          setState(() =>
-              _quoteError = e is AppException ? e.message : 'Could not fetch the price.');
+          setState(
+            () => _quoteError = e is AppException
+                ? e.message
+                : 'Could not fetch the price.',
+          );
         }
       } finally {
         if (mounted) setState(() => _quoteLoading = false);
@@ -109,31 +166,35 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     setState(() => _busy = true);
     try {
       // Create once; retries after a failed payment reuse it (PR-05).
-      _booking ??= await ref.read(bookingApiProvider).create(
+      _booking ??= await ref
+          .read(bookingApiProvider)
+          .create(
             bikeId: widget.bikeId,
             start: dates.start,
             end: dates.end,
-            pickupLocation:
-                '${bike.location.label}, ${bike.location.address}',
+            pickupLocation: '${bike.location.label}, ${bike.location.address}',
           );
 
-      final intent = await ref.read(bookingApiProvider).initiatePayment(
-            bookingId: _booking!.id,
-            provider: _provider,
-          );
+      final intent = await ref
+          .read(bookingApiProvider)
+          .initiatePayment(bookingId: _booking!.id, provider: _provider);
 
       if (!mounted) return;
-      final success = await _showSandboxGateway(intent);
+      if (!intent.demoConfirmationRequired || intent.mode != 'demo') {
+        throw const AppException(
+          'This build cannot accept live payments. Configure a verified provider first.',
+        );
+      }
+
+      final success = await _showDemoGateway(intent);
       if (success == null || !mounted) return;
 
-      final result = await ref.read(bookingApiProvider).verifyPayment(
-            paymentId: intent.paymentId,
-            success: success,
-            gatewayMessage: success ? 'Sandbox payment ok' : 'Sandbox payment declined',
-          );
+      final result = await ref
+          .read(bookingApiProvider)
+          .confirmDemoPayment(paymentId: intent.paymentId, success: success);
 
       if (!mounted) return;
-      if (result['charged'] == true) {
+      if (result['succeeded'] == true) {
         await LocalStore.clearBookingDraft();
         ref.invalidate(myBookingsProvider);
         if (mounted) context.pushReplacement('/receipt/${_booking!.id}');
@@ -145,7 +206,10 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                e is AppException ? e.message : 'Something went wrong. Please try again.'),
+              e is AppException
+                  ? e.message
+                  : 'Something went wrong. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -155,15 +219,16 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     }
   }
 
-  /// Sandbox gateway page stand-in. With live merchant keys this opens
-  /// the real eSewa/Khalti page instead.
-  Future<bool?> _showSandboxGateway(PaymentIntent intent) {
+  /// Explicit coursework simulation. It never collects wallet credentials or
+  /// represents itself as a live eSewa/Khalti transaction.
+  Future<bool?> _showDemoGateway(PaymentIntent intent) {
     return showModalBottomSheet<bool>(
       context: context,
       isDismissible: false,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.large),
+        ),
       ),
       builder: (context) => Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -174,12 +239,14 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
             Row(
               children: [
                 Icon(
-                  _provider == 'esewa' ? Icons.wallet : Icons.account_balance_wallet,
+                  _provider == 'esewa'
+                      ? Icons.wallet
+                      : Icons.account_balance_wallet,
                   color: AppColors.primary,
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  '${_provider == 'esewa' ? 'eSewa' : 'Khalti'} Sandbox',
+                  '${_provider == 'esewa' ? 'eSewa' : 'Khalti'} Demo',
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const Spacer(),
@@ -187,19 +254,40 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               ],
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text('Ref: ${intent.transactionRef}',
-                style: Theme.of(context).textTheme.labelSmall),
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.small),
+              ),
+              child: Text(
+                intent.notice ??
+                    'Coursework simulation only — no money will be charged.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Ref: ${intent.transactionRef}',
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Paying ${Formatters.npr(intent.amount)}',
+              'Demo total ${Formatters.npr(intent.amount)}',
               style: Theme.of(context).textTheme.displayLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.lg),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Pay (simulate success)'),
+              child: const Text('Complete Demo Booking'),
             ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton(
@@ -208,7 +296,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                 side: const BorderSide(color: AppColors.error),
               ),
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Simulate failure'),
+              child: const Text('Test a Failed Payment'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(null),
@@ -227,7 +315,8 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         icon: const Icon(Icons.error_outline, size: 40, color: AppColors.error),
         title: const Text('Payment failed'),
         content: const Text(
@@ -275,11 +364,14 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                       final active = index <= _step;
                       return Expanded(
                         child: Container(
-                          margin:
-                              EdgeInsets.only(right: index < 2 ? AppSpacing.sm : 0),
+                          margin: EdgeInsets.only(
+                            right: index < 2 ? AppSpacing.sm : 0,
+                          ),
                           height: 6,
                           decoration: BoxDecoration(
-                            color: active ? AppColors.primary : AppColors.divider,
+                            color: active
+                                ? AppColors.primary
+                                : AppColors.divider,
                             borderRadius: BorderRadius.circular(AppRadius.pill),
                           ),
                         ),
@@ -288,7 +380,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Step ${_step + 1} of 3 · ${['Choose dates', 'Review', 'Pay'][_step]}',
+                    'Step ${_step + 1} of 3 · ${['Choose dates', 'Review', 'Demo payment'][_step]}',
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ],
@@ -311,18 +403,26 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     final textTheme = Theme.of(context).textTheme;
     final dates = _dates;
     final quote = _quote;
-    final overBudget = quote != null && quote.breakdown.total > _budgetWarningNpr;
+    final overBudget =
+        quote != null && quote.breakdown.total > _budgetWarningNpr;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text('How long do you need the ${bike.title}?',
-            style: textTheme.titleLarge),
+        Text(
+          'How long do you need the ${bike.title}?',
+          style: textTheme.titleLarge,
+        ),
         const SizedBox(height: AppSpacing.md),
         Wrap(
           spacing: AppSpacing.sm,
           children: [
-            for (final (label, days) in [('1 day', 1), ('2 days', 2), ('3 days', 3), ('1 week', 7)])
+            for (final (label, days) in [
+              ('1 day', 1),
+              ('2 days', 2),
+              ('3 days', 3),
+              ('1 week', 7),
+            ])
               ChoiceChip(
                 label: Text(label),
                 selected: dates != null && dates.duration.inDays == days,
@@ -336,9 +436,11 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         Card(
           child: ListTile(
             leading: const Icon(Icons.calendar_month, color: AppColors.primary),
-            title: Text(dates == null
-                ? 'Pick your dates'
-                : '${DateFormat('EEE, d MMM').format(dates.start)} - ${DateFormat('EEE, d MMM').format(dates.end)}'),
+            title: Text(
+              dates == null
+                  ? 'Pick your dates'
+                  : '${DateFormat('EEE, d MMM').format(dates.start)} - ${DateFormat('EEE, d MMM').format(dates.end)}',
+            ),
             subtitle: dates == null
                 ? const Text('Advance booking supported up to 90 days')
                 : Text('${dates.duration.inDays} day rental'),
@@ -356,9 +458,10 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               child: Row(
                 children: [
                   SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2)),
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                   SizedBox(width: AppSpacing.sm),
                   Text('Updating your fare...'),
                 ],
@@ -371,7 +474,9 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               leading: const Icon(Icons.error_outline, color: AppColors.error),
               title: Text(_quoteError!),
               trailing: TextButton(
-                  onPressed: _refreshQuote, child: const Text('Retry')),
+                onPressed: _refreshQuote,
+                child: const Text('Retry'),
+              ),
             ),
           )
         else if (quote != null) ...[
@@ -387,8 +492,9 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                       Text('Estimated total', style: textTheme.titleMedium),
                       Text(
                         Formatters.npr(quote.breakdown.total),
-                        style: textTheme.displayLarge
-                            ?.copyWith(color: AppColors.primary),
+                        style: textTheme.displayLarge?.copyWith(
+                          color: AppColors.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -400,11 +506,14 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                         '${quote.breakdown.rentalDays} days x ${Formatters.npr(quote.breakdown.pricePerDay)}',
                         style: textTheme.bodyMedium,
                       ),
-                      const Text('No hidden fees',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.success,
-                              fontWeight: FontWeight.w600)),
+                      const Text(
+                        'No hidden fees',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -416,14 +525,18 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline,
-                      size: 16, color: AppColors.warning),
+                  const Icon(
+                    Icons.info_outline,
+                    size: 16,
+                    color: AppColors.warning,
+                  ),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       'Heads up: this is above ${Formatters.npr(_budgetWarningNpr)}. A shorter rental or another bike could cost less.',
-                      style: textTheme.bodyMedium
-                          ?.copyWith(color: AppColors.warning),
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: AppColors.warning,
+                      ),
                     ),
                   ),
                 ],
@@ -449,7 +562,10 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
-        Text('Check everything before you confirm', style: textTheme.titleLarge),
+        Text(
+          'Check everything before you confirm',
+          style: textTheme.titleLarge,
+        ),
         const SizedBox(height: AppSpacing.md),
 
         // Every row is editable from here (BK-06, H3).
@@ -457,17 +573,25 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
           child: Column(
             children: [
               ListTile(
-                leading: const Icon(Icons.two_wheeler, color: AppColors.primary),
+                leading: const Icon(
+                  Icons.two_wheeler,
+                  color: AppColors.primary,
+                ),
                 title: Text(bike.title),
                 subtitle: Text('${bike.brand} · ${bike.engineCc}cc'),
               ),
               const Divider(height: 1),
               ListTile(
-                leading:
-                    const Icon(Icons.calendar_month, color: AppColors.primary),
+                leading: const Icon(
+                  Icons.calendar_month,
+                  color: AppColors.primary,
+                ),
                 title: Text(
-                    '${DateFormat('EEE, d MMM h:mm a').format(dates.start)} -'),
-                subtitle: Text(DateFormat('EEE, d MMM h:mm a').format(dates.end)),
+                  '${DateFormat('EEE, d MMM h:mm a').format(dates.start)} -',
+                ),
+                subtitle: Text(
+                  DateFormat('EEE, d MMM h:mm a').format(dates.end),
+                ),
                 trailing: IconButton(
                   tooltip: 'Change dates',
                   icon: const Icon(Icons.edit_outlined, size: 20),
@@ -476,11 +600,14 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.location_on_outlined,
-                    color: AppColors.primary),
+                leading: const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.primary,
+                ),
                 title: Text(bike.location.label),
                 subtitle: Text(
-                    '${bike.location.address}${bike.location.landmark != null ? '\n${bike.location.landmark}' : ''}'),
+                  '${bike.location.address}${bike.location.landmark != null ? '\n${bike.location.landmark}' : ''}',
+                ),
               ),
             ],
           ),
@@ -499,25 +626,33 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   '${quote.breakdown.rentalDays} days x ${Formatters.npr(quote.breakdown.pricePerDay)}',
                   Formatters.npr(quote.breakdown.baseAmount),
                 ),
-                _priceRow('Service fee', Formatters.npr(quote.breakdown.serviceFee)),
+                _priceRow(
+                  'Service fee',
+                  Formatters.npr(quote.breakdown.serviceFee),
+                ),
                 if (quote.breakdown.securityDeposit > 0)
                   _priceRow(
-                    'Refundable deposit (paid at pickup)',
+                    'Refundable security deposit',
                     Formatters.npr(quote.breakdown.securityDeposit),
                     muted: true,
                   ),
                 const Divider(),
-                _priceRow('Total to pay now',
-                    Formatters.npr(quote.breakdown.total),
-                    bold: true),
+                _priceRow(
+                  'Total to pay now',
+                  Formatters.npr(quote.breakdown.total),
+                  bold: true,
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 const Align(
                   alignment: Alignment.centerRight,
-                  child: Text('No hidden fees',
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.success,
-                          fontWeight: FontWeight.w600)),
+                  child: Text(
+                    'No hidden fees',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -548,6 +683,30 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
       children: [
+        Card(
+          color: AppColors.warning.withValues(alpha: 0.12),
+          child: const Padding(
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.science_outlined, color: AppColors.warning),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Demo payment mode: this coursework build does not contact a wallet or charge real money.',
+                    style: TextStyle(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
         // Price locked banner (PR-07).
         Card(
           color: AppColors.mint,
@@ -572,7 +731,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Pay with', style: textTheme.titleLarge),
+            Text('Choose demo provider', style: textTheme.titleLarge),
             const SecureBadge(),
           ],
         ),
@@ -603,7 +762,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   Text(label),
                 ],
               ),
-              subtitle: const Text('Pay instantly from your wallet'),
+              subtitle: const Text('Simulated provider — no wallet login'),
             ),
           ),
         const SizedBox(height: AppSpacing.lg),
@@ -614,10 +773,14 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               ? const SizedBox(
                   width: 20,
                   height: 20,
-                  child:
-                      CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
-              : Text('Pay ${Formatters.npr(quote.breakdown.total)}'),
+              : Text(
+                  'Continue Demo · ${Formatters.npr(quote.breakdown.total)}',
+                ),
         ),
         TextButton(
           onPressed: _busy ? null : () => setState(() => _step = 1),
@@ -627,8 +790,12 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     );
   }
 
-  Widget _priceRow(String label, String value,
-      {bool bold = false, bool muted = false}) {
+  Widget _priceRow(
+    String label,
+    String value, {
+    bool bold = false,
+    bool muted = false,
+  }) {
     final style = TextStyle(
       fontSize: bold ? 16 : 14,
       fontWeight: bold ? FontWeight.w700 : FontWeight.w400,

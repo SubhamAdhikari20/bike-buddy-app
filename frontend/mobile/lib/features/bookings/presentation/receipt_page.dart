@@ -15,8 +15,10 @@ import '../../../core/widgets/loading_view.dart';
 import '../data/booking_api.dart';
 import '../data/booking_model.dart';
 
-final _bookingProvider =
-    FutureProvider.family<Booking, String>((ref, bookingId) {
+final _bookingProvider = FutureProvider.family<Booking, String>((
+  ref,
+  bookingId,
+) {
   return ref.watch(bookingApiProvider).getBooking(bookingId);
 });
 
@@ -37,11 +39,13 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
   Future<void> _downloadPdf() async {
     setState(() => _downloading = true);
     try {
-      final bytes =
-          await ref.read(bookingApiProvider).downloadReceiptPdf(widget.bookingId);
+      final bytes = await ref
+          .read(bookingApiProvider)
+          .downloadReceiptPdf(widget.bookingId);
       final dir = await getApplicationDocumentsDirectory();
       final file = File(
-          '${dir.path}/bike-buddy-receipt-${widget.bookingId.substring(widget.bookingId.length - 8)}.pdf');
+        '${dir.path}/bike-buddy-receipt-${widget.bookingId.substring(widget.bookingId.length - 8)}.pdf',
+      );
       await file.writeAsBytes(bytes);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -53,7 +57,9 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Could not download the PDF right now. Try again later.'),
+            content: Text(
+              'Could not download the PDF right now. Try again later.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -78,6 +84,7 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
         ),
         data: (booking) {
           final breakdown = booking.priceBreakdown;
+          final isDemo = booking.paymentMode == 'demo';
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
@@ -88,15 +95,37 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.md),
-                        decoration: const BoxDecoration(
-                          color: AppColors.mint,
+                        decoration: BoxDecoration(
+                          color: isDemo
+                              ? AppColors.warning.withValues(alpha: 0.12)
+                              : AppColors.mint,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.check_circle,
-                            size: 48, color: AppColors.success),
+                        child: Icon(
+                          isDemo ? Icons.science_outlined : Icons.check_circle,
+                          size: 48,
+                          color: isDemo ? AppColors.warning : AppColors.success,
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      Text('Payment successful!', style: textTheme.titleLarge),
+                      Text(
+                        isDemo
+                            ? 'Demo booking confirmed'
+                            : 'Payment successful!',
+                        style: textTheme.titleLarge,
+                      ),
+                      if (isDemo)
+                        const Padding(
+                          padding: EdgeInsets.only(top: AppSpacing.xs),
+                          child: Text(
+                            'Coursework simulation — no money was charged.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       Text(
                         'Booking #${booking.id.substring(booking.id.length - 8).toUpperCase()}',
                         style: textTheme.labelSmall,
@@ -106,33 +135,52 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                       if (booking.bike != null)
                         ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: const Icon(Icons.two_wheeler,
-                              color: AppColors.primary),
+                          leading: const Icon(
+                            Icons.two_wheeler,
+                            color: AppColors.primary,
+                          ),
                           title: Text(booking.bike!.title),
                           subtitle: Text(booking.pickupLocation),
                         ),
                       _row(
-                          'From',
-                          DateFormat('EEE, d MMM yyyy h:mm a')
-                              .format(booking.startDate)),
+                        'From',
+                        DateFormat(
+                          'EEE, d MMM yyyy h:mm a',
+                        ).format(booking.startDate),
+                      ),
                       _row(
-                          'To',
-                          DateFormat('EEE, d MMM yyyy h:mm a')
-                              .format(booking.endDate)),
+                        'To',
+                        DateFormat(
+                          'EEE, d MMM yyyy h:mm a',
+                        ).format(booking.endDate),
+                      ),
                       const Divider(),
                       if (breakdown != null) ...[
                         _row(
                           '${breakdown.rentalDays} days x ${Formatters.npr(breakdown.pricePerDay)}',
                           Formatters.npr(breakdown.baseAmount),
                         ),
-                        _row('Service fee', Formatters.npr(breakdown.serviceFee)),
+                        _row(
+                          'Service fee',
+                          Formatters.npr(breakdown.serviceFee),
+                        ),
+                        if (breakdown.securityDeposit > 0)
+                          _row(
+                            'Refundable deposit',
+                            Formatters.npr(breakdown.securityDeposit),
+                          ),
                         const Divider(),
                       ],
-                      _row('Total paid', Formatters.npr(booking.totalAmount),
-                          bold: true),
+                      _row(
+                        isDemo ? 'Demo total (not charged)' : 'Total paid',
+                        Formatters.npr(booking.totalAmount),
+                        bold: true,
+                      ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        'A copy was sent to your email. No hidden fees, ever.',
+                        isDemo
+                            ? 'Download the clearly labelled demo PDF for your coursework evidence.'
+                            : 'Download the PDF for your records. No hidden fees.',
                         style: textTheme.bodyMedium,
                         textAlign: TextAlign.center,
                       ),
@@ -148,7 +196,9 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.download),
                 label: const Text('Download PDF'),

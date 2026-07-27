@@ -5,8 +5,21 @@ class AppConstants {
   /// Backend base URL.
   /// Android emulator reaches the host machine through 10.0.2.2.
   /// Use your PC's LAN IP when running on a physical device.
-  static const String baseUrl = 'http://10.0.2.2:5050';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:5050',
+  );
   static const String apiBaseUrl = '$baseUrl/api/v1';
+
+  /// OAuth web client ID used as the server audience for Google ID tokens.
+  /// Supply with:
+  /// `flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=...apps.googleusercontent.com`
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+  );
+  static const String googlePlatformClientId = String.fromEnvironment(
+    'GOOGLE_PLATFORM_CLIENT_ID',
+  );
 
   /// 24/7 support line shown across the app (SUP-03).
   static const String supportPhone = '+977-9800000000';

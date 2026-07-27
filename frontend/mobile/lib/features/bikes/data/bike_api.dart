@@ -28,22 +28,25 @@ class BikeApi {
     int page = 1,
     int limit = 20,
   }) async {
-    final res = await _client.get('/bikes', query: {
-      'page': page,
-      'limit': limit,
-      if (search != null && search.isNotEmpty) 'search': search,
-      'status': ?status,
-      'category': ?category,
-      'city': ?city,
-      'minPrice': ?minPrice,
-      'maxPrice': ?maxPrice,
-      'sortBy': ?sortBy,
-      'sortOrder': ?sortOrder,
-      'lat': ?lat,
-      'lng': ?lng,
-      'radiusKm': ?radiusKm,
-      if (includeUnavailable) 'includeUnavailable': true,
-    });
+    final res = await _client.get(
+      '/bikes',
+      query: {
+        'page': page,
+        'limit': limit,
+        if (search != null && search.isNotEmpty) 'search': search,
+        'status': ?status,
+        'category': ?category,
+        'city': ?city,
+        'minPrice': ?minPrice,
+        'maxPrice': ?maxPrice,
+        'sortBy': ?sortBy,
+        'sortOrder': ?sortOrder,
+        'lat': ?lat,
+        'lng': ?lng,
+        'radiusKm': ?radiusKm,
+        if (includeUnavailable) 'includeUnavailable': true,
+      },
+    );
 
     final items = (res['data'] as List? ?? const []);
     return items
@@ -58,7 +61,10 @@ class BikeApi {
 
   /// Compare 2-3 bikes side by side (UI-04).
   Future<List<Bike>> compareBikes(List<String> ids) async {
-    final res = await _client.get('/bikes/compare', query: {'ids': ids.join(',')});
+    final res = await _client.get(
+      '/bikes/compare',
+      query: {'ids': ids.join(',')},
+    );
     final items = (res['data'] as List? ?? const []);
     return items
         .map((item) => Bike.fromJson((item as Map).cast<String, dynamic>()))

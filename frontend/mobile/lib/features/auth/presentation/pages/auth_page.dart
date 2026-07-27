@@ -59,11 +59,25 @@ class _AuthPageState extends ConsumerState<AuthPage>
   }
 
   void _showError(Object error) {
-    final message =
-        error is AppException ? error.message : 'Something went wrong. Please try again.';
+    final message = error is AppException
+        ? error.message
+        : 'Something went wrong. Please try again.';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.length < 8) {
+      return 'Use at least 8 characters';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value) ||
+        !RegExp(r'[a-z]').hasMatch(value) ||
+        !RegExp(r'\d').hasMatch(value) ||
+        !RegExp(r'[@$!%*?&]').hasMatch(value)) {
+      return 'Include upper, lower, number and @\$!%*?&';
+    }
+    return null;
   }
 
   Future<void> _login() async {
@@ -91,16 +105,31 @@ class _AuthPageState extends ConsumerState<AuthPage>
     }
     setState(() => _busy = true);
     try {
-      await ref.read(authProvider.notifier).registerRenter(
+      await ref
+          .read(authProvider.notifier)
+          .registerRenter(
             fullName: _signupName.text.trim(),
             email: _signupEmail.text.trim(),
-            phoneNumber:
-                _signupPhone.text.trim().isEmpty ? null : _signupPhone.text.trim(),
+            phoneNumber: _signupPhone.text.trim().isEmpty
+                ? null
+                : _signupPhone.text.trim(),
             password: _signupPassword.text,
           );
       if (mounted) context.go('/home');
     } catch (e) {
       if (mounted) _showError(e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _continueWithGoogle() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(authProvider.notifier).continueWithGoogle();
+      if (mounted) context.go('/home');
+    } catch (error) {
+      if (mounted) _showError(error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -125,11 +154,19 @@ class _AuthPageState extends ConsumerState<AuthPage>
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.pedal_bike, color: Colors.white, size: 36),
+                child: const Icon(
+                  Icons.pedal_bike,
+                  color: Colors.white,
+                  size: 36,
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
-              Text('Bike Buddy',
-                  style: textTheme.displayLarge?.copyWith(color: AppColors.primary)),
+              Text(
+                'Bike Buddy',
+                style: textTheme.displayLarge?.copyWith(
+                  color: AppColors.primary,
+                ),
+              ),
               const SizedBox(height: AppSpacing.xs),
               Text(
                 'Unlock seamless booking, trip history, and exclusive member discounts.',
@@ -147,7 +184,10 @@ class _AuthPageState extends ConsumerState<AuthPage>
                         labelColor: AppColors.primary,
                         unselectedLabelColor: AppColors.textSecondary,
                         indicatorColor: AppColors.primary,
-                        tabs: const [Tab(text: 'Login'), Tab(text: 'Sign Up')],
+                        tabs: const [
+                          Tab(text: 'Login'),
+                          Tab(text: 'Sign Up'),
+                        ],
                       ),
                       const SizedBox(height: AppSpacing.md),
                       AnimatedBuilder(
@@ -165,13 +205,35 @@ class _AuthPageState extends ConsumerState<AuthPage>
                 children: [
                   const Expanded(child: Divider()),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
                     child: Text('OR', style: textTheme.labelSmall),
                   ),
                   const Expanded(child: Divider()),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
+              OutlinedButton.icon(
+                onPressed: _busy ? null : _continueWithGoogle,
+                icon: const Text(
+                  'G',
+                  style: TextStyle(
+                    color: Color(0xFF4285F4),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 18,
+                  ),
+                ),
+                label: const Text('Continue with Google'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Google sign-in is for renter accounts only. By continuing, '
+                'you agree to the terms and rental policies.',
+                style: textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.sm),
               // Guests can browse without an account (UI-01).
               OutlinedButton(
                 onPressed: _busy ? null : () => context.go('/home'),
@@ -202,8 +264,9 @@ class _AuthPageState extends ConsumerState<AuthPage>
               labelText: 'Email',
               prefixIcon: Icon(Icons.person_outline),
             ),
-            validator: (value) =>
-                value == null || !value.contains('@') ? 'Enter a valid email' : null,
+            validator: (value) => value == null || !value.contains('@')
+                ? 'Enter a valid email'
+                : null,
           ),
           const SizedBox(height: AppSpacing.md),
           TextFormField(
@@ -220,11 +283,15 @@ class _AuthPageState extends ConsumerState<AuthPage>
                 ),
               ),
             ),
-            validator: (value) => value == null || value.length < 8
-                ? 'Password must be at least 8 characters'
-                : null,
+            validator: _validatePassword,
           ),
-          const SizedBox(height: AppSpacing.md),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              onPressed: _busy ? null : () => context.push('/forgot-password'),
+              child: const Text('Forgot password?'),
+            ),
+          ),
           ElevatedButton(
             onPressed: _busy ? null : _login,
             child: _busy
@@ -232,7 +299,9 @@ class _AuthPageState extends ConsumerState<AuthPage>
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Login'),
           ),
@@ -273,8 +342,9 @@ class _AuthPageState extends ConsumerState<AuthPage>
               labelText: 'Email',
               prefixIcon: Icon(Icons.mail_outline),
             ),
-            validator: (value) =>
-                value == null || !value.contains('@') ? 'Enter a valid email' : null,
+            validator: (value) => value == null || !value.contains('@')
+                ? 'Enter a valid email'
+                : null,
           ),
           const SizedBox(height: AppSpacing.md),
           TextFormField(
@@ -286,7 +356,9 @@ class _AuthPageState extends ConsumerState<AuthPage>
             ),
             validator: (value) {
               if (value == null || value.isEmpty) return null;
-              return value.trim().length == 10 ? null : 'Phone must be 10 digits';
+              return value.trim().length == 10
+                  ? null
+                  : 'Phone must be 10 digits';
             },
           ),
           const SizedBox(height: AppSpacing.md),
@@ -304,9 +376,7 @@ class _AuthPageState extends ConsumerState<AuthPage>
                 ),
               ),
             ),
-            validator: (value) => value == null || value.length < 8
-                ? 'Password must be at least 8 characters'
-                : null,
+            validator: _validatePassword,
           ),
           const SizedBox(height: AppSpacing.sm),
           CheckboxListTile(
@@ -328,7 +398,9 @@ class _AuthPageState extends ConsumerState<AuthPage>
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Text('Create Account'),
           ),

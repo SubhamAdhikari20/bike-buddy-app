@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_theme.dart';
 
-/// "Secure & Encrypted" badge shown wherever money or personal data is
-/// entered (TR-05). Tapping it explains the protection in plain words.
+/// Explains the current checkout mode without implying a live provider
+/// integration or asking the rider to trust an unsupported security claim.
 class SecureBadge extends StatelessWidget {
   const SecureBadge({super.key});
 
@@ -13,13 +13,19 @@ class SecureBadge extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
-        icon: const Icon(Icons.lock, size: 40, color: AppColors.success),
-        title: const Text('Your payment is protected'),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
+        icon: const Icon(
+          Icons.science_outlined,
+          size: 40,
+          color: AppColors.warning,
+        ),
+        title: const Text('Coursework demo mode'),
         content: const Text(
-          'All payment details travel over an encrypted SSL connection. '
-          'Bike Buddy never stores your wallet PIN or card number - payments '
-          'are completed by eSewa or Khalti on their own secure pages.',
+          'This build simulates an eSewa or Khalti result without contacting '
+          'either provider. It never asks for a wallet PIN and no money is '
+          'charged. Live payments stay disabled until a verified server-side '
+          'provider adapter and merchant credentials are configured.',
         ),
         actions: [
           ElevatedButton(
@@ -38,26 +44,28 @@ class SecureBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
+          color: AppColors.warning.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.lock, size: 16, color: AppColors.success),
+            Icon(Icons.science_outlined, size: 16, color: AppColors.warning),
             SizedBox(width: 6),
             Text(
-              'Secure & Encrypted',
+              'Demo mode',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.success,
+                color: AppColors.warning,
               ),
             ),
             SizedBox(width: 4),
-            Icon(Icons.info_outline, size: 14, color: AppColors.success),
+            Icon(Icons.info_outline, size: 14, color: AppColors.warning),
           ],
         ),
       ),

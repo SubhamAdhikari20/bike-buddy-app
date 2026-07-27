@@ -24,7 +24,10 @@ class MapPage extends ConsumerStatefulWidget {
 
 class _MapPageState extends ConsumerState<MapPage> {
   GoogleMapController? _mapController;
-  LatLng _center = const LatLng(AppConstants.defaultLat, AppConstants.defaultLng);
+  LatLng _center = const LatLng(
+    AppConstants.defaultLat,
+    AppConstants.defaultLng,
+  );
   List<Bike> _bikes = const [];
   Bike? _selected;
   bool _showUnavailable = false;
@@ -43,8 +46,9 @@ class _MapPageState extends ConsumerState<MapPage> {
     if (granted) {
       try {
         final position = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high),
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         ).timeout(const Duration(seconds: 8));
         _center = LatLng(position.latitude, position.longitude);
         _mapController?.animateCamera(CameraUpdate.newLatLng(_center));
@@ -55,7 +59,8 @@ class _MapPageState extends ConsumerState<MapPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-              'Showing Kathmandu. Allow location any time to see bikes near you.'),
+            'Showing Kathmandu. Allow location any time to see bikes near you.',
+          ),
         ),
       );
     }
@@ -116,8 +121,10 @@ class _MapPageState extends ConsumerState<MapPage> {
   }
 
   Set<Marker> get _markers => _bikes
-      .where((bike) =>
-          bike.location.latitude != null && bike.location.longitude != null)
+      .where(
+        (bike) =>
+            bike.location.latitude != null && bike.location.longitude != null,
+      )
       .map(
         (bike) => Marker(
           markerId: MarkerId(bike.id),
@@ -159,14 +166,20 @@ class _MapPageState extends ConsumerState<MapPage> {
             child: Card(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.circle, size: 12, color: AppColors.action),
                     const SizedBox(width: 4),
                     Text('Available', style: textTheme.labelSmall),
                     const SizedBox(width: AppSpacing.md),
-                    const Icon(Icons.circle, size: 12, color: Colors.deepPurple),
+                    const Icon(
+                      Icons.circle,
+                      size: 12,
+                      color: Colors.deepPurple,
+                    ),
                     const SizedBox(width: 4),
                     Text('Busy', style: textTheme.labelSmall),
                     const Spacer(),
@@ -231,8 +244,10 @@ class _MapPageState extends ConsumerState<MapPage> {
                       ),
                       TextButton(
                         onPressed: _loadBikes,
-                        child: const Text('Retry',
-                            style: TextStyle(color: Colors.white)),
+                        child: const Text(
+                          'Retry',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
@@ -256,25 +271,32 @@ class _MapPageState extends ConsumerState<MapPage> {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(_selected!.title,
-                                style: textTheme.titleMedium,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              _selected!.title,
+                              style: textTheme.titleMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm, vertical: 2),
+                              horizontal: AppSpacing.sm,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: _selected!.isAvailable
                                   ? AppColors.mint
                                   : AppColors.divider,
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.pill),
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
                             ),
                             child: Text(
                               _selected!.isAvailable ? 'AVAILABLE' : 'BUSY',
                               style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w700),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ],
@@ -290,8 +312,11 @@ class _MapPageState extends ConsumerState<MapPage> {
                       Row(
                         children: [
                           if (_selected!.distanceKm != null) ...[
-                            const Icon(Icons.directions_walk,
-                                size: 16, color: AppColors.accent),
+                            const Icon(
+                              Icons.directions_walk,
+                              size: 16,
+                              color: AppColors.accent,
+                            ),
                             Text(
                               ' ${_selected!.distanceKm!.toStringAsFixed(1)} km',
                               style: textTheme.bodyMedium,
@@ -300,8 +325,9 @@ class _MapPageState extends ConsumerState<MapPage> {
                           ],
                           Text(
                             'Rs. ${_selected!.pricePerDay.toStringAsFixed(0)}/day',
-                            style: textTheme.titleMedium
-                                ?.copyWith(color: AppColors.primary),
+                            style: textTheme.titleMedium?.copyWith(
+                              color: AppColors.primary,
+                            ),
                           ),
                         ],
                       ),

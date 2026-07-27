@@ -18,13 +18,13 @@ class PriceBreakdown {
   });
 
   factory PriceBreakdown.fromJson(Map<String, dynamic> json) => PriceBreakdown(
-        pricePerDay: (json['pricePerDay'] as num?)?.toDouble() ?? 0,
-        rentalDays: (json['rentalDays'] as num?)?.toInt() ?? 0,
-        baseAmount: (json['baseAmount'] as num?)?.toDouble() ?? 0,
-        serviceFee: (json['serviceFee'] as num?)?.toDouble() ?? 0,
-        securityDeposit: (json['securityDeposit'] as num?)?.toDouble() ?? 0,
-        total: (json['total'] as num?)?.toDouble() ?? 0,
-      );
+    pricePerDay: (json['pricePerDay'] as num?)?.toDouble() ?? 0,
+    rentalDays: (json['rentalDays'] as num?)?.toInt() ?? 0,
+    baseAmount: (json['baseAmount'] as num?)?.toDouble() ?? 0,
+    serviceFee: (json['serviceFee'] as num?)?.toDouble() ?? 0,
+    securityDeposit: (json['securityDeposit'] as num?)?.toDouble() ?? 0,
+    total: (json['total'] as num?)?.toDouble() ?? 0,
+  );
 }
 
 class Booking {
@@ -36,6 +36,7 @@ class Booking {
   final String pickupLocation;
   final String status;
   final String paymentStatus;
+  final String? paymentMode;
   final double totalAmount;
   final PriceBreakdown? priceBreakdown;
   final DateTime? priceLockedAt;
@@ -50,6 +51,7 @@ class Booking {
     required this.pickupLocation,
     required this.status,
     required this.paymentStatus,
+    this.paymentMode,
     required this.totalAmount,
     this.priceBreakdown,
     this.priceLockedAt,
@@ -84,19 +86,21 @@ class Booking {
           ? Bike.fromJson(bikeField.cast<String, dynamic>())
           : null,
       startDate:
-          DateTime.tryParse(json['startDate'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['startDate'] as String? ?? '') ??
+          DateTime.now(),
       endDate:
           DateTime.tryParse(json['endDate'] as String? ?? '') ?? DateTime.now(),
       pickupLocation: json['pickupLocation'] as String? ?? '',
       status: json['status'] as String? ?? 'pending',
       paymentStatus: json['paymentStatus'] as String? ?? 'unpaid',
+      paymentMode: json['paymentMode'] as String?,
       totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0,
       priceBreakdown: json['priceBreakdown'] is Map
           ? PriceBreakdown.fromJson(
-              (json['priceBreakdown'] as Map).cast<String, dynamic>())
+              (json['priceBreakdown'] as Map).cast<String, dynamic>(),
+            )
           : null,
-      priceLockedAt:
-          DateTime.tryParse(json['priceLockedAt'] as String? ?? ''),
+      priceLockedAt: DateTime.tryParse(json['priceLockedAt'] as String? ?? ''),
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
     );
   }
@@ -109,9 +113,9 @@ class FareQuote {
   const FareQuote({required this.breakdown, this.pricePerHour});
 
   factory FareQuote.fromJson(Map<String, dynamic> json) => FareQuote(
-        breakdown: PriceBreakdown.fromJson(json),
-        pricePerHour: (json['pricePerHour'] as num?)?.toDouble(),
-      );
+    breakdown: PriceBreakdown.fromJson(json),
+    pricePerHour: (json['pricePerHour'] as num?)?.toDouble(),
+  );
 }
 
 class PaymentIntent {
@@ -119,21 +123,31 @@ class PaymentIntent {
   final String transactionRef;
   final double amount;
   final String provider;
+  final String mode;
   final String? paymentUrl;
+  final bool demoConfirmationRequired;
+  final String? notice;
 
   const PaymentIntent({
     required this.paymentId,
     required this.transactionRef,
     required this.amount,
     required this.provider,
+    required this.mode,
     this.paymentUrl,
+    required this.demoConfirmationRequired,
+    this.notice,
   });
 
   factory PaymentIntent.fromJson(Map<String, dynamic> json) => PaymentIntent(
-        paymentId: (json['paymentId'] ?? '').toString(),
-        transactionRef: json['transactionRef'] as String? ?? '',
-        amount: (json['amount'] as num?)?.toDouble() ?? 0,
-        provider: json['provider'] as String? ?? '',
-        paymentUrl: json['paymentUrl'] as String?,
-      );
+    paymentId: (json['paymentId'] ?? '').toString(),
+    transactionRef: json['transactionRef'] as String? ?? '',
+    amount: (json['amount'] as num?)?.toDouble() ?? 0,
+    provider: json['provider'] as String? ?? '',
+    mode: json['mode'] as String? ?? 'demo',
+    paymentUrl: json['paymentUrl'] as String?,
+    demoConfirmationRequired:
+        json['demoConfirmationRequired'] as bool? ?? false,
+    notice: json['notice'] as String?,
+  );
 }

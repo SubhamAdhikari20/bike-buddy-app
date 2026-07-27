@@ -24,9 +24,13 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
-        icon: const Icon(Icons.warning_amber_rounded,
-            size: 40, color: AppColors.error),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
+        icon: const Icon(
+          Icons.warning_amber_rounded,
+          size: 40,
+          color: AppColors.error,
+        ),
         title: const Text('Delete your account?'),
         content: const Text(
           'This removes your profile, ID document and history for good. '
@@ -53,8 +57,7 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
       await ref.read(authProvider.notifier).deleteAccount();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Your account and data were deleted.')),
+          const SnackBar(content: Text('Your account and data were deleted.')),
         );
         context.go('/home');
       }
@@ -62,9 +65,11 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not delete the account. Please try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not delete the account. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -102,18 +107,22 @@ class _PrivacyPageState extends ConsumerState<PrivacyPage> {
             ),
             const _PrivacyRow(
               icon: Icons.receipt_long_outlined,
-              text: 'Your bookings and receipts - so you have proof of every ride.',
+              text:
+                  'Your bookings and receipts - so you have proof of every ride.',
             ),
             const SizedBox(height: AppSpacing.lg),
             Text('Your controls', style: textTheme.titleLarge),
             const SizedBox(height: AppSpacing.sm),
             Card(
               child: ListTile(
-                leading:
-                    const Icon(Icons.delete_outline, color: AppColors.error),
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: AppColors.error,
+                ),
                 title: const Text('Delete account and data'),
                 subtitle: const Text(
-                    'Removes everything permanently. Confirmed by email.'),
+                  'Removes everything permanently. Confirmed by email.',
+                ),
                 trailing: _busy
                     ? const SizedBox(
                         width: 20,

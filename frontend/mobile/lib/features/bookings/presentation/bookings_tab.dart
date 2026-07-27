@@ -36,11 +36,16 @@ class BookingsTab extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.event_note_outlined,
-                          size: 56, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.event_note_outlined,
+                        size: 56,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(height: AppSpacing.md),
-                      Text('Sign in to see your bookings',
-                          style: textTheme.bodyLarge),
+                      Text(
+                        'Sign in to see your bookings',
+                        style: textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: AppSpacing.md),
                       SizedBox(
                         width: 200,
@@ -90,18 +95,27 @@ class BookingsTab extends ConsumerWidget {
                     onRetry: () => ref.invalidate(myBookingsProvider),
                   ),
                   data: (bookings) {
-                    final active =
-                        bookings.where((b) => b.isActive).toList();
-                    final upcoming =
-                        bookings.where((b) => b.isUpcoming).toList();
+                    final active = bookings.where((b) => b.isActive).toList();
+                    final upcoming = bookings
+                        .where((b) => b.isUpcoming)
+                        .toList();
                     final past = bookings
                         .where((b) => !b.isActive && !b.isUpcoming)
                         .toList();
                     return TabBarView(
                       children: [
-                        _BookingList(bookings: active, emptyText: 'No active ride right now.'),
-                        _BookingList(bookings: upcoming, emptyText: 'No upcoming bookings yet.'),
-                        _BookingList(bookings: past, emptyText: 'Your completed rides will appear here.'),
+                        _BookingList(
+                          bookings: active,
+                          emptyText: 'No active ride right now.',
+                        ),
+                        _BookingList(
+                          bookings: upcoming,
+                          emptyText: 'No upcoming bookings yet.',
+                        ),
+                        _BookingList(
+                          bookings: past,
+                          emptyText: 'Your completed rides will appear here.',
+                        ),
                       ],
                     );
                   },
@@ -128,8 +142,11 @@ class _BookingList extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.event_note_outlined,
-                size: 56, color: AppColors.textMuted),
+            const Icon(
+              Icons.event_note_outlined,
+              size: 56,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(height: AppSpacing.md),
             Text(emptyText, style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: AppSpacing.md),
@@ -152,8 +169,7 @@ class _BookingList extends ConsumerWidget {
         itemCount: bookings.length,
         separatorBuilder: (context, index) =>
             const SizedBox(height: AppSpacing.md),
-        itemBuilder: (context, index) =>
-            _BookingCard(booking: bookings[index]),
+        itemBuilder: (context, index) => _BookingCard(booking: bookings[index]),
       ),
     );
   }
@@ -165,13 +181,13 @@ class _BookingCard extends StatelessWidget {
   const _BookingCard({required this.booking});
 
   (String, Color) get _statusChip => switch (booking.status) {
-        'confirmed' when booking.isActive => ('In Progress', AppColors.success),
-        'confirmed' => ('Confirmed', AppColors.primary),
-        'pending' => ('Waiting for payment', AppColors.warning),
-        'completed' => ('Completed', AppColors.teal),
-        'cancelled' => ('Cancelled', AppColors.error),
-        _ => (booking.status, AppColors.textMuted),
-      };
+    'confirmed' when booking.isActive => ('In Progress', AppColors.success),
+    'confirmed' => ('Confirmed', AppColors.primary),
+    'pending' => ('Waiting for payment', AppColors.warning),
+    'completed' => ('Completed', AppColors.teal),
+    'cancelled' => ('Cancelled', AppColors.error),
+    _ => (booking.status, AppColors.textMuted),
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -189,11 +205,14 @@ class _BookingCard extends StatelessWidget {
               children: [
                 Icon(Icons.circle, size: 10, color: statusColor),
                 const SizedBox(width: 6),
-                Text(statusLabel,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13)),
+                Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
                 const Spacer(),
                 Text(
                   'Booking #${booking.id.substring(booking.id.length - 6).toUpperCase()}',
@@ -212,11 +231,15 @@ class _BookingCard extends StatelessWidget {
                     child: bike == null || bike.imageUrls.isEmpty
                         ? Container(
                             color: AppColors.primaryLight,
-                            child: const Icon(Icons.two_wheeler,
-                                color: AppColors.primary),
+                            child: const Icon(
+                              Icons.two_wheeler,
+                              color: AppColors.primary,
+                            ),
                           )
                         : CachedNetworkImage(
-                            imageUrl: bike.imageUrls.first, fit: BoxFit.cover),
+                            imageUrl: bike.imageUrls.first,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -224,17 +247,24 @@ class _BookingCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(bike?.title ?? 'Bike',
-                          style: textTheme.titleMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      Text(booking.pickupLocation,
-                          style: textTheme.bodyMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      Text(Formatters.npr(booking.totalAmount),
-                          style: textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.primary)),
+                      Text(
+                        bike?.title ?? 'Bike',
+                        style: textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        booking.pickupLocation,
+                        style: textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        Formatters.npr(booking.totalAmount),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -243,7 +273,11 @@ class _BookingCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                const Icon(Icons.schedule, size: 16, color: AppColors.textMuted),
+                const Icon(
+                  Icons.schedule,
+                  size: 16,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -257,7 +291,9 @@ class _BookingCard extends StatelessWidget {
                   Text(
                     _timeLeft(booking.endDate),
                     style: const TextStyle(
-                        color: AppColors.accent, fontWeight: FontWeight.w600),
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
               ],
             ),
@@ -266,11 +302,15 @@ class _BookingCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => context.push('/receipt/${booking.id}'),
+                    onPressed: () => booking.paymentStatus == 'paid'
+                        ? context.push('/receipt/${booking.id}')
+                        : context.push(
+                            '/book/${booking.bikeId}?bookingId=${booking.id}',
+                          ),
                     child: Text(
                       booking.paymentStatus == 'paid'
                           ? 'View Receipt'
-                          : 'View Details',
+                          : 'Continue Payment',
                     ),
                   ),
                 ),
@@ -284,8 +324,10 @@ class _BookingCard extends StatelessWidget {
                       side: const BorderSide(color: AppColors.divider),
                     ),
                     onPressed: () => context.push('/support'),
-                    child:
-                        const Icon(Icons.support_agent, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.support_agent,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],

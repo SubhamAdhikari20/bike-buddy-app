@@ -43,11 +43,13 @@ class _ChatPageState extends State<ChatPage> {
     if (text.isEmpty) return;
     setState(() {
       _messages.add(_ChatMessage(text, true));
-      _messages.add(const _ChatMessage(
-        'Thanks for the message! A support agent will reply here within about 5 minutes. '
-        'If it is urgent, call us any time.',
-        false,
-      ));
+      _messages.add(
+        const _ChatMessage(
+          'Thanks for the message! A support agent will reply here within about 5 minutes. '
+          'If it is urgent, call us any time.',
+          false,
+        ),
+      );
       _controller.clear();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {

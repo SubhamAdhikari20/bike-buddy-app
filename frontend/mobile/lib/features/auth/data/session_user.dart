@@ -48,19 +48,14 @@ class SessionUser {
   }
 
   Map<String, dynamic> toJson() => {
-        'user': {
-          'id': id,
-          'email': email,
-          'role': role,
-          'isVerified': isVerified,
-        },
-        'profile': {
-          '_id': profileId,
-          'fullName': fullName,
-          'phoneNumber': phoneNumber,
-          'profilePictureUrl': profilePictureUrl,
-          'bio': bio,
-          'kycStatus': kycStatus,
-        },
-      };
+    'user': {'id': id, 'email': email, 'role': role, 'isVerified': isVerified},
+    'profile': {
+      '_id': profileId,
+      'fullName': fullName,
+      'phoneNumber': phoneNumber,
+      'profilePictureUrl': profilePictureUrl,
+      'bio': bio,
+      'kycStatus': kycStatus,
+    },
+  };
 }
