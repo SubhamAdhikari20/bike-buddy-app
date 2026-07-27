@@ -3,18 +3,18 @@ import nodemailer from "nodemailer";
 import type { ApiResponseType } from "./../types/api-response.type.ts";
 
 export const sendOtpEmail = async (
-    fullName: string,
-    email: string,
-    otp: string
+  fullName: string,
+  email: string,
+  otp: string,
 ): Promise<ApiResponseType> => {
-    if (process.env.NODE_ENV === "test") {
-        return {
-            success: true,
-            message: "Skipped sending email during test environment.",
-        };
-    }
+  if (process.env.NODE_ENV === "test") {
+    return {
+      success: true,
+      message: "Skipped sending email during test environment.",
+    };
+  }
 
-    const html = `
+  const html = `
     <!DOCTYPE html>
     <html lang="en" dir="ltr">
       <head>
@@ -57,36 +57,36 @@ export const sendOtpEmail = async (
     </html>
   `;
 
-    if (!email) {
-        return { success: false, message: "Missing email address" };
-    }
+  if (!email) {
+    return { success: false, message: "Missing email address" };
+  }
 
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_APP_PASSWORD,
-            },
-        });
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+    });
 
-        await transporter.sendMail({
-            from: `"Bike Buddy" <${process.env.GMAIL_USER}>`,
-            to: email,
-            subject: "Bike Buddy | Your Sign-in Code",
-            html,
-        });
+    await transporter.sendMail({
+      from: `"Bike Buddy" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: "Bike Buddy | Your Sign-in Code",
+      html,
+    });
 
-        return {
-            success: true,
-            message: "OTP email sent successfully.",
-        };
-    } catch (error) {
-        console.log("Error sending OTP email: ", error);
+    return {
+      success: true,
+      message: "OTP email sent successfully.",
+    };
+  } catch (error) {
+    console.log("Error sending OTP email: ", error);
 
-        return {
-            success: false,
-            message: "Failed to send OTP email.",
-        };
-    }
+    return {
+      success: false,
+      message: "Failed to send OTP email.",
+    };
+  }
 };

@@ -24,11 +24,14 @@ class BookingApi {
     required DateTime start,
     required DateTime end,
   }) async {
-    final res = await _client.post('/bookings/quote', data: {
-      'bikeId': bikeId,
-      'startDate': start.toIso8601String(),
-      'endDate': end.toIso8601String(),
-    });
+    final res = await _client.post(
+      '/bookings/quote',
+      data: {
+        'bikeId': bikeId,
+        'startDate': start.toIso8601String(),
+        'endDate': end.toIso8601String(),
+      },
+    );
     return FareQuote.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
@@ -43,12 +46,15 @@ class BookingApi {
     required DateTime end,
     required String pickupLocation,
   }) async {
-    final res = await _client.post('/bookings', data: {
-      'bikeId': bikeId,
-      'startDate': start.toIso8601String(),
-      'endDate': end.toIso8601String(),
-      'pickupLocation': pickupLocation,
-    });
+    final res = await _client.post(
+      '/bookings',
+      data: {
+        'bikeId': bikeId,
+        'startDate': start.toIso8601String(),
+        'endDate': end.toIso8601String(),
+        'pickupLocation': pickupLocation,
+      },
+    );
     return Booking.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
@@ -66,29 +72,31 @@ class BookingApi {
   }
 
   Future<void> cancel(String bookingId, String reason) async {
-    await _client.patch('/bookings/$bookingId/cancel', data: {'reason': reason});
+    await _client.patch(
+      '/bookings/$bookingId/cancel',
+      data: {'reason': reason},
+    );
   }
 
   Future<PaymentIntent> initiatePayment({
     required String bookingId,
     required String provider,
   }) async {
-    final res = await _client.post('/payments/initiate', data: {
-      'bookingId': bookingId,
-      'provider': provider,
-    });
+    final res = await _client.post(
+      '/payments/initiate',
+      data: {'bookingId': bookingId, 'provider': provider},
+    );
     return PaymentIntent.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
-  Future<Map<String, dynamic>> verifyPayment({
+  Future<Map<String, dynamic>> confirmDemoPayment({
     required String paymentId,
     required bool success,
-    String? gatewayMessage,
   }) async {
-    final res = await _client.post('/payments/$paymentId/verify', data: {
-      'status': success ? 'succeeded' : 'failed',
-      'gatewayMessage': ?gatewayMessage,
-    });
+    final res = await _client.post(
+      '/payments/$paymentId/demo-confirm',
+      data: {'outcome': success ? 'succeeded' : 'failed'},
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
@@ -98,11 +106,10 @@ class BookingApi {
     List<String> photos = const [],
     required bool acknowledged,
   }) async {
-    await _client.post('/bookings/$bookingId/checklist', data: {
-      'items': items,
-      'photos': photos,
-      'acknowledged': acknowledged,
-    });
+    await _client.post(
+      '/bookings/$bookingId/checklist',
+      data: {'items': items, 'photos': photos, 'acknowledged': acknowledged},
+    );
   }
 
   Future<Map<String, dynamic>> returnPreview(String bookingId) async {
@@ -111,9 +118,10 @@ class BookingApi {
   }
 
   Future<Map<String, dynamic>> extend(String bookingId, int extraHours) async {
-    final res = await _client.patch('/bookings/$bookingId/extend', data: {
-      'extraHours': extraHours,
-    });
+    final res = await _client.patch(
+      '/bookings/$bookingId/extend',
+      data: {'extraHours': extraHours},
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
@@ -127,11 +135,14 @@ class BookingApi {
     required List<String> photos,
     required String description,
   }) async {
-    await _client.post('/safety/damage-reports', data: {
-      'bookingId': bookingId,
-      'photos': photos,
-      'description': description,
-    });
+    await _client.post(
+      '/safety/damage-reports',
+      data: {
+        'bookingId': bookingId,
+        'photos': photos,
+        'description': description,
+      },
+    );
   }
 
   Future<Map<String, dynamic>> sendSos({
@@ -139,11 +150,14 @@ class BookingApi {
     double? latitude,
     double? longitude,
   }) async {
-    final res = await _client.post('/safety/sos', data: {
-      'bookingId': ?bookingId,
-      'latitude': ?latitude,
-      'longitude': ?longitude,
-    });
+    final res = await _client.post(
+      '/safety/sos',
+      data: {
+        'bookingId': ?bookingId,
+        'latitude': ?latitude,
+        'longitude': ?longitude,
+      },
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 

@@ -14,10 +14,10 @@ class Review {
   });
 
   factory Review.fromJson(Map<String, dynamic> json) => Review(
-        id: (json['_id'] ?? '').toString(),
-        rating: (json['rating'] as num?)?.toInt() ?? 0,
-        comment: json['comment'] as String? ?? '',
-        isVerifiedRide: json['isVerifiedRide'] as bool? ?? false,
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
-      );
+    id: (json['_id'] ?? '').toString(),
+    rating: (json['rating'] as num?)?.toInt() ?? 0,
+    comment: json['comment'] as String? ?? '',
+    isVerifiedRide: json['isVerifiedRide'] as bool? ?? false,
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+  );
 }

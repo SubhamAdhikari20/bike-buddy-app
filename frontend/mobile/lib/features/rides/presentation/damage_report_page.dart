@@ -11,8 +11,7 @@ import '../../../core/error/app_exception.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 import '../../bookings/data/booking_api.dart';
 
-/// Post-return damage report with photo evidence (BC-04). Reports are
-/// acknowledged within 24 hours.
+/// Post-return damage report with photo evidence (BC-04).
 class DamageReportPage extends ConsumerStatefulWidget {
   final String bookingId;
 
@@ -35,8 +34,11 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
 
   Future<void> _addPhoto(ImageSource source) async {
     if (_photos.length >= 3) return;
-    final photo = await ImagePicker()
-        .pickImage(source: source, maxWidth: 1600, imageQuality: 80);
+    final photo = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1600,
+      imageQuality: 80,
+    );
     if (photo != null && mounted) setState(() => _photos.add(photo));
   }
 
@@ -62,7 +64,9 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
         urls.add(await auth.uploadImage(photo.path));
       }
 
-      await ref.read(bookingApiProvider).reportDamage(
+      await ref
+          .read(bookingApiProvider)
+          .reportDamage(
             bookingId: widget.bookingId,
             photos: urls,
             description: _description.text.trim(),
@@ -71,8 +75,7 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-                'Report submitted. We will acknowledge it within 24 hours.'),
+            content: Text('Damage report submitted for review.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -82,9 +85,11 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not submit the report. Please try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not submit the report. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -107,7 +112,8 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
             Text('What happened?', style: textTheme.titleLarge),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              'Photos and an honest description protect both you and the owner. Your report goes straight to our team, not the owner.',
+              'Photos and an honest description protect both you and the '
+              'owner. Bike Buddy administrators handle dispute resolution.',
               style: textTheme.bodyMedium,
             ),
             const SizedBox(height: AppSpacing.md),
@@ -123,18 +129,23 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
                         width: 96,
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
-                          borderRadius:
-                              BorderRadius.circular(AppRadius.medium),
+                          borderRadius: BorderRadius.circular(AppRadius.medium),
                         ),
                         child: const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.photo_camera_outlined,
-                                color: AppColors.primary),
+                            Icon(
+                              Icons.photo_camera_outlined,
+                              color: AppColors.primary,
+                            ),
                             SizedBox(height: 4),
-                            Text('Add Photo',
-                                style: TextStyle(
-                                    fontSize: 12, color: AppColors.primary)),
+                            Text(
+                              'Add Photo',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -145,22 +156,29 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
                       child: Stack(
                         children: [
                           ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.medium),
-                            child: Image.file(File(_photos[i].path),
-                                width: 96, height: 96, fit: BoxFit.cover),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.medium,
+                            ),
+                            child: Image.file(
+                              File(_photos[i].path),
+                              width: 96,
+                              height: 96,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                           Positioned(
                             top: 2,
                             right: 2,
                             child: InkWell(
-                              onTap: () =>
-                                  setState(() => _photos.removeAt(i)),
+                              onTap: () => setState(() => _photos.removeAt(i)),
                               child: const CircleAvatar(
                                 radius: 12,
                                 backgroundColor: Colors.black54,
-                                child: Icon(Icons.close,
-                                    size: 14, color: Colors.white),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -190,7 +208,9 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Submit Report'),
             ),

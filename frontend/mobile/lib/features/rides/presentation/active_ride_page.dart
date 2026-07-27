@@ -16,8 +16,10 @@ import '../../../core/widgets/loading_view.dart';
 import '../../bookings/data/booking_api.dart';
 import '../../bookings/data/booking_model.dart';
 
-final _rideBookingProvider =
-    FutureProvider.family<Booking, String>((ref, bookingId) {
+final _rideBookingProvider = FutureProvider.family<Booking, String>((
+  ref,
+  bookingId,
+) {
   return ref.watch(bookingApiProvider).getBooking(bookingId);
 });
 
@@ -51,17 +53,50 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
     super.dispose();
   }
 
-  // One tap: share location with support and start the call (SUP-01).
+  Future<void> _offerSupportCall() async {
+    if (AppConstants.hasSupportPhone) {
+      await launchUrl(
+        Uri(scheme: 'tel', path: AppConstants.supportPhone),
+        mode: LaunchMode.externalApplication,
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Call emergency services'),
+        content: const Text(
+          'This coursework build has no staffed phone number configured. '
+          'If you are in immediate danger, use your phone to call the '
+          'appropriate local emergency service now.',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('I understand'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Records the alert and offers a configured support call without pretending
+  // that an unstaffed coursework build has dispatched emergency help.
   Future<void> _triggerSos() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         icon: const Icon(Icons.sos, size: 44, color: AppColors.accent),
-        title: const Text('Get emergency help?'),
+        title: const Text('Record an SOS alert?'),
         content: const Text(
-            'We will share your location with our 24/7 support team and start a call right away.'),
+          'Bike Buddy will try to record your current location. This does not '
+          'replace calling local emergency services.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -70,7 +105,7 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Yes, get help'),
+            child: const Text('Record alert'),
           ),
         ],
       ),
@@ -83,8 +118,9 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
       double? lng;
       try {
         final position = await Geolocator.getCurrentPosition(
-          locationSettings:
-              const LocationSettings(accuracy: LocationAccuracy.high),
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         ).timeout(const Duration(seconds: 5));
         lat = position.latitude;
         lng = position.longitude;
@@ -92,25 +128,40 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
         // Send the alert even without a fix - support can still call back.
       }
 
-      await ref.read(bookingApiProvider).sendSos(
-            bookingId: widget.bookingId,
-            latitude: lat,
-            longitude: lng,
-          );
+      final result = await ref
+          .read(bookingApiProvider)
+          .sendSos(bookingId: widget.bookingId, latitude: lat, longitude: lng);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Alert sent. Our team can see your location. Calling now...'),
+            content: Text(
+              'SOS alert recorded. Call emergency services if needed.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
       }
-      await launchUrl(Uri(scheme: 'tel', path: AppConstants.supportPhone));
+      if (result['locationShared'] != true && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Alert recorded without a location fix.'),
+          ),
+        );
+      }
     } catch (_) {
-      // Even if the API call fails, never block the emergency call.
-      await launchUrl(Uri(scheme: 'tel', path: AppConstants.supportPhone));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'The alert could not reach Bike Buddy. Call emergency services now if needed.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     } finally {
+      await _offerSupportCall();
       if (mounted) setState(() => _sosBusy = false);
     }
   }
@@ -144,8 +195,7 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
                       Text(
                         overdue ? 'Return overdue' : 'Ride in progress',
                         style: textTheme.titleLarge?.copyWith(
-                          color:
-                              overdue ? AppColors.error : AppColors.teal,
+                          color: overdue ? AppColors.error : AppColors.teal,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
@@ -168,8 +218,11 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
               if (booking.bike != null)
                 Card(
                   child: ListTile(
-                    leading: const Icon(Icons.two_wheeler,
-                        size: 36, color: AppColors.primary),
+                    leading: const Icon(
+                      Icons.two_wheeler,
+                      size: 36,
+                      color: AppColors.primary,
+                    ),
                     title: Text(booking.bike!.title),
                     subtitle: Text(booking.pickupLocation),
                   ),
@@ -180,20 +233,25 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
                 Card(
                   color: const Color(0xFFFFF7E6),
                   child: ListTile(
-                    leading: const Icon(Icons.checklist,
-                        color: AppColors.warning),
+                    leading: const Icon(
+                      Icons.checklist,
+                      color: AppColors.warning,
+                    ),
                     title: const Text('Pre-ride checklist not done'),
                     subtitle: const Text(
-                        'Takes 2 minutes and protects you in a dispute.'),
+                      'Takes 2 minutes and protects you in a dispute.',
+                    ),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () =>
-                        context.push('/checklist/${widget.bookingId}'),
+                    onTap: () => context.push('/checklist/${widget.bookingId}'),
                   ),
                 ),
               const SizedBox(height: AppSpacing.md),
 
-              Text('Paid: ${Formatters.npr(booking.totalAmount)}',
-                  style: textTheme.bodyMedium, textAlign: TextAlign.center),
+              Text(
+                'Paid: ${Formatters.npr(booking.totalAmount)}',
+                style: textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: AppSpacing.md),
 
               ElevatedButton.icon(
@@ -219,14 +277,17 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
         child: FloatingActionButton(
           backgroundColor: AppColors.accent,
           onPressed: _sosBusy ? null : _triggerSos,
-          tooltip: 'Emergency help',
+          tooltip: 'Record an SOS alert',
           child: _sosBusy
               ? const CircularProgressIndicator(color: Colors.white)
-              : const Text('SOS',
+              : const Text(
+                  'SOS',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800)),
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
         ),
       ),
     );

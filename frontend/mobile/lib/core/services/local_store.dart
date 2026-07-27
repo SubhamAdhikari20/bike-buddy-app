@@ -41,8 +41,7 @@ class LocalStore {
     await _prefs.setStringList(_kRecentSearches, searches.take(8).toList());
   }
 
-  static Future<void> clearRecentSearches() =>
-      _prefs.remove(_kRecentSearches);
+  static Future<void> clearRecentSearches() => _prefs.remove(_kRecentSearches);
 
   // --- Booking draft for crash recovery (UI-06) ---
 

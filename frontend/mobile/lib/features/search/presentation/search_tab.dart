@@ -72,8 +72,10 @@ class _SearchTabState extends ConsumerState<SearchTab> {
     final compareSelection = ref.watch(compareSelectionProvider);
 
     final categoryLabel = BikeQuery.categoryLabels.entries
-        .firstWhere((entry) => entry.value == query.category,
-            orElse: () => const MapEntry('All Bikes', null))
+        .firstWhere(
+          (entry) => entry.value == query.category,
+          orElse: () => const MapEntry('All Bikes', null),
+        )
         .key;
 
     return SafeArea(
@@ -89,13 +91,15 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                 SegmentedButton<bool>(
                   segments: const [
                     ButtonSegment(
-                        value: false,
-                        icon: Icon(Icons.view_list_outlined, size: 18),
-                        label: Text('List')),
+                      value: false,
+                      icon: Icon(Icons.view_list_outlined, size: 18),
+                      label: Text('List'),
+                    ),
                     ButtonSegment(
-                        value: true,
-                        icon: Icon(Icons.map_outlined, size: 18),
-                        label: Text('Map')),
+                      value: true,
+                      icon: Icon(Icons.map_outlined, size: 18),
+                      label: Text('Map'),
+                    ),
                   ],
                   selected: {_mapView},
                   showSelectedIcon: false,
@@ -158,32 +162,31 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                     if (query.category != null)
                       _ActiveFilterChip(
                         label: categoryLabel,
-                        onRemoved: () => ref
-                            .read(bikeQueryProvider.notifier)
-                            .state = query.copyWith(category: null),
+                        onRemoved: () =>
+                            ref.read(bikeQueryProvider.notifier).state = query
+                                .copyWith(category: null),
                       ),
                     if (query.city != null)
                       _ActiveFilterChip(
                         label: query.city!,
-                        onRemoved: () => ref
-                            .read(bikeQueryProvider.notifier)
-                            .state = query.copyWith(city: null),
+                        onRemoved: () =>
+                            ref.read(bikeQueryProvider.notifier).state = query
+                                .copyWith(city: null),
                       ),
                     if (query.minPrice != null || query.maxPrice != null)
                       _ActiveFilterChip(
                         label:
                             'Rs. ${query.minPrice?.round() ?? 0} - ${query.maxPrice?.round() ?? '5000+'}',
-                        onRemoved: () => ref
-                            .read(bikeQueryProvider.notifier)
-                            .state =
-                            query.copyWith(minPrice: null, maxPrice: null),
+                        onRemoved: () =>
+                            ref.read(bikeQueryProvider.notifier).state = query
+                                .copyWith(minPrice: null, maxPrice: null),
                       ),
                     if (!query.availableOnly)
                       _ActiveFilterChip(
                         label: 'Including unavailable',
-                        onRemoved: () => ref
-                            .read(bikeQueryProvider.notifier)
-                            .state = query.copyWith(availableOnly: true),
+                        onRemoved: () =>
+                            ref.read(bikeQueryProvider.notifier).state = query
+                                .copyWith(availableOnly: true),
                       ),
                   ],
                 ),
@@ -200,8 +203,11 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                         separatorBuilder: (context, index) =>
                             const SizedBox(width: AppSpacing.sm),
                         itemBuilder: (context, index) => ActionChip(
-                          avatar: const Icon(Icons.history,
-                              size: 16, color: AppColors.textSecondary),
+                          avatar: const Icon(
+                            Icons.history,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
                           label: Text(_recent[index]),
                           onPressed: () => _submit(_recent[index]),
                         ),
@@ -228,12 +234,14 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                 ),
                 data: (items) {
                   if (items.isEmpty) {
-                    return _NoResults(onClear: () {
-                      _searchController.clear();
-                      ref.read(bikeQueryProvider.notifier).state =
-                          const BikeQuery();
-                      setState(() {});
-                    });
+                    return _NoResults(
+                      onClear: () {
+                        _searchController.clear();
+                        ref.read(bikeQueryProvider.notifier).state =
+                            const BikeQuery();
+                        setState(() {});
+                      },
+                    );
                   }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,21 +249,25 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${items.length} bikes found',
-                              style: textTheme.bodyMedium),
+                          Text(
+                            '${items.length} bikes found',
+                            style: textTheme.bodyMedium,
+                          ),
                           TextButton.icon(
                             onPressed: () {
                               final byRating = query.sortBy == 'rating';
-                              ref.read(bikeQueryProvider.notifier).state =
-                                  query.copyWith(
-                                sortBy: byRating ? 'createdAt' : 'rating',
-                                sortOrder: 'desc',
-                              );
+                              ref.read(bikeQueryProvider.notifier).state = query
+                                  .copyWith(
+                                    sortBy: byRating ? 'createdAt' : 'rating',
+                                    sortOrder: 'desc',
+                                  );
                             },
                             icon: const Icon(Icons.sort, size: 18),
-                            label: Text(query.sortBy == 'rating'
-                                ? 'Sorted by Rating'
-                                : 'Sort by Rating'),
+                            label: Text(
+                              query.sortBy == 'rating'
+                                  ? 'Sorted by Rating'
+                                  : 'Sort by Rating',
+                            ),
                           ),
                         ],
                       ),
@@ -355,22 +367,30 @@ class _ResultsList extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(bike.title,
-                            style: textTheme.titleMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          bike.title,
+                          style: textTheme.titleMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      Text('Rs. ${bike.pricePerDay.toStringAsFixed(0)}',
-                          style: textTheme.titleMedium
-                              ?.copyWith(color: AppColors.primary)),
+                      Text(
+                        'Rs. ${bike.pricePerDay.toStringAsFixed(0)}',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                       Text('/day', style: textTheme.labelSmall),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined,
-                          size: 16, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 16,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(width: 2),
                       Expanded(
                         child: Text(
@@ -386,14 +406,18 @@ class _ResultsList extends StatelessWidget {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.flag_outlined,
-                            size: 16, color: AppColors.teal),
+                        const Icon(
+                          Icons.flag_outlined,
+                          size: 16,
+                          color: AppColors.teal,
+                        ),
                         const SizedBox(width: 2),
                         Expanded(
                           child: Text(
                             bike.location.landmark!,
-                            style: textTheme.bodyMedium
-                                ?.copyWith(color: AppColors.teal),
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: AppColors.teal,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -405,8 +429,11 @@ class _ResultsList extends StatelessWidget {
                   Row(
                     children: [
                       if (bike.ratingCount > 0) ...[
-                        const Icon(Icons.star,
-                            size: 16, color: AppColors.warning),
+                        const Icon(
+                          Icons.star,
+                          size: 16,
+                          color: AppColors.warning,
+                        ),
                         Text(
                           ' ${bike.averageRating.toStringAsFixed(1)} (${bike.ratingCount})',
                           style: textTheme.bodyMedium,
@@ -457,7 +484,9 @@ class _ResultsMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final withCoords = bikes
-        .where((b) => b.location.latitude != null && b.location.longitude != null)
+        .where(
+          (b) => b.location.latitude != null && b.location.longitude != null,
+        )
         .toList();
 
     return ClipRRect(
@@ -466,22 +495,28 @@ class _ResultsMap extends StatelessWidget {
         initialCameraPosition: CameraPosition(
           target: withCoords.isEmpty
               ? const LatLng(AppConstants.defaultLat, AppConstants.defaultLng)
-              : LatLng(withCoords.first.location.latitude!,
-                  withCoords.first.location.longitude!),
+              : LatLng(
+                  withCoords.first.location.latitude!,
+                  withCoords.first.location.longitude!,
+                ),
           zoom: 13,
         ),
         markers: withCoords
-            .map((bike) => Marker(
-                  markerId: MarkerId(bike.id),
-                  position: LatLng(
-                      bike.location.latitude!, bike.location.longitude!),
-                  infoWindow: InfoWindow(
-                    title: bike.title,
-                    snippet:
-                        'Rs. ${bike.pricePerDay.toStringAsFixed(0)}/day · tap for details',
-                    onTap: () => context.push('/bike/${bike.id}'),
-                  ),
-                ))
+            .map(
+              (bike) => Marker(
+                markerId: MarkerId(bike.id),
+                position: LatLng(
+                  bike.location.latitude!,
+                  bike.location.longitude!,
+                ),
+                infoWindow: InfoWindow(
+                  title: bike.title,
+                  snippet:
+                      'Rs. ${bike.pricePerDay.toStringAsFixed(0)}/day · tap for details',
+                  onTap: () => context.push('/bike/${bike.id}'),
+                ),
+              ),
+            )
             .toSet(),
         zoomControlsEnabled: false,
         myLocationButtonEnabled: false,
@@ -510,8 +545,11 @@ class _NoResults extends StatelessWidget {
               color: AppColors.primaryLight,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.search_off,
-                size: 40, color: AppColors.primary),
+            child: const Icon(
+              Icons.search_off,
+              size: 40,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           Text('No bikes found', style: textTheme.titleLarge),

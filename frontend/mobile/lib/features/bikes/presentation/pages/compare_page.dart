@@ -11,8 +11,10 @@ import '../../data/bike_api.dart';
 import '../../data/bike_model.dart';
 import '../providers/bikes_provider.dart';
 
-final _compareResultProvider =
-    FutureProvider.family<List<Bike>, String>((ref, ids) {
+final _compareResultProvider = FutureProvider.family<List<Bike>, String>((
+  ref,
+  ids,
+) {
   return ref
       .watch(bikeApiProvider)
       .compareBikes(ids.split(',').where((id) => id.isNotEmpty).toList());
@@ -61,11 +63,14 @@ class ComparePage extends ConsumerWidget {
                     child: CircleAvatar(
                       radius: 16,
                       backgroundColor: AppColors.primaryLight,
-                      child: Text('VS',
-                          style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary)),
+                      child: Text(
+                        'VS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ),
                 Expanded(child: _CompareCard(bike: bikes[i])),
@@ -106,9 +111,10 @@ class _CompareCard extends StatelessWidget {
                 'BEST VALUE',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700),
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           AspectRatio(
@@ -116,16 +122,22 @@ class _CompareCard extends StatelessWidget {
             child: bike.imageUrls.isEmpty
                 ? Container(
                     color: AppColors.primaryLight,
-                    child: const Icon(Icons.two_wheeler,
-                        size: 40, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.two_wheeler,
+                      size: 40,
+                      color: AppColors.primary,
+                    ),
                   )
                 : CachedNetworkImage(
                     imageUrl: bike.imageUrls.first,
                     fit: BoxFit.cover,
                     errorWidget: (context, url, error) => Container(
                       color: AppColors.primaryLight,
-                      child: const Icon(Icons.two_wheeler,
-                          size: 40, color: AppColors.primary),
+                      child: const Icon(
+                        Icons.two_wheeler,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
           ),
@@ -134,10 +146,12 @@ class _CompareCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(bike.title,
-                    style: textTheme.titleMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
+                Text(
+                  bike.title,
+                  style: textTheme.titleMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 2),
                 Row(
                   children: [
@@ -152,21 +166,27 @@ class _CompareCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text('Rs. ${bike.pricePerDay.toStringAsFixed(0)}',
-                        style: textTheme.titleLarge
-                            ?.copyWith(color: AppColors.primary)),
+                    Text(
+                      'Rs. ${bike.pricePerDay.toStringAsFixed(0)}',
+                      style: textTheme.titleLarge?.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
                     Text('/day', style: textTheme.labelSmall),
                   ],
                 ),
                 const Divider(height: AppSpacing.md),
                 _SpecRow(label: 'Engine', value: '${bike.engineCc}cc'),
                 _SpecRow(
-                    label: 'Fuel',
-                    value: bike.fuelType[0].toUpperCase() +
-                        bike.fuelType.substring(1)),
+                  label: 'Fuel',
+                  value:
+                      bike.fuelType[0].toUpperCase() +
+                      bike.fuelType.substring(1),
+                ),
                 _SpecRow(
-                    label: 'Gears',
-                    value: bike.transmission == 'manual' ? 'Manual' : 'Auto'),
+                  label: 'Gears',
+                  value: bike.transmission == 'manual' ? 'Manual' : 'Auto',
+                ),
                 _SpecRow(label: 'Year', value: '${bike.year}'),
                 _SpecRow(
                   label: 'Status',
@@ -177,8 +197,9 @@ class _CompareCard extends StatelessWidget {
                 ),
                 if (bike.distanceKm != null)
                   _SpecRow(
-                      label: 'Distance',
-                      value: '${bike.distanceKm!.toStringAsFixed(1)} km'),
+                    label: 'Distance',
+                    value: '${bike.distanceKm!.toStringAsFixed(1)} km',
+                  ),
                 const SizedBox(height: AppSpacing.sm),
                 // Book directly from the comparison (UI-04).
                 ElevatedButton(
@@ -215,9 +236,13 @@ class _SpecRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
           Text(
             value,
             style: TextStyle(

@@ -13,12 +13,24 @@ class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
 
   Future<void> _call(BuildContext context) async {
+    if (!AppConstants.hasSupportPhone) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No staffed support phone is configured in this coursework build.',
+          ),
+        ),
+      );
+      return;
+    }
     final uri = Uri(scheme: 'tel', path: AppConstants.supportPhone);
     final ok = await canLaunchUrl(uri) && await launchUrl(uri);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Call us any time: ${AppConstants.supportPhone}'),
+          content: Text(
+            'Could not open the phone app. Number: ${AppConstants.supportPhone}',
+          ),
         ),
       );
     }
@@ -42,11 +54,13 @@ class SupportPage extends StatelessWidget {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.access_time_filled, color: AppColors.teal),
+                  Icon(Icons.info_outline, color: AppColors.teal),
                   SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'We are available 24/7 - day rides, night rides, breakdowns.',
+                      'For immediate danger, contact the appropriate local '
+                      'emergency service. Bike Buddy support is not an '
+                      'emergency-response service.',
                       style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -70,20 +84,31 @@ class SupportPage extends StatelessWidget {
                           color: AppColors.primaryLight,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.call,
-                            size: 32, color: AppColors.primary),
+                        child: const Icon(
+                          Icons.call,
+                          size: 32,
+                          color: AppColors.primary,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Call us now', style: textTheme.titleLarge),
+                            Text(
+                              AppConstants.hasSupportPhone
+                                  ? 'Call Bike Buddy support'
+                                  : 'Support phone not configured',
+                              style: textTheme.titleLarge,
+                            ),
                             const SizedBox(height: 2),
                             Text(
-                              AppConstants.supportPhone,
-                              style: textTheme.bodyLarge
-                                  ?.copyWith(color: AppColors.primary),
+                              AppConstants.hasSupportPhone
+                                  ? AppConstants.supportPhone
+                                  : 'Configure SUPPORT_PHONE at build time',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ),
@@ -109,18 +134,26 @@ class SupportPage extends StatelessWidget {
                           color: AppColors.mint,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.chat_bubble_outline,
-                            size: 32, color: AppColors.teal),
+                        child: const Icon(
+                          Icons.chat_bubble_outline,
+                          size: 32,
+                          color: AppColors.teal,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Chat with support', style: textTheme.titleLarge),
+                            Text(
+                              'Chat with support',
+                              style: textTheme.titleLarge,
+                            ),
                             const SizedBox(height: 2),
-                            Text('Avg response: 5 min',
-                                style: textTheme.bodyMedium),
+                            Text(
+                              'Coursework preview — messages stay on this device',
+                              style: textTheme.bodyMedium,
+                            ),
                           ],
                         ),
                       ),

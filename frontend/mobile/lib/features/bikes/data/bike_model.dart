@@ -18,14 +18,14 @@ class BikeLocation {
   });
 
   factory BikeLocation.fromJson(Map<String, dynamic> json) => BikeLocation(
-        label: json['label'] as String? ?? '',
-        address: json['address'] as String? ?? '',
-        city: json['city'] as String? ?? '',
-        area: json['area'] as String?,
-        landmark: json['landmark'] as String?,
-        latitude: (json['latitude'] as num?)?.toDouble(),
-        longitude: (json['longitude'] as num?)?.toDouble(),
-      );
+    label: json['label'] as String? ?? '',
+    address: json['address'] as String? ?? '',
+    city: json['city'] as String? ?? '',
+    area: json['area'] as String?,
+    landmark: json['landmark'] as String?,
+    latitude: (json['latitude'] as num?)?.toDouble(),
+    longitude: (json['longitude'] as num?)?.toDouble(),
+  );
 }
 
 /// Owner summary as populated in bike responses. Backs the verified
@@ -50,13 +50,15 @@ class BikeOwner {
   bool get isVerified => ownerStatus == 'verified';
 
   factory BikeOwner.fromJson(Map<String, dynamic> json) => BikeOwner(
-        id: (json['_id'] ?? '').toString(),
-        fullName: json['fullName'] as String? ?? 'Bike owner',
-        ownerStatus: json['ownerStatus'] as String? ?? 'none',
-        verifiedAt: DateTime.tryParse(json['ownerVerificationDate'] as String? ?? ''),
-        bio: json['bio'] as String?,
-        profilePictureUrl: json['profilePictureUrl'] as String?,
-      );
+    id: (json['_id'] ?? '').toString(),
+    fullName: json['fullName'] as String? ?? 'Bike owner',
+    ownerStatus: json['ownerStatus'] as String? ?? 'none',
+    verifiedAt: DateTime.tryParse(
+      json['ownerVerificationDate'] as String? ?? '',
+    ),
+    bio: json['bio'] as String?,
+    profilePictureUrl: json['profilePictureUrl'] as String?,
+  );
 }
 
 class Bike {
@@ -159,21 +161,23 @@ class Bike {
           : null,
       isBestValue: json['isBestValue'] as bool? ?? false,
       weightKg: ((json['specs'] as Map?)?['weightKg'] as num?)?.toDouble(),
-      mileageKmPerL:
-          ((json['specs'] as Map?)?['mileageKmPerL'] as num?)?.toDouble(),
+      mileageKmPerL: ((json['specs'] as Map?)?['mileageKmPerL'] as num?)
+          ?.toDouble(),
       helmetIncluded:
           (json['specs'] as Map?)?['helmetIncluded'] as bool? ?? false,
       serviceDate: DateTime.tryParse(
-          (json['conditionInfo'] as Map?)?['serviceDate'] as String? ?? ''),
-      odometerKm:
-          ((json['conditionInfo'] as Map?)?['odometerKm'] as num?)?.toInt(),
+        (json['conditionInfo'] as Map?)?['serviceDate'] as String? ?? '',
+      ),
+      odometerKm: ((json['conditionInfo'] as Map?)?['odometerKm'] as num?)
+          ?.toInt(),
       conditionPhotos:
           ((json['conditionInfo'] as Map?)?['photos'] as List? ?? const [])
-              .map((photo) => (
-                    url: (photo as Map)['url'] as String? ?? '',
-                    takenAt:
-                        DateTime.tryParse(photo['takenAt'] as String? ?? ''),
-                  ))
+              .map(
+                (photo) => (
+                  url: (photo as Map)['url'] as String? ?? '',
+                  takenAt: DateTime.tryParse(photo['takenAt'] as String? ?? ''),
+                ),
+              )
               .where((photo) => photo.url.isNotEmpty)
               .toList(),
     );
