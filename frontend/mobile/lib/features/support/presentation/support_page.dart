@@ -70,8 +70,11 @@ class SupportPage extends StatelessWidget {
                           color: AppColors.primaryLight,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.call,
-                            size: 32, color: AppColors.primary),
+                        child: const Icon(
+                          Icons.call,
+                          size: 32,
+                          color: AppColors.primary,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
@@ -82,8 +85,9 @@ class SupportPage extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               AppConstants.supportPhone,
-                              style: textTheme.bodyLarge
-                                  ?.copyWith(color: AppColors.primary),
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ),
@@ -109,18 +113,26 @@ class SupportPage extends StatelessWidget {
                           color: AppColors.mint,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.chat_bubble_outline,
-                            size: 32, color: AppColors.teal),
+                        child: const Icon(
+                          Icons.chat_bubble_outline,
+                          size: 32,
+                          color: AppColors.teal,
+                        ),
                       ),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Chat with support', style: textTheme.titleLarge),
+                            Text(
+                              'Chat with support',
+                              style: textTheme.titleLarge,
+                            ),
                             const SizedBox(height: 2),
-                            Text('Avg response: 5 min',
-                                style: textTheme.bodyMedium),
+                            Text(
+                              'Avg response: 5 min',
+                              style: textTheme.bodyMedium,
+                            ),
                           ],
                         ),
                       ),

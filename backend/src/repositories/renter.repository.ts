@@ -3,11 +3,14 @@ import type { RenterRepositoryInterface } from "./../interfaces/renter.repositor
 import RenterModel from "./../models/renter.model.ts";
 
 export const renterRepository: RenterRepositoryInterface = {
-    create: (data) => RenterModel.create(data),
-    findById: (id) => RenterModel.findById(id).exec(),
-    findByBaseUserId: (baseUserId) => RenterModel.findOne({ baseUserId }).exec(),
-    updateById: (id, data) => RenterModel.findByIdAndUpdate(id, data, { new: true }).exec(),
-    deleteById: (id) => RenterModel.findByIdAndDelete(id).exec(),
-    list: (filter = {}) => RenterModel.find(filter).exec(),
-    count: (filter = {}) => RenterModel.countDocuments(filter).exec(),
+  create: (data) => RenterModel.create(data),
+  findById: (id) => RenterModel.findById(id).exec(),
+  findByBaseUserId: (baseUserId) => RenterModel.findOne({ baseUserId }).exec(),
+  findByBaseUserIdWithPassword: (baseUserId) =>
+    RenterModel.findOne({ baseUserId }).select("+password").exec(),
+  updateById: (id, data) =>
+    RenterModel.findByIdAndUpdate(id, data, { new: true }).exec(),
+  deleteById: (id) => RenterModel.findByIdAndDelete(id).exec(),
+  list: (filter = {}) => RenterModel.find(filter).exec(),
+  count: (filter = {}) => RenterModel.countDocuments(filter).exec(),
 };

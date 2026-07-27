@@ -2,66 +2,69 @@
 import mongoose, { Schema, Document } from "mongoose";
 import type { Owner } from "./../types/owner.type.ts";
 
-
 export interface IOwner extends Omit<Owner, "baseUserId">, Document {
-    baseUserId: Schema.Types.ObjectId | string,
-    createdAt: Date;
-    updatedAt: Date;
+  baseUserId: Schema.Types.ObjectId | string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const ownerSchema: Schema<IOwner> = new Schema({
+const ownerSchema: Schema<IOwner> = new Schema(
+  {
     baseUserId: {
-        type: Schema.Types.ObjectId,
-        ref: "users",
-        required: true,
-        unique: true
+      type: Schema.Types.ObjectId,
+      ref: "users",
+      required: true,
+      unique: true,
     },
     fullName: {
-        type: String,
-        required: [true, "Full name is required"],
-        trim: true
+      type: String,
+      required: [true, "Full name is required"],
+      trim: true,
     },
     phoneNumber: {
-        type: String,
-        required: [true, "Phone number is required"],
-        unique: true,
-        trim: true,
-        minLength: [10, "Phone number must be 10 digits"],
-        maxLength: [10, "Phone number must be 10 digits"],
+      type: String,
+      required: [true, "Phone number is required"],
+      unique: true,
+      trim: true,
+      minLength: [10, "Phone number must be 10 digits"],
+      maxLength: [10, "Phone number must be 10 digits"],
     },
     password: {
-        type: String,
-        minLength: [8, "Password must be at least 8 characters"],
-        default: null
+      type: String,
+      minLength: [8, "Password must be at least 8 characters"],
+      default: null,
+      select: false,
     },
     profilePictureUrl: {
-        type: String,
-        default: null
+      type: String,
+      default: null,
     },
     bio: {
-        type: String,
-        maxLength: [500, "Bio cannot exceed 500 characters"],
-        default: null
+      type: String,
+      maxLength: [500, "Bio cannot exceed 500 characters"],
+      default: null,
     },
     ownerNotes: {
-        type: String,
-        default: null
+      type: String,
+      default: null,
     },
     ownerStatus: {
-        type: String,
-        enum: ["none", "pending", "verified", "rejected"],
-        default: "none"
+      type: String,
+      enum: ["none", "pending", "verified", "rejected"],
+      default: "none",
     },
     ownerVerificationDate: {
-        type: Date,
-        default: null
+      type: Date,
+      default: null,
     },
-},
-    {
-        timestamps: true
-    }
+  },
+  {
+    timestamps: true,
+  },
 );
 
-const OwnerModel = (mongoose.models.owners as mongoose.Model<IOwner>) ?? (mongoose.model<IOwner>("owners", ownerSchema));
+const OwnerModel =
+  (mongoose.models.owners as mongoose.Model<IOwner>) ??
+  mongoose.model<IOwner>("owners", ownerSchema);
 
 export default OwnerModel;

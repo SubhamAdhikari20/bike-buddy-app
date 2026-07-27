@@ -1,13 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/session_service.dart';
+import '../../../../core/services/google_auth_service.dart';
 import '../../data/auth_api.dart';
 import '../../data/session_user.dart';
 
 /// Global auth state. `null` means guest browsing (UI-01) — the app is
 /// fully usable without an account until the user tries to book.
-final authProvider =
-    AsyncNotifierProvider<AuthNotifier, SessionUser?>(AuthNotifier.new);
+final authProvider = AsyncNotifierProvider<AuthNotifier, SessionUser?>(
+  AuthNotifier.new,
+);
 
 class AuthNotifier extends AsyncNotifier<SessionUser?> {
   AuthApi get _api => ref.read(authApiProvider);
@@ -19,9 +21,15 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
     final token = await SessionService.token;
     if (token == null) return null;
 
-    final saved = await SessionService.user;
-    if (saved == null) return null;
-    return SessionUser.fromSession(saved);
+    try {
+      final currentSession = await _api.me();
+      final user = SessionUser.fromSession(currentSession);
+      await SessionService.saveSession(token: token, user: user.toJson());
+      return user;
+    } catch (_) {
+      await SessionService.clear();
+      return null;
+    }
   }
 
   Future<void> _storeSession(Map<String, dynamic> session) async {
@@ -61,6 +69,21 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
     await _storeSession(session);
   }
 
+  Future<void> continueWithGoogle() async {
+    final idToken = await GoogleAuthService.authenticate();
+    final session = await _api.googleRenter(idToken);
+    await _storeSession(session);
+  }
+
+  Future<Map<String, dynamic>> forgotPassword(String email) =>
+      _api.forgotPassword(email);
+
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+  }) => _api.resetPassword(email: email, code: code, password: password);
+
   /// Re-fetches the profile from the server (e.g. after editing).
   Future<void> refresh() async {
     final me = await _api.me();
@@ -93,6 +116,7 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
       // Even if the server call fails we still clear the local session.
     }
     await SessionService.clear();
+    await GoogleAuthService.signOut();
     state = const AsyncData(null);
   }
 

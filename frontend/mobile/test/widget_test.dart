@@ -23,7 +23,7 @@ void main() {
         'longitude': 85.3123,
       },
       'images': [
-        {'url': 'http://example.com/bike.jpg'}
+        {'url': 'http://example.com/bike.jpg'},
       ],
       'status': 'available',
       'verifiedBike': true,

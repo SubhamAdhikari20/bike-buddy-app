@@ -149,12 +149,14 @@ class _OtpLoginPageState extends ConsumerState<OtpLoginPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: AppSpacing.md),
-              const Icon(Icons.pin_outlined, size: 56, color: AppColors.primary),
+              const Icon(
+                Icons.pin_outlined,
+                size: 56,
+                color: AppColors.primary,
+              ),
               const SizedBox(height: AppSpacing.md),
               Text(
-                _codeSent
-                    ? 'Enter the 6-digit code'
-                    : 'No password needed',
+                _codeSent ? 'Enter the 6-digit code' : 'No password needed',
                 style: textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
@@ -186,7 +188,9 @@ class _OtpLoginPageState extends ConsumerState<OtpLoginPage> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Send Code'),
                 ),
@@ -223,7 +227,9 @@ class _OtpLoginPageState extends ConsumerState<OtpLoginPage> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Text('Verify & Sign In'),
                 ),

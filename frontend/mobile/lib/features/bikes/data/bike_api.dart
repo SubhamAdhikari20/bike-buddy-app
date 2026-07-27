@@ -22,16 +22,19 @@ class BikeApi {
     int page = 1,
     int limit = 20,
   }) async {
-    final res = await _client.get('/bikes', query: {
-      'page': page,
-      'limit': limit,
-      if (search != null && search.isNotEmpty) 'search': search,
-      'status': ?status,
-      'lat': ?lat,
-      'lng': ?lng,
-      'radiusKm': ?radiusKm,
-      if (includeUnavailable) 'includeUnavailable': true,
-    });
+    final res = await _client.get(
+      '/bikes',
+      query: {
+        'page': page,
+        'limit': limit,
+        if (search != null && search.isNotEmpty) 'search': search,
+        'status': ?status,
+        'lat': ?lat,
+        'lng': ?lng,
+        'radiusKm': ?radiusKm,
+        if (includeUnavailable) 'includeUnavailable': true,
+      },
+    );
 
     final items = (res['data'] as List? ?? const []);
     return items

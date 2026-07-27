@@ -38,8 +38,7 @@ class ApiClient {
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? query,
-  }) =>
-      _run(() => dio.get(path, queryParameters: query));
+  }) => _run(() => dio.get(path, queryParameters: query));
 
   Future<Map<String, dynamic>> post(String path, {Object? data}) =>
       _run(() => dio.post(path, data: data));

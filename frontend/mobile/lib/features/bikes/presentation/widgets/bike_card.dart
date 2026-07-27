@@ -35,8 +35,11 @@ class BikeCard extends StatelessWidget {
                     child: bike.imageUrls.isEmpty
                         ? Container(
                             color: AppColors.primaryLight,
-                            child: const Icon(Icons.two_wheeler,
-                                size: 56, color: AppColors.primary),
+                            child: const Icon(
+                              Icons.two_wheeler,
+                              size: 56,
+                              color: AppColors.primary,
+                            ),
                           )
                         : CachedNetworkImage(
                             imageUrl: bike.imageUrls.first,
@@ -47,15 +50,19 @@ class BikeCard extends StatelessWidget {
                                 child: SizedBox(
                                   width: 24,
                                   height: 24,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                               ),
                             ),
                             errorWidget: (context, url, error) => Container(
                               color: AppColors.primaryLight,
-                              child: const Icon(Icons.two_wheeler,
-                                  size: 56, color: AppColors.primary),
+                              child: const Icon(
+                                Icons.two_wheeler,
+                                size: 56,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                   ),
@@ -65,7 +72,9 @@ class BikeCard extends StatelessWidget {
                       right: AppSpacing.sm,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm, vertical: 4),
+                          horizontal: AppSpacing.sm,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -73,13 +82,17 @@ class BikeCard extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star,
-                                size: 14, color: AppColors.warning),
+                            const Icon(
+                              Icons.star,
+                              size: 14,
+                              color: AppColors.warning,
+                            ),
                             const SizedBox(width: 2),
                             Text(
                               bike.averageRating.toStringAsFixed(1),
-                              style: textTheme.labelSmall
-                                  ?.copyWith(color: AppColors.textPrimary),
+                              style: textTheme.labelSmall?.copyWith(
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ],
                         ),
@@ -91,7 +104,9 @@ class BikeCard extends StatelessWidget {
                       left: AppSpacing.sm,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm, vertical: 4),
+                          horizontal: AppSpacing.sm,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -104,9 +119,10 @@ class BikeCard extends StatelessWidget {
                             Text(
                               'Verified',
                               style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
+                                fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -118,7 +134,9 @@ class BikeCard extends StatelessWidget {
                       left: AppSpacing.sm,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm, vertical: 4),
+                          horizontal: AppSpacing.sm,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.textPrimary.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -148,8 +166,9 @@ class BikeCard extends StatelessWidget {
                         ),
                         Text(
                           'Rs. ${bike.pricePerDay.toStringAsFixed(0)}/d',
-                          style: textTheme.titleMedium
-                              ?.copyWith(color: AppColors.primary),
+                          style: textTheme.titleMedium?.copyWith(
+                            color: AppColors.primary,
+                          ),
                         ),
                       ],
                     ),

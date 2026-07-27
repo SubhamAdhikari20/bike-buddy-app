@@ -46,7 +46,9 @@ class PermissionService {
     final agreed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.large)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         icon: Icon(icon, size: 40, color: AppColors.primary),
         title: Text(title),
         content: Text(reason, style: Theme.of(context).textTheme.bodyMedium),

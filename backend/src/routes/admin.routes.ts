@@ -1,6 +1,16 @@
 import { Router } from "express";
 import { authenticate, authorize } from "../middlewares/auth.ts";
-import { dashboard, hideReview, listBikes, listBookings, listReviews, listUsers, reviewKyc, updateBikeStatus, updateBookingStatus } from "../controllers/admin.controller.ts";
+import {
+  dashboard,
+  hideReview,
+  listBikes,
+  listBookings,
+  listReviews,
+  listUsers,
+  reviewKyc,
+  updateBikeStatus,
+  updateBookingStatus,
+} from "../controllers/admin.controller.ts";
 
 const adminRoutes = Router();
 

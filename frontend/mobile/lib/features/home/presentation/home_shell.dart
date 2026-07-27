@@ -32,12 +32,7 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       body: IndexedStack(
         index: _index,
-        children: const [
-          HomeTab(),
-          SearchTab(),
-          BookingsTab(),
-          ProfileTab(),
-        ],
+        children: const [HomeTab(), SearchTab(), BookingsTab(), ProfileTab()],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
@@ -48,10 +43,7 @@ class _HomeShellState extends State<HomeShell> {
             selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
+          NavigationDestination(icon: Icon(Icons.search), label: 'Search'),
           NavigationDestination(
             icon: Icon(Icons.pedal_bike_outlined),
             selectedIcon: Icon(Icons.pedal_bike),

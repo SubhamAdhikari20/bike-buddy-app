@@ -31,8 +31,9 @@ class _SearchTabState extends ConsumerState<SearchTab> {
   Future<void> _submit(String term) async {
     final trimmed = term.trim();
     _searchController.text = trimmed;
-    ref.read(bikeQueryProvider.notifier).state =
-        ref.read(bikeQueryProvider).copyWith(search: trimmed);
+    ref.read(bikeQueryProvider.notifier).state = ref
+        .read(bikeQueryProvider)
+        .copyWith(search: trimmed);
     if (trimmed.isNotEmpty) {
       await LocalStore.addRecentSearch(trimmed);
       setState(() => _recent = LocalStore.recentSearches);
@@ -93,8 +94,11 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                   separatorBuilder: (context, index) =>
                       const SizedBox(width: AppSpacing.sm),
                   itemBuilder: (context, index) => ActionChip(
-                    avatar: const Icon(Icons.history,
-                        size: 16, color: AppColors.textSecondary),
+                    avatar: const Icon(
+                      Icons.history,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
                     label: Text(_recent[index]),
                     onPressed: () => _submit(_recent[index]),
                   ),
@@ -115,8 +119,11 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.search_off,
-                                size: 48, color: AppColors.textMuted),
+                            const Icon(
+                              Icons.search_off,
+                              size: 48,
+                              color: AppColors.textMuted,
+                            ),
                             const SizedBox(height: AppSpacing.sm),
                             Text(
                               'No bikes found. Try a different search.',
@@ -128,10 +135,10 @@ class _SearchTabState extends ConsumerState<SearchTab> {
                     : GridView.builder(
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 1,
-                          mainAxisExtent: 250,
-                          mainAxisSpacing: AppSpacing.md,
-                        ),
+                              crossAxisCount: 1,
+                              mainAxisExtent: 250,
+                              mainAxisSpacing: AppSpacing.md,
+                            ),
                         itemCount: items.length,
                         itemBuilder: (context, index) => BikeCard(
                           bike: items[index],

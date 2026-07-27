@@ -56,12 +56,17 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             // Location header + bell, like the prototype.
             Row(
               children: [
-                const Icon(Icons.location_on_outlined, color: AppColors.primary),
+                const Icon(
+                  Icons.location_on_outlined,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     'Kathmandu, Nepal',
-                    style: textTheme.titleLarge?.copyWith(color: AppColors.primary),
+                    style: textTheme.titleLarge?.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
                 IconButton(
@@ -95,8 +100,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                     const SizedBox(width: AppSpacing.sm),
                 itemBuilder: (context, index) {
                   final category = _categories[index];
-                  final selected =
-                      (query.category ?? 'All Bikes') == category;
+                  final selected = (query.category ?? 'All Bikes') == category;
                   return ChoiceChip(
                     label: Text(category),
                     selected: selected,
@@ -104,12 +108,11 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                     backgroundColor: AppColors.surface,
                     labelStyle: TextStyle(
                       color: AppColors.textPrimary,
-                      fontWeight:
-                          selected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                     ),
-                    onSelected: (_) => ref
-                        .read(bikeQueryProvider.notifier)
-                        .state = query.copyWith(category: category),
+                    onSelected: (_) =>
+                        ref.read(bikeQueryProvider.notifier).state = query
+                            .copyWith(category: category),
                   );
                 },
               ),
@@ -117,13 +120,14 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             const SizedBox(height: AppSpacing.md),
 
             // Resume banner after a crash or app restart (UI-06, H6).
-            if (_draft != null) _ResumeBookingBanner(
-              draft: _draft!,
-              onDismiss: () {
-                LocalStore.clearBookingDraft();
-                setState(() => _draft = null);
-              },
-            ),
+            if (_draft != null)
+              _ResumeBookingBanner(
+                draft: _draft!,
+                onDismiss: () {
+                  LocalStore.clearBookingDraft();
+                  setState(() => _draft = null);
+                },
+              ),
 
             // Guest nudge: sign-in is optional and never blocks browsing.
             if (auth == null) ...[
@@ -133,7 +137,10 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Row(
                     children: [
-                      const Icon(Icons.person_outline, color: AppColors.primary),
+                      const Icon(
+                        Icons.person_outline,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: AppSpacing.sm),
                       const Expanded(
                         child: Text(
@@ -166,7 +173,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             SizedBox(
               height: 250,
               child: bikes.when(
-                loading: () => const LoadingView(label: 'Finding bikes near you...'),
+                loading: () =>
+                    const LoadingView(label: 'Finding bikes near you...'),
                 error: (error, _) => ErrorView(
                   message: error.toString(),
                   onRetry: () => ref.invalidate(bikesProvider),
@@ -180,9 +188,8 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                         itemCount: items.length.clamp(0, 7),
                         separatorBuilder: (context, index) =>
                             const SizedBox(width: AppSpacing.md),
-                        itemBuilder: (context, index) => BikeCard(
-                          bike: items[index],
-                        ),
+                        itemBuilder: (context, index) =>
+                            BikeCard(bike: items[index]),
                       ),
               ),
             ),
@@ -221,7 +228,10 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                             SizedBox(height: 4),
                             Text(
                               'Live availability on the map',
-                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -270,10 +280,15 @@ class _ResumeBookingBanner extends StatelessWidget {
                   child: imageUrl == null || imageUrl.isEmpty
                       ? Container(
                           color: Colors.white,
-                          child: const Icon(Icons.two_wheeler,
-                              color: AppColors.primary),
+                          child: const Icon(
+                            Icons.two_wheeler,
+                            color: AppColors.primary,
+                          ),
                         )
-                      : CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.cover),
+                      : CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),

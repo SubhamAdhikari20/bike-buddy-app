@@ -16,13 +16,13 @@ class BikeLocation {
   });
 
   factory BikeLocation.fromJson(Map<String, dynamic> json) => BikeLocation(
-        label: json['label'] as String? ?? '',
-        address: json['address'] as String? ?? '',
-        city: json['city'] as String? ?? '',
-        area: json['area'] as String?,
-        latitude: (json['latitude'] as num?)?.toDouble(),
-        longitude: (json['longitude'] as num?)?.toDouble(),
-      );
+    label: json['label'] as String? ?? '',
+    address: json['address'] as String? ?? '',
+    city: json['city'] as String? ?? '',
+    area: json['area'] as String?,
+    latitude: (json['latitude'] as num?)?.toDouble(),
+    longitude: (json['longitude'] as num?)?.toDouble(),
+  );
 }
 
 class Bike {

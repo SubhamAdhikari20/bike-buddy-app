@@ -1,12 +1,23 @@
-// backend/src/helpers/send-reset-password-verification-email.tsx
 import nodemailer from "nodemailer";
-import type { ApiResponseType } from "./../types/api-response.type.ts";
+import type { ApiResponseType } from "../types/api-response.type.ts";
 
+const escapeHtml = (value: string) =>
+  value.replace(
+    /[&<>"']/g,
+    (character) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[character]!,
+  );
 
 export const sendResetPasswordVerificationEmail = async (
   fullName: string,
   email: string,
-  otp: string
+  code: string,
 ): Promise<ApiResponseType> => {
   if (process.env.NODE_ENV === "test") {
     return {
@@ -15,44 +26,32 @@ export const sendResetPasswordVerificationEmail = async (
     };
   }
 
-  const html = `
-    <!DOCTYPE html>
-    <html lang="en" dir="ltr">
-      <head>
-        <meta charset="UTF-8" />
-        <title>Verification Code</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-          body {
-            font-family: 'Roboto', Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-          }
-          .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-          }
-          h2 {
-            color: #1a73e8;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <h2>Hello, ${fullName}</h2>
-          <p>Thank you for signing up with us. Please use the following code to verify your email address for your registration.</p>
-          <p><strong>Verification Code: ${otp}</strong></p>
-          <p>If you did not sign up for an account, please ignore this email.</p>
-          <p>This code will expire in 10 minutes.</p>
-        </div>
-      </body>
-    </html>
-  `;
-
-  if (!email || !html) {
-    return { success: false, message: "Missing email or html content" };
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    return {
+      success: false,
+      message: "Email delivery is not configured.",
+    };
   }
+
+  const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <title>Reset your Bike Buddy password</title>
+        </head>
+        <body style="font-family:Arial,sans-serif;line-height:1.6;color:#111928">
+          <div style="max-width:600px;margin:0 auto;padding:24px">
+            <h2 style="color:#123DB8">Hello, ${escapeHtml(fullName)}</h2>
+            <p>Enter this code in Bike Buddy to reset your password:</p>
+            <p style="display:inline-block;padding:12px 24px;border-radius:8px;background:#EEF2FF;color:#123DB8;font-size:30px;font-weight:700;letter-spacing:8px">${code}</p>
+            <p>The code expires in 15 minutes and can be used only once.</p>
+            <p>If you did not request a password reset, you can safely ignore this email.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -65,21 +64,19 @@ export const sendResetPasswordVerificationEmail = async (
     await transporter.sendMail({
       from: `"Bike Buddy" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: "Bike Buddy | Your Verification Code",
+      subject: "Bike Buddy | Password reset code",
       html,
     });
 
     return {
       success: true,
-      message: "Verification email sent  successfully.",
+      message: "Password reset email sent successfully.",
     };
-  }
-  catch (error) {
-    console.log("Error sending verification email: ", error);
-
+  } catch (error) {
+    console.error("Password reset email delivery failed", error);
     return {
       success: false,
-      message: "Failed to send verification email.",
+      message: "Failed to send password reset email.",
     };
   }
 };

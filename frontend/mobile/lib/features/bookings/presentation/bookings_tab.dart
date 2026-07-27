@@ -81,8 +81,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.event_note_outlined,
-              size: 56, color: AppColors.textMuted),
+          const Icon(
+            Icons.event_note_outlined,
+            size: 56,
+            color: AppColors.textMuted,
+          ),
           const SizedBox(height: AppSpacing.md),
           Text(message, style: Theme.of(context).textTheme.bodyLarge),
           const SizedBox(height: AppSpacing.md),
