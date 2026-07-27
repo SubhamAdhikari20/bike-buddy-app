@@ -26,7 +26,7 @@ export default function AdminDashboardPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        api.get("/admin/dashboard")
+        api.get<Summary>("/admin/dashboard")
             .then((res) => setSummary(res.data))
             .catch((err) => setError(err.message));
     }, []);
@@ -34,8 +34,8 @@ export default function AdminDashboardPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Global Overview</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-2xl font-bold">Global Overview</h1>
+                <p className="text-sm text-muted-foreground">
                     Everything happening on Bike Buddy at a glance.
                 </p>
             </div>
@@ -56,7 +56,7 @@ export default function AdminDashboardPage() {
                                 <p className="text-3xl font-bold">
                                     {summary ? summary[tile.key] : "-"}
                                 </p>
-                                <CardTitle className="text-sm font-medium text-gray-500">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">
                                     {tile.label}
                                 </CardTitle>
                             </CardContent>

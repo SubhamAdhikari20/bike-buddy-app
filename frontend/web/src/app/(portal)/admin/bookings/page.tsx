@@ -30,8 +30,8 @@ export default function AdminBookingsPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        api.get("/admin/bookings?limit=100")
-            .then((res) => setBookings(res.data.items ?? res.data))
+        api.get<BookingRow[]>("/admin/bookings?limit=100")
+            .then((res) => setBookings(res.data))
             .catch((err) => setError(err.message));
     }, []);
 
@@ -46,8 +46,8 @@ export default function AdminBookingsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-                <p className="text-sm text-gray-500">All rentals across the platform.</p>
+                <h1 className="text-2xl font-bold">Bookings</h1>
+                <p className="text-sm text-muted-foreground">All rentals across the platform.</p>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
 

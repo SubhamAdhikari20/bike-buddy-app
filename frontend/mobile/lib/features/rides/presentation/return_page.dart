@@ -24,6 +24,8 @@ class ReturnPage extends ConsumerStatefulWidget {
 class _ReturnPageState extends ConsumerState<ReturnPage> {
   int _step = 0;
   Map<String, dynamic>? _preview;
+  String? _previewError;
+  bool _previewLoading = true;
   bool _busy = false;
   Map<String, dynamic>? _result;
 
@@ -34,11 +36,28 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
   }
 
   Future<void> _loadPreview() async {
+    if (mounted) {
+      setState(() {
+        _previewLoading = true;
+        _previewError = null;
+      });
+    }
     try {
-      final preview =
-          await ref.read(bookingApiProvider).returnPreview(widget.bookingId);
+      final preview = await ref
+          .read(bookingApiProvider)
+          .returnPreview(widget.bookingId);
       if (mounted) setState(() => _preview = preview);
-    } catch (_) {}
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _previewError = error is AppException
+              ? error.message
+              : 'Could not calculate the return summary.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _previewLoading = false);
+    }
   }
 
   Future<void> _extend() async {
@@ -48,18 +67,23 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         icon: const Icon(Icons.more_time, size: 40, color: AppColors.primary),
-        title: const Text('Extend by 1 hour?'),
+        title: const Text('Record a demo extension?'),
         content: Text(
-            'One extra hour costs ${Formatters.npr(costPerHour)}. Your return time moves back by an hour.'),
+          'The demo total will increase by ${Formatters.npr(costPerHour)} and '
+          'your return time will move back by one hour. No money will be charged.',
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('No, keep my time')),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('No, keep my time'),
+          ),
           ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: Text('Extend +1hr (${Formatters.npr(costPerHour)})')),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Record +1hr (${Formatters.npr(costPerHour)})'),
+          ),
         ],
       ),
     );
@@ -67,8 +91,9 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
 
     setState(() => _busy = true);
     try {
-      final result =
-          await ref.read(bookingApiProvider).extend(widget.bookingId, 1);
+      final result = await ref
+          .read(bookingApiProvider)
+          .extend(widget.bookingId, 1);
       ref.invalidate(myBookingsProvider);
       await _loadPreview();
       if (mounted) {
@@ -76,7 +101,11 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Extended! Total went from ${Formatters.npr((result['oldTotal'] as num).toDouble())} to ${Formatters.npr((result['newTotal'] as num).toDouble())}.'),
+              'Demo extension saved. Total changed from '
+              '${Formatters.npr((result['oldTotal'] as num).toDouble())} to '
+              '${Formatters.npr((result['newTotal'] as num).toDouble())}; '
+              'no money was charged.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -98,17 +127,20 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
   Future<void> _confirmReturn() async {
     setState(() => _busy = true);
     try {
-      final result =
-          await ref.read(bookingApiProvider).returnBike(widget.bookingId);
+      final result = await ref
+          .read(bookingApiProvider)
+          .returnBike(widget.bookingId);
       ref.invalidate(myBookingsProvider);
       if (mounted) setState(() => _result = result);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not record the return. Please try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not record the return. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -158,7 +190,8 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                 Text(
                   onTime
                       ? 'Thanks for riding with Bike Buddy. No extra charges.'
-                      : 'A late fee of ${Formatters.npr(lateFee)} applies, as shown before you confirmed.',
+                      : 'Estimated late fee: ${Formatters.npr(lateFee)}. '
+                            'It was recorded for review; no money was charged.',
                   style: textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -187,17 +220,17 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
       (
         Icons.local_parking,
         'Park at the return point',
-        'Bring the bike back to the pickup location. Look for the landmark you used when collecting it.'
+        'Bring the bike back to the pickup location. Look for the landmark you used when collecting it.',
       ),
       (
         Icons.key,
         'Switch off & lock',
-        'Turn off the engine, lock the steering and keep the key ready for the owner.'
+        'Turn off the engine, lock the steering and keep the key ready for the owner.',
       ),
       (
         Icons.fact_check_outlined,
         'Confirm your return',
-        'Check the time summary below, then confirm. Your receipt is generated instantly.'
+        'Check the time summary below, then confirm. Your receipt is generated instantly.',
       ),
     ];
 
@@ -220,20 +253,25 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                     ? RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.large),
                         side: const BorderSide(
-                            color: AppColors.primary, width: 2),
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                       )
                     : null,
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor:
-                        i < _step ? AppColors.success : AppColors.primaryLight,
+                    backgroundColor: i < _step
+                        ? AppColors.success
+                        : AppColors.primaryLight,
                     child: i < _step
                         ? const Icon(Icons.check, color: Colors.white)
                         : Icon(steps[i].$1, color: AppColors.primary),
                   ),
                   title: Text('${i + 1}. ${steps[i].$2}'),
-                  subtitle: Text(steps[i].$3,
-                      style: const TextStyle(fontSize: 12)),
+                  subtitle: Text(
+                    steps[i].$3,
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   trailing: i == _step && i < 2
                       ? TextButton(
                           onPressed: () => setState(() => _step = i + 1),
@@ -245,6 +283,38 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
             const SizedBox(height: AppSpacing.sm),
 
             // Time summary BEFORE confirming (RET-02, transparency).
+            if (_previewLoading)
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: AppSpacing.sm),
+                      Text('Calculating your return summary...'),
+                    ],
+                  ),
+                ),
+              ),
+            if (_previewError != null)
+              Card(
+                color: const Color(0xFFFFF1F0),
+                child: ListTile(
+                  leading: const Icon(
+                    Icons.error_outline,
+                    color: AppColors.error,
+                  ),
+                  title: Text(_previewError!),
+                  trailing: TextButton(
+                    onPressed: _loadPreview,
+                    child: const Text('Retry'),
+                  ),
+                ),
+              ),
             if (preview != null)
               Card(
                 color: onTime ? AppColors.mint : const Color(0xFFFFF7E6),
@@ -256,17 +326,19 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                         children: [
                           Icon(
                             onTime ? Icons.check_circle : Icons.schedule,
-                            color:
-                                onTime ? AppColors.success : AppColors.warning,
+                            color: onTime
+                                ? AppColors.success
+                                : AppColors.warning,
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               onTime
                                   ? 'You are on time (15 min grace included)'
-                                  : 'You are $lateMinutes min late - fee: ${Formatters.npr(lateFee)}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600),
+                                  : 'You are $lateMinutes min late - estimated fee: ${Formatters.npr(lateFee)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -276,6 +348,12 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                         'Return due: ${DateFormat('EEE, d MMM h:mm a').format(DateTime.tryParse(preview['endDate'] as String? ?? '') ?? DateTime.now())}',
                         style: textTheme.bodyMedium,
                       ),
+                      if (preview['notice'] is String)
+                        Text(
+                          preview['notice'] as String,
+                          style: textTheme.labelSmall,
+                          textAlign: TextAlign.center,
+                        ),
                     ],
                   ),
                 ),
@@ -284,10 +362,11 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
 
             // Extend without leaving the return flow (RET-03).
             OutlinedButton.icon(
-              onPressed: _busy ? null : _extend,
+              onPressed: _busy || preview == null ? null : _extend,
               icon: const Icon(Icons.more_time),
               label: Text(
-                  'Running late? Extend +1hr (${Formatters.npr((preview?['extendCostPerHour'] as num?)?.toDouble() ?? 0)})'),
+                'Demo extension +1hr (${Formatters.npr((preview?['extendCostPerHour'] as num?)?.toDouble() ?? 0)})',
+              ),
             ),
             const SizedBox(height: AppSpacing.md),
 
@@ -295,17 +374,23 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
             SizedBox(
               height: 56,
               child: ElevatedButton.icon(
-                onPressed: _step == 2 && !_busy ? _confirmReturn : null,
+                onPressed: _step == 2 && !_busy && preview != null
+                    ? _confirmReturn
+                    : null,
                 icon: _busy
                     ? const SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.check_circle_outline),
-                label: const Text('Confirm Return',
-                    style: TextStyle(fontSize: 17)),
+                label: const Text(
+                  'Confirm Return',
+                  style: TextStyle(fontSize: 17),
+                ),
               ),
             ),
             if (_step < 2)

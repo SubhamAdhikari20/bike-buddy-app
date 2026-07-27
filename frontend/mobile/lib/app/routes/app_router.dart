@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/services/local_store.dart';
 import '../../features/auth/presentation/pages/auth_page.dart';
+import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/id_verification_page.dart';
 import '../../features/auth/presentation/pages/otp_login_page.dart';
 import '../../features/bikes/presentation/pages/bike_detail_page.dart';
@@ -44,15 +45,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const OtpLoginPage(),
       ),
       GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
         path: '/home',
         builder: (context, state) => HomeShell(
           initialTab: int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0,
         ),
       ),
-      GoRoute(
-        path: '/map',
-        builder: (context, state) => const MapPage(),
-      ),
+      GoRoute(path: '/map', builder: (context, state) => const MapPage()),
       GoRoute(
         path: '/bike/:bikeId',
         builder: (context, state) =>
@@ -65,8 +67,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/book/:bikeId',
-        builder: (context, state) =>
-            BookingFlowPage(bikeId: state.pathParameters['bikeId']!),
+        builder: (context, state) => BookingFlowPage(
+          bikeId: state.pathParameters['bikeId']!,
+          initialBookingId: state.uri.queryParameters['bookingId'],
+        ),
       ),
       GoRoute(
         path: '/receipt/:bookingId',

@@ -1,27 +1,25 @@
 "use client";
 
-// Entry point: send people to their portal, or to sign-in.
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { session } from "@/lib/api";
+import { useSession } from "@/components/auth/session-provider";
+import { LoadingState } from "@/components/page-state";
 
 export default function Home() {
   const router = useRouter();
+  const { session, status } = useSession();
 
   useEffect(() => {
-    const s = session.get();
-    if (!s) {
+    if (status === "guest") {
       router.replace("/login");
-    } else if (s.role === "admin") {
+    } else if (session?.user.role === "admin") {
       router.replace("/admin/dashboard");
-    } else {
+    } else if (session?.user.role === "owner") {
       router.replace("/owner/dashboard");
+    } else if (session?.user.role === "renter") {
+      router.replace("/login?notice=renter");
     }
-  }, [router]);
+  }, [router, session, status]);
 
-  return (
-    <div className="flex min-h-screen items-center justify-center text-gray-500">
-      Loading Bike Buddy...
-    </div>
-  );
+  return <LoadingState label="Opening Bike Buddy…" />;
 }

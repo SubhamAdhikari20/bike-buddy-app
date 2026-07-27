@@ -4,29 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bike, CalendarDays, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { api, session } from "@/lib/api";
+import { useSession } from "@/components/auth/session-provider";
+import { api } from "@/lib/api";
+
+type BookingSummary = {
+    status: string;
+    paymentStatus: string;
+    totalAmount: number;
+};
 
 export default function OwnerDashboardPage() {
+    const { session } = useSession();
     const [bikeCount, setBikeCount] = useState<number | null>(null);
     const [activeCount, setActiveCount] = useState<number | null>(null);
     const [revenue, setRevenue] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const profileId = session.get()?.profileId;
+        const profileId = session?.profile.id;
         if (!profileId) return;
 
-        api.get(`/bikes?ownerId=${profileId}&limit=100&includeUnavailable=true`)
-            .then((res) => setBikeCount((res.data as unknown[]).length))
+        api.get<unknown[]>(`/bikes?ownerId=${profileId}&limit=100&includeUnavailable=true`)
+            .then((res) => setBikeCount(res.data.length))
             .catch((err) => setError(err.message));
 
-        api.get("/bookings?limit=100")
+        api.get<BookingSummary[]>("/bookings?limit=100")
             .then((res) => {
-                const bookings = (res.data ?? []) as {
-                    status: string;
-                    paymentStatus: string;
-                    totalAmount: number;
-                }[];
+                const bookings = res.data;
                 setActiveCount(
                     bookings.filter((b) => b.status === "confirmed").length,
                 );
@@ -37,13 +41,13 @@ export default function OwnerDashboardPage() {
                 );
             })
             .catch((err) => setError(err.message));
-    }, []);
+    }, [session?.profile.id]);
 
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Owner Dashboard</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-2xl font-bold">Owner Dashboard</h1>
+                <p className="text-sm text-muted-foreground">
                     Your fleet, rentals and earnings in one place.
                 </p>
             </div>
@@ -58,7 +62,7 @@ export default function OwnerDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-3xl font-bold">{bikeCount ?? "-"}</p>
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
                             My bikes
                         </CardTitle>
                     </CardContent>
@@ -71,7 +75,7 @@ export default function OwnerDashboardPage() {
                     </CardHeader>
                     <CardContent>
                         <p className="text-3xl font-bold">{activeCount ?? "-"}</p>
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
                             Active rentals
                         </CardTitle>
                     </CardContent>
@@ -86,7 +90,7 @@ export default function OwnerDashboardPage() {
                         <p className="text-3xl font-bold">
                             {revenue !== null ? `NPR ${revenue.toLocaleString()}` : "-"}
                         </p>
-                        <CardTitle className="text-sm font-medium text-gray-500">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">
                             Paid revenue
                         </CardTitle>
                     </CardContent>

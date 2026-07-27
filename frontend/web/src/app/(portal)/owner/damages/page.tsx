@@ -1,6 +1,7 @@
 "use client";
 
-// Damage reports on the owner's bikes (BC-04): review and resolve.
+// Damage reports on the owner's bikes (BC-04): owners acknowledge;
+// administrators resolve disputes.
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,16 +27,18 @@ export default function OwnerDamagesPage() {
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(() => {
-        api.get("/safety/damage-reports/mine")
+        api.get<DamageReport[]>("/safety/damage-reports")
             .then((res) => setReports(res.data))
             .catch((err) => setError(err.message));
     }, []);
 
     useEffect(load, [load]);
 
-    const setStatus = async (reportId: string, status: string) => {
+    const setStatus = async (reportId: string) => {
         try {
-            await api.patch(`/safety/damage-reports/${reportId}/status`, { status });
+            await api.patch<DamageReport>(`/safety/damage-reports/${reportId}/status`, {
+                status: "reviewed",
+            });
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
@@ -45,16 +48,16 @@ export default function OwnerDamagesPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Damage Reports</h1>
-                <p className="text-sm text-gray-500">
-                    Reports are acknowledged within 24 hours - riders can see the status.
+                <h1 className="text-2xl font-bold">Damage Reports</h1>
+                <p className="text-sm text-muted-foreground">
+                    Acknowledge evidence from rentals of your bikes. Administrators resolve disputes.
                 </p>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             {reports.length === 0 ? (
                 <Card>
-                    <CardContent className="py-10 text-center text-gray-500">
+                    <CardContent className="py-10 text-center text-muted-foreground">
                         No damage reports. Long may it last!
                     </CardContent>
                 </Card>
@@ -80,7 +83,7 @@ export default function OwnerDamagesPage() {
                                 </Badge>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <p className="text-sm text-gray-700">{report.description}</p>
+                                <p className="text-sm">{report.description}</p>
                                 {report.photos.length > 0 && (
                                     <div className="flex gap-2">
                                         {report.photos.map((photo) => (
@@ -99,18 +102,9 @@ export default function OwnerDamagesPage() {
                                         <Button
                                             size="sm"
                                             variant="outline"
-                                            onClick={() => setStatus(report._id, "reviewed")}
+                                            onClick={() => setStatus(report._id)}
                                         >
                                             Mark reviewed
-                                        </Button>
-                                    )}
-                                    {report.status !== "resolved" && (
-                                        <Button
-                                            size="sm"
-                                            className="bg-green-600 text-white hover:bg-green-700"
-                                            onClick={() => setStatus(report._id, "resolved")}
-                                        >
-                                            Resolve
                                         </Button>
                                     )}
                                 </div>

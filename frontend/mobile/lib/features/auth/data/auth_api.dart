@@ -13,10 +13,10 @@ class AuthApi {
   AuthApi(this._client);
 
   Future<Map<String, dynamic>> login(String email, String password) async {
-    final res = await _client.post('/auth/login', data: {
-      'email': email,
-      'password': password,
-    });
+    final res = await _client.post(
+      '/auth/login',
+      data: {'email': email, 'password': password},
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
@@ -27,14 +27,45 @@ class AuthApi {
     required String password,
     required bool terms,
   }) async {
-    final res = await _client.post('/auth/register/renter', data: {
-      'fullName': fullName,
-      'email': email,
-      if (phoneNumber != null && phoneNumber.isNotEmpty) 'phoneNumber': phoneNumber,
-      'password': password,
-      'terms': terms,
-    });
+    final res = await _client.post(
+      '/auth/register/renter',
+      data: {
+        'fullName': fullName,
+        'email': email,
+        if (phoneNumber != null && phoneNumber.isNotEmpty)
+          'phoneNumber': phoneNumber,
+        'password': password,
+        'terms': terms,
+      },
+    );
     return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> googleRenter(String idToken) async {
+    final res = await _client.post(
+      '/auth/google/renter',
+      data: {'idToken': idToken, 'terms': true},
+    );
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final res = await _client.post(
+      '/auth/forgot-password',
+      data: {'email': email},
+    );
+    return (res['data'] as Map).cast<String, dynamic>();
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+  }) async {
+    await _client.post(
+      '/auth/reset-password',
+      data: {'email': email, 'code': code, 'password': password},
+    );
   }
 
   Future<Map<String, dynamic>> sendOtp(String email) async {
@@ -43,10 +74,10 @@ class AuthApi {
   }
 
   Future<Map<String, dynamic>> verifyOtp(String email, String code) async {
-    final res = await _client.post('/auth/verify-otp', data: {
-      'email': email,
-      'code': code,
-    });
+    final res = await _client.post(
+      '/auth/verify-otp',
+      data: {'email': email, 'code': code},
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
@@ -55,7 +86,9 @@ class AuthApi {
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
-  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> updateProfile(
+    Map<String, dynamic> payload,
+  ) async {
     final res = await _client.patch('/auth/profile', data: payload);
     return (res['data'] as Map).cast<String, dynamic>();
   }
@@ -70,9 +103,10 @@ class AuthApi {
   }
 
   Future<Map<String, dynamic>> submitKyc(String idDocumentUrl) async {
-    final res = await _client.post('/auth/kyc', data: {
-      'idDocumentUrl': idDocumentUrl,
-    });
+    final res = await _client.post(
+      '/auth/kyc',
+      data: {'idDocumentUrl': idDocumentUrl},
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 

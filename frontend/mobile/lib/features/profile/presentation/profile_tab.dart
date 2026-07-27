@@ -32,11 +32,16 @@ class ProfileTab extends ConsumerWidget {
                 padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   children: [
-                    const Icon(Icons.person_outline,
-                        size: 48, color: AppColors.primary),
+                    const Icon(
+                      Icons.person_outline,
+                      size: 48,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(height: AppSpacing.sm),
-                    Text('You are browsing as a guest',
-                        style: textTheme.titleMedium),
+                    Text(
+                      'You are browsing as a guest',
+                      style: textTheme.titleMedium,
+                    ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       'Sign in to book bikes, track rentals and get support faster.',
@@ -74,7 +79,9 @@ class ProfileTab extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            auth.fullName.isEmpty ? 'Bike Buddy user' : auth.fullName,
+                            auth.fullName.isEmpty
+                                ? 'Bike Buddy user'
+                                : auth.fullName,
                             style: textTheme.titleMedium,
                           ),
                           Text(auth.email, style: textTheme.bodyMedium),
@@ -114,14 +121,15 @@ class ProfileTab extends ConsumerWidget {
                   ),
                   subtitle: Text(
                     auth.isKycPending
-                        ? 'We usually finish within 24 hours. We will notify you.'
+                        ? 'Submitted for administrator review.'
                         : 'Takes about 2 minutes. You only do this once.',
                   ),
                   trailing: auth.isKycPending
                       ? null
                       : const Icon(Icons.chevron_right),
-                  onTap:
-                      auth.isKycPending ? null : () => context.push('/verify-id'),
+                  onTap: auth.isKycPending
+                      ? null
+                      : () => context.push('/verify-id'),
                 ),
               ),
           ],
@@ -132,9 +140,12 @@ class ProfileTab extends ConsumerWidget {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.support_agent, color: AppColors.primary),
+                  leading: const Icon(
+                    Icons.support_agent,
+                    color: AppColors.primary,
+                  ),
                   title: const Text('Help & Support'),
-                  subtitle: const Text('24/7 phone and chat'),
+                  subtitle: const Text('Support options and safety guidance'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push('/support'),
                 ),
@@ -148,8 +159,10 @@ class ProfileTab extends ConsumerWidget {
                 if (auth != null) ...[
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.confirmation_number_outlined,
-                        color: AppColors.primary),
+                    leading: const Icon(
+                      Icons.confirmation_number_outlined,
+                      color: AppColors.primary,
+                    ),
                     title: const Text('My Support Tickets'),
                     subtitle: const Text('Track your reported issues'),
                     trailing: const Icon(Icons.chevron_right),
@@ -157,8 +170,10 @@ class ProfileTab extends ConsumerWidget {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.privacy_tip_outlined,
-                        color: AppColors.primary),
+                    leading: const Icon(
+                      Icons.privacy_tip_outlined,
+                      color: AppColors.primary,
+                    ),
                     title: const Text('Privacy & Account'),
                     subtitle: const Text('Your data, downloads and deletion'),
                     trailing: const Icon(Icons.chevron_right),
@@ -179,8 +194,10 @@ class ProfileTab extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.dark_mode_outlined,
-                          color: AppColors.primary),
+                      const Icon(
+                        Icons.dark_mode_outlined,
+                        color: AppColors.primary,
+                      ),
                       const SizedBox(width: AppSpacing.sm),
                       Text('Appearance', style: textTheme.titleMedium),
                     ],
@@ -189,17 +206,20 @@ class ProfileTab extends ConsumerWidget {
                   SegmentedButton<ThemeMode>(
                     segments: const [
                       ButtonSegment(
-                          value: ThemeMode.system,
-                          icon: Icon(Icons.brightness_auto, size: 18),
-                          label: Text('System')),
+                        value: ThemeMode.system,
+                        icon: Icon(Icons.brightness_auto, size: 18),
+                        label: Text('System'),
+                      ),
                       ButtonSegment(
-                          value: ThemeMode.light,
-                          icon: Icon(Icons.light_mode, size: 18),
-                          label: Text('Light')),
+                        value: ThemeMode.light,
+                        icon: Icon(Icons.light_mode, size: 18),
+                        label: Text('Light'),
+                      ),
                       ButtonSegment(
-                          value: ThemeMode.dark,
-                          icon: Icon(Icons.dark_mode, size: 18),
-                          label: Text('Dark')),
+                        value: ThemeMode.dark,
+                        icon: Icon(Icons.dark_mode, size: 18),
+                        label: Text('Dark'),
+                      ),
                     ],
                     selected: {ref.watch(themeModeProvider)},
                     showSelectedIcon: false,
@@ -258,7 +278,10 @@ class _KycChip extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 2,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -275,7 +298,10 @@ class _KycChip extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-                fontSize: 11, color: color, fontWeight: FontWeight.w600),
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

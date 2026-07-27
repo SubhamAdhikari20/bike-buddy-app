@@ -17,8 +17,20 @@ const damageReportSchema: Schema<IDamageReport> = new Schema({
     bookingId: { type: Schema.Types.ObjectId, ref: "bookings", required: true, index: true },
     bikeId: { type: Schema.Types.ObjectId, ref: "bikes", required: true, index: true },
     reportedBy: { type: Schema.Types.ObjectId, ref: "users", required: true, index: true },
-    photos: { type: [String], default: [], validate: [(photos: string[]) => photos.length >= 1, "At least one photo is required"] },
-    description: { type: String, required: true, maxlength: 2000 },
+    photos: {
+      type: [String],
+      default: [],
+      validate: [
+        (photos: string[]) => photos.length >= 1 && photos.length <= 5,
+        "Between one and five photos are required",
+      ],
+    },
+    description: {
+      type: String,
+      required: true,
+      minlength: 10,
+      maxlength: 2000,
+    },
     status: { type: String, enum: ["open", "reviewed", "resolved"], default: "open", index: true },
     resolvedAt: { type: Date, default: null },
 }, {

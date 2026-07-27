@@ -1,73 +1,91 @@
-// src/lib/api.ts
-// Small client-side API wrapper for the Bike Buddy backend.
-
 const API_BASE =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api/v1";
 
-export type Session = {
-    token: string;
-    role: "admin" | "owner" | "renter";
+export type Role = "admin" | "owner" | "renter";
+
+export type AuthSession = {
+  user: {
+    id: string;
     email: string;
+    role: Role;
+    isVerified: boolean;
+  };
+  profile: {
+    id: string;
     fullName: string;
-    profileId?: string;
+    phoneNumber?: string | null;
+    profilePictureUrl?: string | null;
+    bio?: string | null;
+    ownerStatus?: "none" | "pending" | "verified" | "rejected";
+  };
 };
 
-export const session = {
-    save(data: Session) {
-        localStorage.setItem("bb_session", JSON.stringify(data));
-    },
-    get(): Session | null {
-        if (typeof window === "undefined") return null;
-        const raw = localStorage.getItem("bb_session");
-        if (!raw) return null;
-        try {
-            return JSON.parse(raw) as Session;
-        } catch {
-            return null;
-        }
-    },
-    clear() {
-        localStorage.removeItem("bb_session");
-    },
+export type ApiEnvelope<T> = {
+  statusCode: number;
+  success: boolean;
+  message: string;
+  data: T;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export class ApiError extends Error {
-    status: number;
-    constructor(message: string, status: number) {
-        super(message);
-        this.status = status;
-    }
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
 }
 
-async function request<T>(
-    path: string,
-    options: RequestInit = {},
-): Promise<T> {
-    const current = session.get();
-    const res = await fetch(`${API_BASE}${path}`, {
-        ...options,
-        headers: {
-            "Content-Type": "application/json",
-            ...(current ? { Authorization: `Bearer ${current.token}` } : {}),
-            ...options.headers,
-        },
-    });
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
 
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-        throw new ApiError(
-            body.message || "Something went wrong. Please try again.",
-            res.status,
-        );
-    }
-    return body as T;
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<ApiEnvelope<T>> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...options.headers,
+    },
+  });
+
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      isRecord(body) && typeof body.message === "string"
+        ? body.message
+        : "Something went wrong. Please try again.";
+    const code =
+      isRecord(body) && typeof body.code === "string" ? body.code : undefined;
+    throw new ApiError(message, response.status, code);
+  }
+  return body as ApiEnvelope<T>;
 }
 
 export const api = {
-    get: <T = any>(path: string) => request<T>(path),
-    post: <T = any>(path: string, data?: unknown) =>
-        request<T>(path, { method: "POST", body: JSON.stringify(data ?? {}) }),
-    patch: <T = any>(path: string, data?: unknown) =>
-        request<T>(path, { method: "PATCH", body: JSON.stringify(data ?? {}) }),
-    delete: <T = any>(path: string) => request<T>(path, { method: "DELETE" }),
+  get: <T>(path: string) => request<T>(path),
+  post: <T>(path: string, data?: unknown) =>
+    request<T>(path, {
+      method: "POST",
+      body: data === undefined ? undefined : JSON.stringify(data),
+    }),
+  patch: <T>(path: string, data?: unknown) =>
+    request<T>(path, {
+      method: "PATCH",
+      body: JSON.stringify(data ?? {}),
+    }),
+  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

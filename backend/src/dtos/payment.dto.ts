@@ -1,5 +1,12 @@
 import { z } from "zod";
-import { createPaymentSchema, updatePaymentStatusSchema } from "./../schemas/payment.schema.ts";
+import {
+  adminPaymentStatusSchema,
+  demoPaymentConfirmationSchema,
+  initiatePaymentSchema,
+} from "./../schemas/payment.schema.ts";
 
-export type CreatePaymentDTO = z.infer<typeof createPaymentSchema>;
-export type UpdatePaymentStatusDTO = z.infer<typeof updatePaymentStatusSchema>;
+export type InitiatePaymentDTO = z.infer<typeof initiatePaymentSchema>;
+export type DemoPaymentConfirmationDTO = z.infer<
+  typeof demoPaymentConfirmationSchema
+>;
+export type AdminPaymentStatusDTO = z.infer<typeof adminPaymentStatusSchema>;

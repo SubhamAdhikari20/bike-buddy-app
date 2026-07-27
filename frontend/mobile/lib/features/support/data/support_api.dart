@@ -34,14 +34,14 @@ class SupportTicket {
   });
 
   factory SupportTicket.fromJson(Map<String, dynamic> json) => SupportTicket(
-        id: (json['_id'] ?? '').toString(),
-        type: json['type'] as String? ?? 'general',
-        subject: json['subject'] as String? ?? '',
-        message: json['message'] as String? ?? '',
-        status: json['status'] as String? ?? 'open',
-        rating: (json['rating'] as num?)?.toInt(),
-        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
-      );
+    id: (json['_id'] ?? '').toString(),
+    type: json['type'] as String? ?? 'general',
+    subject: json['subject'] as String? ?? '',
+    message: json['message'] as String? ?? '',
+    status: json['status'] as String? ?? 'open',
+    rating: (json['rating'] as num?)?.toInt(),
+    createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+  );
 }
 
 class SupportApi {
@@ -53,10 +53,12 @@ class SupportApi {
     final res = await _client.get('/support/faq');
     final items = (res['data'] as List? ?? const []);
     return items
-        .map((item) => (
-              q: (item as Map)['q'] as String? ?? '',
-              a: item['a'] as String? ?? '',
-            ))
+        .map(
+          (item) => (
+            q: (item as Map)['q'] as String? ?? '',
+            a: item['a'] as String? ?? '',
+          ),
+        )
         .toList();
   }
 
@@ -67,13 +69,16 @@ class SupportApi {
     List<String> photos = const [],
     String? bookingId,
   }) async {
-    final res = await _client.post('/support/tickets', data: {
-      'type': type,
-      'subject': subject,
-      'message': message,
-      'photos': photos,
-      'bookingId': ?bookingId,
-    });
+    final res = await _client.post(
+      '/support/tickets',
+      data: {
+        'type': type,
+        'subject': subject,
+        'message': message,
+        'photos': photos,
+        'bookingId': ?bookingId,
+      },
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 
@@ -81,15 +86,17 @@ class SupportApi {
     final res = await _client.get('/support/tickets/mine');
     final items = (res['data'] as List? ?? const []);
     return items
-        .map((item) =>
-            SupportTicket.fromJson((item as Map).cast<String, dynamic>()))
+        .map(
+          (item) =>
+              SupportTicket.fromJson((item as Map).cast<String, dynamic>()),
+        )
         .toList();
   }
 
   Future<void> rateTicket(String ticketId, int rating, String? comment) async {
-    await _client.post('/support/tickets/$ticketId/rate', data: {
-      'rating': rating,
-      'comment': ?comment,
-    });
+    await _client.post(
+      '/support/tickets/$ticketId/rate',
+      data: {'rating': rating, 'comment': ?comment},
+    );
   }
 }

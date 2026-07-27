@@ -15,6 +15,8 @@ type BookingRow = {
     endDate: string;
     status: string;
     paymentStatus: string;
+    paymentMethod?: "wallet" | "cash" | null;
+    cashReference?: string | null;
     totalAmount: number;
 };
 
@@ -30,16 +32,19 @@ export default function OwnerBookingsPage() {
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(() => {
-        api.get("/bookings?limit=100")
+        api.get<BookingRow[]>("/bookings?limit=100")
             .then((res) => setBookings(res.data ?? []))
             .catch((err) => setError(err.message));
     }, []);
 
     useEffect(load, [load]);
 
-    const act = async (bookingId: string, action: "confirm" | "complete") => {
+    const act = async (
+        bookingId: string,
+        action: "confirm" | "complete" | "cash-received",
+    ) => {
         try {
-            await api.patch(`/bookings/${bookingId}/${action}`);
+            await api.patch<BookingRow>(`/bookings/${bookingId}/${action}`);
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
@@ -57,8 +62,8 @@ export default function OwnerBookingsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-2xl font-bold">Bookings</h1>
+                <p className="text-sm text-muted-foreground">
                     Rentals of your bikes. Confirm pickups and mark returns complete.
                 </p>
             </div>
@@ -80,6 +85,7 @@ export default function OwnerBookingsPage() {
                                 <TableHead>To</TableHead>
                                 <TableHead>Total</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Payment</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -99,7 +105,27 @@ export default function OwnerBookingsPage() {
                                             {booking.status}
                                         </Badge>
                                     </TableCell>
+                                    <TableCell>
+                                        <span className="capitalize">
+                                            {booking.paymentMethod ?? "not selected"} · {booking.paymentStatus}
+                                        </span>
+                                        {booking.cashReference && (
+                                            <span className="block font-mono text-xs text-muted-foreground">
+                                                {booking.cashReference}
+                                            </span>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="space-x-2 text-right">
+                                        {booking.paymentMethod === "cash" &&
+                                            booking.paymentStatus === "pending" && (
+                                            <Button
+                                                size="sm"
+                                                className="bg-green-600 text-white hover:bg-green-700"
+                                                onClick={() => act(booking._id, "cash-received")}
+                                            >
+                                                Record cash received
+                                            </Button>
+                                        )}
                                         {booking.status === "pending" && (
                                             <Button
                                                 size="sm"
@@ -109,7 +135,8 @@ export default function OwnerBookingsPage() {
                                                 Confirm
                                             </Button>
                                         )}
-                                        {booking.status === "confirmed" && (
+                                        {booking.status === "confirmed" &&
+                                            booking.paymentStatus === "paid" && (
                                             <Button
                                                 size="sm"
                                                 variant="outline"

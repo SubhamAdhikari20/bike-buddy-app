@@ -15,7 +15,9 @@ class FilterSheet extends ConsumerStatefulWidget {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.large)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppRadius.large),
+        ),
       ),
       builder: (context) => const FilterSheet(),
     );
@@ -36,10 +38,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
   void initState() {
     super.initState();
     _draft = ref.read(bikeQueryProvider);
-    _price = RangeValues(
-      _draft.minPrice ?? 0,
-      _draft.maxPrice ?? _maxPriceCap,
-    );
+    _price = RangeValues(_draft.minPrice ?? 0, _draft.maxPrice ?? _maxPriceCap);
   }
 
   void _apply() {
@@ -132,8 +131,9 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                 selected: selected,
                 selectedColor: AppColors.mint,
                 showCheckmark: false,
-                onSelected: (_) =>
-                    setState(() => _draft = _draft.copyWith(category: entry.value)),
+                onSelected: (_) => setState(
+                  () => _draft = _draft.copyWith(category: entry.value),
+                ),
               );
             }).toList(),
           ),

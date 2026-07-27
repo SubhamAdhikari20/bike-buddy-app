@@ -1,5 +1,7 @@
 # Dependencies
 node_modules/
+dist/
+*.tsbuildinfo
 .env
 !.env.sample
 src/config/config.env

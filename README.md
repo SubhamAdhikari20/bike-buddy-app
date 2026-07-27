@@ -1,34 +1,50 @@
 # Bike Buddy
 
-Bike Buddy is a motorbike rental platform for Nepal (Kathmandu, Lalitpur, Bhaktapur), built for the ST6012CEM User Experience Design coursework. Renting a bike here is manual, confusing and hard to trust - Bike Buddy fixes that with verified owners, clear prices, live availability and 24/7 support.
+Bike Buddy is a motorbike rental platform for Kathmandu, Lalitpur and
+Bhaktapur, built for the ST6012CEM User Experience Design coursework. It
+addresses manual, confusing and hard-to-trust rentals with verified-owner
+signals, clear prices, availability checks and trackable support tickets.
 
-The whole product is designed around Nielsen's 10 usability heuristics and core UX laws (Fitts's, Hick's, Jakob's, Miller's, proximity, cognitive load). Every screen traces back to a user story from the research phase (57 stories across 5 sprints).
+The product is designed around Nielsen's ten usability heuristics and core UX
+laws. Features trace back to the proposal, research pain points, user stories,
+sprint backlog and interface prototypes.
 
-## What's in this repo
+## Repository
 
-| Folder | What it is |
+| Folder | Purpose |
 |---|---|
-| `backend/` | Node.js + Express + TypeScript REST API with MongoDB (Mongoose) |
-| `frontend/mobile/` | Flutter app for renters and owners (Riverpod, go_router, clean architecture) |
-| `frontend/web/` | Next.js portal for admins and owners (shadcn/ui on base-ui, Tailwind) |
+| `backend/` | Express, TypeScript and MongoDB REST API |
+| `frontend/mobile/` | Flutter renter app using Riverpod and go_router |
+| `frontend/web/` | Next.js admin/owner portal using shadcn `base-nova`, Base UI and Tailwind |
 
-## Main features
+## Product capabilities
 
-**Mobile app (renters)**
-- Guest browsing - sign-up is only asked at booking time
-- 3-step onboarding, OTP sign-in, one-time ID verification with a clear data-use note
-- Search with filters, category chips, list/map toggle and side-by-side bike comparison
-- Bike detail with verified owner badge, dated photo gallery, specs, damage policy and real reviews (verified rides only, 1-star never blocked)
-- 3-step booking with a live fare estimate, itemised breakdown, price lock and no hidden fees
-- eSewa / Khalti (sandbox) and cash-at-pickup payments, PDF receipts
-- Pre-ride handover checklist with photo evidence, active ride screen with an always-visible SOS button
-- Step-by-step return with late-fee preview, extend-by-an-hour and damage reports
-- 24/7 support: phone, chat, searchable FAQ, photo tickets with status tracking
-- Dark mode (system / light / dark)
+**Renter mobile app**
 
-**Web portal**
-- Admin: dashboard, owner verification, bike suspension, bookings, support ticket queue
-- Owner: fleet dashboard, list a new bike, confirm/complete bookings, damage reports
+- Guest discovery, filters, map/list views and comparison of up to three bikes
+- Register/login, OTP, password recovery, renter-only Google authentication,
+  secure session restore and profile/privacy controls
+- Condition evidence, verified-owner signals, specifications and real review
+  summaries
+- Server-generated quotes, itemised locked totals and availability rechecks
+- Clearly labelled coursework wallet simulation, cash-at-pickup reconciliation
+  and PDF receipts after payment is recorded
+- Handover checklist, active ride, SOS recording, return preview, extension and
+  damage reporting
+- Configurable support phone, searchable FAQ and photo tickets with honest
+  status tracking; chat is explicitly a preview
+- Light, dark and system themes
+
+**Owner/admin web portal**
+
+- HttpOnly cookie authentication, owner registration, password recovery,
+  profile management and role guards
+- Admin dashboard, owner verification, bike moderation, booking overview and
+  support workflow
+- Owner fleet dashboard, listing form, booking/cash reconciliation and damage
+  acknowledgement
+- Responsive navigation, keyboard focus, skip link, reduced-motion support and
+  light/dark themes
 
 ## Getting started
 
@@ -37,17 +53,21 @@ The whole product is designed around Nielsen's 10 usability heuristics and core 
 ```bash
 cd backend
 npm install
-cp .env.sample .env   # fill in MONGODB_URI, JWT_SECRET, GMAIL_USER, GMAIL_APP_PASSWORD
-npm run seed          # demo admin, owners, renters and Kathmandu bikes
-npm run dev           # http://localhost:5050
+cp .env.sample .env
+npm run seed
+npm run dev
 ```
 
-Seeded logins (password `Password@123`):
-- Admin: `admin@bikebuddy.com`
-- Owner: `ramesh.owner@bikebuddy.com` (verified), `sita.owner@bikebuddy.com` (pending)
-- Renter: `aashish@student.com` (KYC approved), `maya@student.com`
+Configure MongoDB, JWT and email settings before using related workflows.
+`PAYMENT_MODE=demo` is the safe coursework default and never moves money.
 
-### Mobile app
+Seed password: `Password@123`
+
+- Admin: `admin@bikebuddy.com`
+- Owners: `ramesh.owner@bikebuddy.com`, `sita.owner@bikebuddy.com`
+- Renters: `aashish@student.com`, `maya@student.com`
+
+### Mobile
 
 ```bash
 cd frontend/mobile
@@ -55,24 +75,36 @@ flutter pub get
 flutter run
 ```
 
-Notes:
-- The API base URL is `http://10.0.2.2:5050` (Android emulator). Change it in `lib/core/constants/app_constants.dart` for a physical device.
-- Add your Google Maps key in `android/app/src/main/AndroidManifest.xml` to see the map tiles.
+The Android emulator API default is `http://10.0.2.2:5050`. Supply Maps and
+Google OAuth platform configuration for those integrations.
 
-### Web portal
+### Web
 
 ```bash
 cd frontend/web
 npm install
-npm run dev           # http://localhost:3000
+cp .env.sample .env.local
+npm run dev
 ```
 
-Set `NEXT_PUBLIC_API_URL=http://localhost:5050/api/v1` in `frontend/web/.env`.
+Set backend `CORS_ORIGIN` to the exact portal origin.
 
-## Branches
+## Sprints and documentation
 
-Work happened sprint by sprint: `sprint-1` (foundation and onboarding), `sprint-2` (discovery, trust and maps), `sprint-3` (booking and payment), `sprint-4` (condition, return and emergency), `sprint-5` (polish, accessibility and the web portal). Each sprint merged into `main` when done.
+Work is separated into `sprint-1` through `sprint-5`, then integrated into
+`main`:
+
+1. foundation and authentication;
+2. discovery, trust and maps;
+3. booking and payment;
+4. condition, return and safety;
+5. polish, accessibility, support and portal workflows.
+
+See [sprint traceability](docs/SPRINT_TRACEABILITY.md),
+[UX heuristic audit](docs/UX_HEURISTIC_AUDIT.md) and
+[verification guide](docs/VERIFICATION.md).
 
 ## Author
 
-Subham Adhikari · 14812262 · Softwarica College of IT and E-Commerce / Coventry University
+Subham Adhikari · 14812262 · Softwarica College of IT and E-Commerce /
+Coventry University

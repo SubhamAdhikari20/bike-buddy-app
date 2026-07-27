@@ -31,7 +31,7 @@ export default function AdminOwnersPage() {
     const [busyId, setBusyId] = useState<string | null>(null);
 
     const load = useCallback(() => {
-        api.get("/admin/owners?limit=100")
+        api.get<Owner[]>("/admin/owners?limit=100")
             .then((res) => setOwners(res.data))
             .catch((err) => setError(err.message));
     }, []);
@@ -41,7 +41,7 @@ export default function AdminOwnersPage() {
     const decide = async (ownerId: string, status: "verified" | "rejected") => {
         setBusyId(ownerId);
         try {
-            await api.patch(`/admin/owners/${ownerId}/verify`, { status });
+            await api.patch<Owner>(`/admin/owners/${ownerId}/verify`, { status });
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
@@ -53,8 +53,8 @@ export default function AdminOwnersPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Owner Verification</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-2xl font-bold">Owner Verification</h1>
+                <p className="text-sm text-muted-foreground">
                     Verified owners get the green badge riders trust.
                 </p>
             </div>
@@ -86,7 +86,7 @@ export default function AdminOwnersPage() {
                                             {owner.ownerStatus}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="max-w-xs truncate text-gray-500">
+                                    <TableCell className="max-w-xs truncate text-muted-foreground">
                                         {owner.bio ?? "-"}
                                     </TableCell>
                                     <TableCell className="space-x-2 text-right">

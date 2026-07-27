@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/error/app_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
@@ -37,11 +38,16 @@ class BookingsTab extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.event_note_outlined,
-                          size: 56, color: AppColors.textMuted),
+                      const Icon(
+                        Icons.event_note_outlined,
+                        size: 56,
+                        color: AppColors.textMuted,
+                      ),
                       const SizedBox(height: AppSpacing.md),
-                      Text('Sign in to see your bookings',
-                          style: textTheme.bodyLarge),
+                      Text(
+                        'Sign in to see your bookings',
+                        style: textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: AppSpacing.md),
                       SizedBox(
                         width: 200,
@@ -91,18 +97,27 @@ class BookingsTab extends ConsumerWidget {
                     onRetry: () => ref.invalidate(myBookingsProvider),
                   ),
                   data: (bookings) {
-                    final active =
-                        bookings.where((b) => b.isActive).toList();
-                    final upcoming =
-                        bookings.where((b) => b.isUpcoming).toList();
+                    final active = bookings.where((b) => b.isActive).toList();
+                    final upcoming = bookings
+                        .where((b) => b.isUpcoming)
+                        .toList();
                     final past = bookings
                         .where((b) => !b.isActive && !b.isUpcoming)
                         .toList();
                     return TabBarView(
                       children: [
-                        _BookingList(bookings: active, emptyText: 'No active ride right now.'),
-                        _BookingList(bookings: upcoming, emptyText: 'No upcoming bookings yet.'),
-                        _BookingList(bookings: past, emptyText: 'Your completed rides will appear here.'),
+                        _BookingList(
+                          bookings: active,
+                          emptyText: 'No active ride right now.',
+                        ),
+                        _BookingList(
+                          bookings: upcoming,
+                          emptyText: 'No upcoming bookings yet.',
+                        ),
+                        _BookingList(
+                          bookings: past,
+                          emptyText: 'Your completed rides will appear here.',
+                        ),
                       ],
                     );
                   },
@@ -129,8 +144,11 @@ class _BookingList extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.event_note_outlined,
-                size: 56, color: AppColors.textMuted),
+            const Icon(
+              Icons.event_note_outlined,
+              size: 56,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(height: AppSpacing.md),
             Text(emptyText, style: Theme.of(context).textTheme.bodyLarge),
             const SizedBox(height: AppSpacing.md),
@@ -153,8 +171,7 @@ class _BookingList extends ConsumerWidget {
         itemCount: bookings.length,
         separatorBuilder: (context, index) =>
             const SizedBox(height: AppSpacing.md),
-        itemBuilder: (context, index) =>
-            _BookingCard(booking: bookings[index]),
+        itemBuilder: (context, index) => _BookingCard(booking: bookings[index]),
       ),
     );
   }
@@ -167,19 +184,34 @@ class _BookingCard extends ConsumerWidget {
 
   // Refund policy shown BEFORE cancelling (BK-03, H5).
   Future<void> _cancel(BuildContext context, WidgetRef ref) async {
-    Map<String, dynamic> policy = const {
-      'policyText': 'Cancelling may be subject to the refund policy.',
-    };
+    late Map<String, dynamic> policy;
     try {
-      policy = await ref.read(bookingApiProvider).cancellationPolicy(booking.id);
-    } catch (_) {}
+      policy = await ref
+          .read(bookingApiProvider)
+          .cancellationPolicy(booking.id);
+    } catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              error is AppException
+                  ? error.message
+                  : 'Could not load the cancellation policy.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
 
     if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         icon: const Icon(Icons.event_busy, size: 40, color: AppColors.warning),
         title: const Text('Cancel this booking?'),
         content: Text(policy['policyText'] as String? ?? ''),
@@ -199,22 +231,57 @@ class _BookingCard extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     try {
-      await ref
+      final result = await ref
           .read(bookingApiProvider)
           .cancel(booking.id, 'Cancelled by rider from the app');
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
+        final refund = result['refund'] as Map?;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking cancelled.')),
+          SnackBar(
+            content: Text(
+              refund?['simulated'] == true
+                  ? 'Booking cancelled. Demo refund recorded; no money moved.'
+                  : 'Booking cancelled.',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
+  }
+
+  Future<void> _showCashInstructions(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(
+          Icons.payments_outlined,
+          color: AppColors.warning,
+          size: 40,
+        ),
+        title: const Text('Cash due at pickup'),
+        content: Text(
+          'Bring exactly ${Formatters.npr(booking.totalAmount)}. '
+          'Reference: ${booking.cashReference ?? 'shown to the owner'}. '
+          'A receipt appears after the owner records the cash as received.',
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _reschedule(BuildContext context, WidgetRef ref) async {
@@ -227,20 +294,30 @@ class _BookingCard extends ConsumerWidget {
     );
     if (picked == null || !context.mounted) return;
 
-    final newStart = DateTime(picked.year, picked.month, picked.day,
-        booking.startDate.hour, booking.startDate.minute);
+    final newStart = DateTime(
+      picked.year,
+      picked.month,
+      picked.day,
+      booking.startDate.hour,
+      booking.startDate.minute,
+    );
     try {
       await ref.read(bookingApiProvider).reschedule(booking.id, newStart);
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking moved. Same price, new dates.')),
+          const SnackBar(
+            content: Text('Booking moved. Same price, new dates.'),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
@@ -255,7 +332,8 @@ class _BookingCard extends ConsumerWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.large)),
+            borderRadius: BorderRadius.circular(AppRadius.large),
+          ),
           title: const Text('How was your ride?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -279,17 +357,20 @@ class _BookingCard extends ConsumerWidget {
                 maxLines: 3,
                 maxLength: 500,
                 decoration: const InputDecoration(
-                    hintText: 'Honest feedback helps other riders'),
+                  hintText: 'Honest feedback helps other riders',
+                ),
               ),
             ],
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Post review')),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Post review'),
+            ),
           ],
         ),
       ),
@@ -297,7 +378,9 @@ class _BookingCard extends ConsumerWidget {
     if (submitted != true || !context.mounted) return;
 
     try {
-      await ref.read(reviewApiProvider).create(
+      await ref
+          .read(reviewApiProvider)
+          .create(
             bikeId: booking.bikeId,
             bookingId: booking.id,
             rating: stars,
@@ -307,26 +390,31 @@ class _BookingCard extends ConsumerWidget {
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Review posted. Thanks for keeping it real!')),
+          const SnackBar(
+            content: Text('Review posted. Thanks for keeping it real!'),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
   }
 
   (String, Color) get _statusChip => switch (booking.status) {
-        'confirmed' when booking.isActive => ('In Progress', AppColors.success),
-        'confirmed' => ('Confirmed', AppColors.primary),
-        'pending' => ('Waiting for payment', AppColors.warning),
-        'completed' => ('Completed', AppColors.teal),
-        'cancelled' => ('Cancelled', AppColors.error),
-        _ => (booking.status, AppColors.textMuted),
-      };
+    'confirmed' when booking.isActive => ('In Progress', AppColors.success),
+    'confirmed' => ('Confirmed', AppColors.primary),
+    'pending' => ('Waiting for payment', AppColors.warning),
+    'completed' => ('Completed', AppColors.teal),
+    'cancelled' => ('Cancelled', AppColors.error),
+    _ => (booking.status, AppColors.textMuted),
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -344,11 +432,14 @@ class _BookingCard extends ConsumerWidget {
               children: [
                 Icon(Icons.circle, size: 10, color: statusColor),
                 const SizedBox(width: 6),
-                Text(statusLabel,
-                    style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13)),
+                Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
                 const Spacer(),
                 Text(
                   'Booking #${booking.id.substring(booking.id.length - 6).toUpperCase()}',
@@ -367,11 +458,15 @@ class _BookingCard extends ConsumerWidget {
                     child: bike == null || bike.imageUrls.isEmpty
                         ? Container(
                             color: AppColors.primaryLight,
-                            child: const Icon(Icons.two_wheeler,
-                                color: AppColors.primary),
+                            child: const Icon(
+                              Icons.two_wheeler,
+                              color: AppColors.primary,
+                            ),
                           )
                         : CachedNetworkImage(
-                            imageUrl: bike.imageUrls.first, fit: BoxFit.cover),
+                            imageUrl: bike.imageUrls.first,
+                            fit: BoxFit.cover,
+                          ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
@@ -379,17 +474,24 @@ class _BookingCard extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(bike?.title ?? 'Bike',
-                          style: textTheme.titleMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      Text(booking.pickupLocation,
-                          style: textTheme.bodyMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis),
-                      Text(Formatters.npr(booking.totalAmount),
-                          style: textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.primary)),
+                      Text(
+                        bike?.title ?? 'Bike',
+                        style: textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        booking.pickupLocation,
+                        style: textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        Formatters.npr(booking.totalAmount),
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -398,7 +500,11 @@ class _BookingCard extends ConsumerWidget {
             const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                const Icon(Icons.schedule, size: 16, color: AppColors.textMuted),
+                const Icon(
+                  Icons.schedule,
+                  size: 16,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -412,7 +518,9 @@ class _BookingCard extends ConsumerWidget {
                   Text(
                     _timeLeft(booking.endDate),
                     style: const TextStyle(
-                        color: AppColors.accent, fontWeight: FontWeight.w600),
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
               ],
             ),
@@ -421,17 +529,39 @@ class _BookingCard extends ConsumerWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => booking.isActive
-                        ? context.push(booking.checklistDone
-                            ? '/ride/${booking.id}'
-                            : '/checklist/${booking.id}')
-                        : context.push('/receipt/${booking.id}'),
+                    onPressed: () {
+                      if (booking.paymentMethod == 'cash' &&
+                          booking.paymentStatus == 'pending') {
+                        _showCashInstructions(context);
+                      } else if (booking.isActive) {
+                        context.push(
+                          booking.checklistDone
+                              ? '/ride/${booking.id}'
+                              : '/checklist/${booking.id}',
+                        );
+                      } else if (booking.paymentStatus != 'paid' &&
+                          booking.status == 'pending') {
+                        context.push(
+                          '/book/${booking.bikeId}?bookingId=${booking.id}',
+                        );
+                      } else {
+                        context.push('/receipt/${booking.id}');
+                      }
+                    },
                     child: Text(
                       booking.isActive
-                          ? 'Manage Ride'
+                          ? booking.paymentMethod == 'cash' &&
+                                    booking.paymentStatus == 'pending'
+                                ? 'Cash due at pickup'
+                                : 'Manage Ride'
                           : booking.paymentStatus == 'paid'
-                              ? 'View Receipt'
-                              : 'View Details',
+                          ? 'View Receipt'
+                          : booking.paymentMethod == 'cash' &&
+                                booking.paymentStatus == 'pending'
+                          ? 'Cash due at pickup'
+                          : booking.status == 'pending'
+                          ? 'Continue Payment'
+                          : 'View Details',
                     ),
                   ),
                 ),
@@ -445,8 +575,10 @@ class _BookingCard extends ConsumerWidget {
                       side: const BorderSide(color: AppColors.divider),
                     ),
                     onPressed: () => context.push('/support'),
-                    child:
-                        const Icon(Icons.support_agent, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.support_agent,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -461,7 +593,8 @@ class _BookingCard extends ConsumerWidget {
                     Expanded(
                       child: TextButton.icon(
                         style: TextButton.styleFrom(
-                            foregroundColor: AppColors.error),
+                          foregroundColor: AppColors.error,
+                        ),
                         onPressed: () => _cancel(context, ref),
                         icon: const Icon(Icons.close, size: 18),
                         label: const Text('Cancel'),
@@ -493,8 +626,10 @@ class _BookingCard extends ConsumerWidget {
                       child: TextButton.icon(
                         onPressed: () =>
                             context.push('/damage-report/${booking.id}'),
-                        icon: const Icon(Icons.report_problem_outlined,
-                            size: 18),
+                        icon: const Icon(
+                          Icons.report_problem_outlined,
+                          size: 18,
+                        ),
                         label: const Text('Report damage'),
                       ),
                     ),

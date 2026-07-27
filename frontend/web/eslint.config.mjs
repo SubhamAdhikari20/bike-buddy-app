@@ -20,7 +20,6 @@ const eslintConfig = defineConfig([
       "no-console": "off",
       "@typescript-eslint/no-console": "off",
       "no-duplicate-imports": "error",
-      "@typescript-eslint/no-duplicate-imports": "error",
     }
   }
 ]);

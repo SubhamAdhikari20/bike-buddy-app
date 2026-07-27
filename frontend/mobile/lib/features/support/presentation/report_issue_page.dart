@@ -11,8 +11,8 @@ import '../../../core/error/app_exception.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 import '../data/support_api.dart';
 
-/// Report an issue with up to 3 photos and a note (SUP-07). Breakdown
-/// reports get the 15-minute priority lane (SUP-02, SUP-06).
+/// Report an issue with up to three photos. Breakdown reports are marked as
+/// priority without promising a response time that the system cannot enforce.
 class ReportIssuePage extends ConsumerStatefulWidget {
   final String initialType;
 
@@ -38,8 +38,11 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
 
   Future<void> _addPhoto() async {
     if (_photos.length >= 3) return;
-    final photo = await ImagePicker()
-        .pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
+    final photo = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1600,
+      imageQuality: 80,
+    );
     if (photo != null && mounted) setState(() => _photos.add(photo));
   }
 
@@ -47,7 +50,8 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
     if (_subject.text.trim().length < 3 || _message.text.trim().length < 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Add a short subject and describe the issue')),
+          content: Text('Add a short subject and describe the issue'),
+        ),
       );
       return;
     }
@@ -60,7 +64,9 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
         urls.add(await auth.uploadImage(photo.path));
       }
 
-      final result = await ref.read(supportApiProvider).createTicket(
+      final result = await ref
+          .read(supportApiProvider)
+          .createTicket(
             type: _type,
             subject: _subject.text.trim(),
             message: _message.text.trim(),
@@ -69,10 +75,12 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
 
       ref.invalidate(myTicketsProvider);
       if (mounted) {
-        final minutes = result['expectedResponseMinutes'] ?? 60;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ticket created. Expect a reply within $minutes minutes.'),
+            content: Text(
+              result['notice'] as String? ??
+                  'Ticket created and queued for review.',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -82,9 +90,11 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not create the ticket. Please try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not create the ticket. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -104,7 +114,7 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            // Expected response time up front (SUP-06).
+            // Clear priority and service-boundary message.
             Card(
               color: _type == 'breakdown'
                   ? AppColors.accent.withValues(alpha: 0.1)
@@ -123,8 +133,10 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                     Expanded(
                       child: Text(
                         _type == 'breakdown'
-                            ? 'Breakdown reports are answered within 15 minutes, 24/7.'
-                            : 'We usually reply within an hour.',
+                            ? 'Breakdown reports are marked as priority. '
+                                  'Contact emergency services if you are in immediate danger.'
+                            : 'Your ticket will be queued for review. '
+                                  'No response time is guaranteed.',
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                     ),
@@ -147,8 +159,9 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                   ChoiceChip(
                     label: Text(label),
                     selected: _type == value,
-                    selectedColor:
-                        value == 'breakdown' ? AppColors.accent : AppColors.mint,
+                    selectedColor: value == 'breakdown'
+                        ? AppColors.accent
+                        : AppColors.mint,
                     labelStyle: TextStyle(
                       color: _type == value && value == 'breakdown'
                           ? Colors.white
@@ -195,8 +208,10 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                           color: AppColors.primaryLight,
                           borderRadius: BorderRadius.circular(AppRadius.medium),
                         ),
-                        child: const Icon(Icons.add_a_photo_outlined,
-                            color: AppColors.primary),
+                        child: const Icon(
+                          Icons.add_a_photo_outlined,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                   for (var i = 0; i < _photos.length; i++)
@@ -205,10 +220,15 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                       child: Stack(
                         children: [
                           ClipRRect(
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.medium),
-                            child: Image.file(File(_photos[i].path),
-                                width: 84, height: 84, fit: BoxFit.cover),
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.medium,
+                            ),
+                            child: Image.file(
+                              File(_photos[i].path),
+                              width: 84,
+                              height: 84,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                           Positioned(
                             top: 2,
@@ -218,8 +238,11 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                               child: const CircleAvatar(
                                 radius: 11,
                                 backgroundColor: Colors.black54,
-                                child: Icon(Icons.close,
-                                    size: 13, color: Colors.white),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 13,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -239,7 +262,9 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Text('Submit Ticket'),
             ),

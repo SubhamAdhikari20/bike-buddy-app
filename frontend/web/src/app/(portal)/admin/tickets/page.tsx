@@ -16,6 +16,7 @@ type Ticket = {
     message: string;
     status: "open" | "in_review" | "resolved";
     rating?: number | null;
+    priority: "normal" | "high";
     createdAt: string;
 };
 
@@ -30,16 +31,19 @@ export default function AdminTicketsPage() {
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(() => {
-        api.get("/support/tickets")
+        api.get<Ticket[]>("/support/tickets")
             .then((res) => setTickets(res.data))
             .catch((err) => setError(err.message));
     }, []);
 
     useEffect(load, [load]);
 
-    const setStatus = async (ticketId: string, status: string) => {
+    const setStatus = async (
+        ticketId: string,
+        status: "in_review" | "resolved",
+    ) => {
         try {
-            await api.patch(`/support/tickets/${ticketId}/status`, { status });
+            await api.patch<Ticket>(`/support/tickets/${ticketId}/status`, { status });
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
@@ -49,9 +53,9 @@ export default function AdminTicketsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Support Tickets</h1>
-                <p className="text-sm text-gray-500">
-                    Breakdown tickets are the priority lane - 15 minute target.
+                <h1 className="text-2xl font-bold">Support Tickets</h1>
+                <p className="text-sm text-muted-foreground">
+                    High-priority breakdown tickets are shown first. Response time is not guaranteed.
                 </p>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
@@ -83,14 +87,14 @@ export default function AdminTicketsPage() {
                                                 breakdown
                                             </Badge>
                                         ) : (
-                                            <span className="capitalize text-gray-600">{ticket.type}</span>
+                                            <span className="capitalize text-muted-foreground">{ticket.type}</span>
                                         )}
                                     </TableCell>
                                     <TableCell className="font-medium">{ticket.subject}</TableCell>
-                                    <TableCell className="max-w-xs truncate text-gray-500">
+                                    <TableCell className="max-w-xs truncate text-muted-foreground">
                                         {ticket.message}
                                     </TableCell>
-                                    <TableCell className="text-xs text-gray-500">
+                                    <TableCell className="text-xs text-muted-foreground">
                                         {new Date(ticket.createdAt).toLocaleString("en-GB", {
                                             day: "numeric",
                                             month: "short",
@@ -114,7 +118,7 @@ export default function AdminTicketsPage() {
                                                 Start review
                                             </Button>
                                         )}
-                                        {ticket.status !== "resolved" && (
+                                        {ticket.status === "in_review" && (
                                             <Button
                                                 size="sm"
                                                 className="bg-green-600 text-white hover:bg-green-700"

@@ -10,9 +10,8 @@ class _ChatMessage {
   const _ChatMessage(this.text, this.fromUser);
 }
 
-/// Simple support chat. The header shows the expected response time so
-/// nobody is left guessing (SUP-06 preview, uncertainty principle).
-/// Ticketing with photos arrives in Sprint 5.
+/// Local support-chat preview. It is deliberately labelled as a simulation so
+/// users never mistake an on-device demo for a staffed support channel.
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
@@ -26,7 +25,8 @@ class _ChatPageState extends State<ChatPage> {
 
   final List<_ChatMessage> _messages = [
     const _ChatMessage(
-      'Namaste! You have reached Bike Buddy support. How can we help you today?',
+      'This is a coursework preview. Messages are stored only on this screen '
+      'and are not sent to a support team.',
       false,
     ),
   ];
@@ -43,11 +43,12 @@ class _ChatPageState extends State<ChatPage> {
     if (text.isEmpty) return;
     setState(() {
       _messages.add(_ChatMessage(text, true));
-      _messages.add(const _ChatMessage(
-        'Thanks for the message! A support agent will reply here within about 5 minutes. '
-        'If it is urgent, call us any time.',
-        false,
-      ));
+      _messages.add(
+        const _ChatMessage(
+          'Preview saved locally. No support agent has received this message.',
+          false,
+        ),
+      );
       _controller.clear();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -68,8 +69,8 @@ class _ChatPageState extends State<ChatPage> {
           children: [
             Text('Support Chat'),
             Text(
-              'Avg response: 5 min · Online 24/7',
-              style: TextStyle(fontSize: 12, color: AppColors.success),
+              'Coursework preview · not connected',
+              style: TextStyle(fontSize: 12, color: AppColors.warning),
             ),
           ],
         ),

@@ -1,15 +1,21 @@
 import { z } from "zod";
 
-export const createPaymentSchema = z.object({
+export const initiatePaymentSchema = z
+  .object({
     bookingId: z.string().min(1),
-    provider: z.enum(["khalti", "esewa", "manual"]),
-    amount: z.number().positive(),
-    currency: z.string().min(3).max(3).default("NPR"),
-    transactionRef: z.string().min(1),
-    receiptUrl: z.string().url().optional(),
-});
+    provider: z.enum(["khalti", "esewa"]),
+  })
+  .strict();
 
-export const updatePaymentStatusSchema = z.object({
-    status: z.enum(["pending", "succeeded", "failed", "refunded"]),
-    gatewayMessage: z.string().max(2000).optional(),
-});
+export const demoPaymentConfirmationSchema = z
+  .object({
+    outcome: z.enum(["succeeded", "failed"]),
+  })
+  .strict();
+
+export const adminPaymentStatusSchema = z
+  .object({
+    status: z.enum(["failed", "refunded"]),
+    note: z.string().trim().max(500).optional(),
+  })
+  .strict();

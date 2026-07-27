@@ -25,6 +25,7 @@ dependencies:
   # Storage
   shared_preferences: ^2.3.4
   flutter_secure_storage: ^9.2.2
+  google_sign_in: ^7.2.0
 
   # Maps and location
   google_maps_flutter: ^2.10.0

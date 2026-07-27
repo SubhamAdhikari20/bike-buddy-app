@@ -38,14 +38,30 @@ class ChecklistPage extends ConsumerStatefulWidget {
 
 class _ChecklistPageState extends ConsumerState<ChecklistPage> {
   final _items = [
-    _ChecklistItem('brakes', 'Tires & Brakes',
-        'Tread looks fine, no visible damage, brake levers feel firm.', Icons.tire_repair),
-    _ChecklistItem('lights', 'Lights & Indicators',
-        'Headlight, taillight, brake light and both indicators work.', Icons.lightbulb_outline),
-    _ChecklistItem('fuel', 'Fuel Level',
-        'Note the fuel level. Return at the same level to avoid charges.', Icons.local_gas_station),
-    _ChecklistItem('body', 'Body & Mirrors',
-        'Check for existing scratches or dents and photograph them below.', Icons.two_wheeler),
+    _ChecklistItem(
+      'brakes',
+      'Tires & Brakes',
+      'Tread looks fine, no visible damage, brake levers feel firm.',
+      Icons.tire_repair,
+    ),
+    _ChecklistItem(
+      'lights',
+      'Lights & Indicators',
+      'Headlight, taillight, brake light and both indicators work.',
+      Icons.lightbulb_outline,
+    ),
+    _ChecklistItem(
+      'fuel',
+      'Fuel Level',
+      'Note the fuel level. Return at the same level to avoid charges.',
+      Icons.local_gas_station,
+    ),
+    _ChecklistItem(
+      'body',
+      'Body & Mirrors',
+      'Check for existing scratches or dents and photograph them below.',
+      Icons.two_wheeler,
+    ),
   ];
 
   final List<XFile> _photos = [];
@@ -64,8 +80,17 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
   }
 
   Future<void> _addPhoto() async {
-    final photo = await ImagePicker()
-        .pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
+    if (_photos.length >= 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You can attach up to five photos.')),
+      );
+      return;
+    }
+    final photo = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1600,
+      imageQuality: 80,
+    );
     if (photo != null && mounted) setState(() => _photos.add(photo));
   }
 
@@ -75,7 +100,8 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadius.large)),
+          borderRadius: BorderRadius.circular(AppRadius.large),
+        ),
         title: Text('Issue with ${item.title}?'),
         content: TextField(
           controller: controller,
@@ -83,12 +109,14 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
           maxLength: 300,
           autofocus: true,
           decoration: const InputDecoration(
-              hintText: 'Describe the problem, e.g. "front brake feels weak"'),
+            hintText: 'Describe the problem, e.g. "front brake feels weak"',
+          ),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
             child: const Text('Save issue'),
@@ -111,11 +139,14 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
         photoUrls.add(await auth.uploadImage(photo.path));
       }
 
-      await ref.read(bookingApiProvider).submitChecklist(
+      await ref
+          .read(bookingApiProvider)
+          .submitChecklist(
             bookingId: widget.bookingId,
             items: _items
-                .map((item) =>
-                    {'key': item.key, 'ok': item.ok, 'note': item.note})
+                .map(
+                  (item) => {'key': item.key, 'ok': item.ok, 'note': item.note},
+                )
                 .toList(),
             photos: photoUrls,
             acknowledged: _acknowledged,
@@ -127,9 +158,11 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e is AppException
-                ? e.message
-                : 'Could not save the checklist. Please try again.'),
+            content: Text(
+              e is AppException
+                  ? e.message
+                  : 'Could not save the checklist. Please try again.',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -154,8 +187,11 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
             if (booking != null)
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.two_wheeler,
-                      size: 36, color: AppColors.primary),
+                  leading: const Icon(
+                    Icons.two_wheeler,
+                    size: 36,
+                    color: AppColors.primary,
+                  ),
                   title: Text(booking.bike?.title ?? 'Your bike'),
                   subtitle: Text(
                     'Booking #${booking.id.substring(booking.id.length - 6).toUpperCase()}\n'
@@ -165,8 +201,10 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
                 ),
               ),
             const SizedBox(height: AppSpacing.md),
-            Text('PRE-RIDE INSPECTION',
-                style: textTheme.labelSmall?.copyWith(letterSpacing: 1.2)),
+            Text(
+              'PRE-RIDE INSPECTION',
+              style: textTheme.labelSmall?.copyWith(letterSpacing: 1.2),
+            ),
             const SizedBox(height: AppSpacing.sm),
 
             for (final item in _items)
@@ -210,9 +248,11 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
                                 : Icons.report_problem_outlined,
                             size: 16,
                           ),
-                          label: Text(item.note != null
-                              ? 'Issue noted: ${item.note}'
-                              : 'Report Issue'),
+                          label: Text(
+                            item.note != null
+                                ? 'Issue noted: ${item.note}'
+                                : 'Report Issue',
+                          ),
                         ),
                       ),
                     ],
@@ -221,8 +261,10 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
               ),
 
             const SizedBox(height: AppSpacing.sm),
-            Text('CONDITION EVIDENCE',
-                style: textTheme.labelSmall?.copyWith(letterSpacing: 1.2)),
+            Text(
+              'CONDITION EVIDENCE',
+              style: textTheme.labelSmall?.copyWith(letterSpacing: 1.2),
+            ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Photograph the bike, especially any existing scratches or dents. These photos protect you in a dispute.',
@@ -234,37 +276,49 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
-                  InkWell(
-                    onTap: _addPhoto,
-                    child: Container(
-                      width: 96,
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(AppRadius.medium),
-                        border: Border.all(
+                  if (_photos.length < 5)
+                    InkWell(
+                      onTap: _addPhoto,
+                      child: Container(
+                        width: 96,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(AppRadius.medium),
+                          border: Border.all(
                             color: AppColors.primary,
-                            style: BorderStyle.solid),
-                      ),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo_outlined,
-                              color: AppColors.primary),
-                          SizedBox(height: 4),
-                          Text('Add Photo',
+                            style: BorderStyle.solid,
+                          ),
+                        ),
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_a_photo_outlined,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Add Photo',
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.primary)),
-                        ],
+                                fontSize: 12,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                   for (final photo in _photos)
                     Padding(
                       padding: const EdgeInsets.only(left: AppSpacing.sm),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(AppRadius.medium),
-                        child: Image.file(File(photo.path),
-                            width: 96, height: 96, fit: BoxFit.cover),
+                        child: Image.file(
+                          File(photo.path),
+                          width: 96,
+                          height: 96,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                 ],
@@ -289,13 +343,17 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
 
             ElevatedButton.icon(
               onPressed:
-                  allChecked && _acknowledged && !_busy ? _confirm : null,
+                  allChecked && _photos.isNotEmpty && _acknowledged && !_busy
+                  ? _confirm
+                  : null,
               icon: _busy
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.check_circle_outline),
               label: const Text('Confirm Handover'),
@@ -305,6 +363,15 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
                 padding: const EdgeInsets.only(top: AppSpacing.sm),
                 child: Text(
                   'Tick every item (or note an issue) to continue.',
+                  style: textTheme.labelSmall,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (_photos.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
+                child: Text(
+                  'Add at least one condition photo to continue.',
                   style: textTheme.labelSmall,
                   textAlign: TextAlign.center,
                 ),

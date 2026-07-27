@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { api, session } from "@/lib/api";
+import { api } from "@/lib/api";
 
 const CATEGORIES = ["commuter", "scooter", "cruiser", "sports", "electric", "mountain"];
 const CITIES = ["Kathmandu", "Lalitpur", "Bhaktapur"];
@@ -49,8 +49,7 @@ export default function NewBikePage() {
         setError(null);
         setBusy(true);
         try {
-            await api.post("/bikes", {
-                ownerId: session.get()?.profileId,
+            await api.post<Record<string, unknown>>("/bikes", {
                 title: form.title,
                 brand: form.brand,
                 model: form.model,
@@ -82,13 +81,13 @@ export default function NewBikePage() {
     };
 
     const selectClass =
-        "h-9 w-full rounded-md border border-gray-200 bg-white px-3 text-sm";
+        "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
 
     return (
         <div className="max-w-3xl space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">List a New Bike</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-2xl font-bold">List a New Bike</h1>
+                <p className="text-sm text-muted-foreground">
                     Honest details rent faster - riders see everything you enter here.
                 </p>
             </div>

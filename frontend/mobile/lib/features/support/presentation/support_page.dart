@@ -8,9 +8,8 @@ import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_constants.dart';
 import '../data/support_api.dart';
 
-/// Help screen: 24/7 phone and chat within two taps (SUP-03), a
-/// priority breakdown lane (SUP-02), searchable FAQ answered before any
-/// chat is needed (SUP-05, Hick's law) and the issue tracker (SUP-04).
+/// Help screen with configured contact options, a priority breakdown form,
+/// searchable FAQ (Hick's law), and a persistent issue tracker.
 class SupportPage extends ConsumerStatefulWidget {
   const SupportPage({super.key});
 
@@ -22,11 +21,25 @@ class _SupportPageState extends ConsumerState<SupportPage> {
   String _faqSearch = '';
 
   Future<void> _call(BuildContext context) async {
+    if (!AppConstants.hasSupportPhone) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No staffed support phone is configured in this coursework build.',
+          ),
+        ),
+      );
+      return;
+    }
     final uri = Uri(scheme: 'tel', path: AppConstants.supportPhone);
     final ok = await canLaunchUrl(uri) && await launchUrl(uri);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Call us any time: ${AppConstants.supportPhone}')),
+        SnackBar(
+          content: Text(
+            'Could not open the phone app. Number: ${AppConstants.supportPhone}',
+          ),
+        ),
       );
     }
   }
@@ -59,14 +72,17 @@ class _SupportPageState extends ConsumerState<SupportPage> {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.access_time_filled, color: AppColors.teal),
+                  Icon(Icons.info_outline, color: AppColors.teal),
                   SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      'We are available 24/7 - day rides, night rides, breakdowns.',
+                      'For immediate danger, contact the appropriate local '
+                      'emergency service. Bike Buddy support is not an '
+                      'emergency-response service.',
                       style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.textPrimary),
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -74,7 +90,7 @@ class _SupportPageState extends ConsumerState<SupportPage> {
             ),
             const SizedBox(height: AppSpacing.md),
 
-            // Priority breakdown lane (SUP-02): 15 min response.
+            // Priority breakdown lane (SUP-02).
             Card(
               clipBehavior: Clip.antiAlias,
               shape: RoundedRectangleBorder(
@@ -89,13 +105,18 @@ class _SupportPageState extends ConsumerState<SupportPage> {
                     color: AppColors.accent.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.car_crash_outlined, color: AppColors.accent),
+                  child: const Icon(
+                    Icons.car_crash_outlined,
+                    color: AppColors.accent,
+                  ),
                 ),
-                title: const Text('Bike broke down?',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
-                subtitle:
-                    const Text('Priority lane · reply within 15 minutes'),
+                title: const Text(
+                  'Bike broke down?',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Creates a priority ticket — response time is not guaranteed',
+                ),
                 trailing: const Icon(Icons.chevron_right),
               ),
             ),
@@ -113,12 +134,24 @@ class _SupportPageState extends ConsumerState<SupportPage> {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         child: Column(
                           children: [
-                            const Icon(Icons.call,
-                                size: 32, color: AppColors.primary),
+                            const Icon(
+                              Icons.call,
+                              size: 32,
+                              color: AppColors.primary,
+                            ),
                             const SizedBox(height: AppSpacing.sm),
-                            Text('Call us', style: textTheme.titleMedium),
-                            Text(AppConstants.supportPhone,
-                                style: textTheme.labelSmall),
+                            Text(
+                              AppConstants.hasSupportPhone
+                                  ? 'Call support'
+                                  : 'Phone unavailable',
+                              style: textTheme.titleMedium,
+                            ),
+                            Text(
+                              AppConstants.hasSupportPhone
+                                  ? AppConstants.supportPhone
+                                  : 'Not configured',
+                              style: textTheme.labelSmall,
+                            ),
                           ],
                         ),
                       ),
@@ -135,12 +168,17 @@ class _SupportPageState extends ConsumerState<SupportPage> {
                         padding: const EdgeInsets.all(AppSpacing.md),
                         child: Column(
                           children: [
-                            const Icon(Icons.chat_bubble_outline,
-                                size: 32, color: AppColors.teal),
+                            const Icon(
+                              Icons.chat_bubble_outline,
+                              size: 32,
+                              color: AppColors.teal,
+                            ),
                             const SizedBox(height: AppSpacing.sm),
                             Text('Chat', style: textTheme.titleMedium),
-                            Text('Avg response: 5 min',
-                                style: textTheme.labelSmall),
+                            Text(
+                              'Preview only — not connected',
+                              style: textTheme.labelSmall,
+                            ),
                           ],
                         ),
                       ),
@@ -176,47 +214,59 @@ class _SupportPageState extends ConsumerState<SupportPage> {
                 child: Center(child: CircularProgressIndicator()),
               ),
               error: (error, _) => Text(
-                'FAQ is offline right now - call or chat instead.',
+                'FAQ is offline right now. Please try again.',
                 style: textTheme.bodyMedium,
               ),
               data: (items) {
                 final filtered = _faqSearch.isEmpty
                     ? items
                     : items
-                        .where((item) =>
-                            item.q.toLowerCase().contains(_faqSearch) ||
-                            item.a.toLowerCase().contains(_faqSearch))
-                        .toList();
+                          .where(
+                            (item) =>
+                                item.q.toLowerCase().contains(_faqSearch) ||
+                                item.a.toLowerCase().contains(_faqSearch),
+                          )
+                          .toList();
                 if (filtered.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     child: Text(
-                      'Nothing matches "$_faqSearch" - try the chat below.',
+                      'Nothing matches "$_faqSearch". Try different words or report an issue.',
                       style: textTheme.bodyMedium,
                     ),
                   );
                 }
                 return Column(
                   children: filtered
-                      .map((item) => Card(
-                            margin:
-                                const EdgeInsets.only(bottom: AppSpacing.sm),
-                            child: ExpansionTile(
-                              title: Text(item.q,
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600)),
-                              childrenPadding: const EdgeInsets.fromLTRB(
-                                  AppSpacing.md, 0, AppSpacing.md, AppSpacing.md),
-                              children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(item.a,
-                                      style: textTheme.bodyMedium),
-                                ),
-                              ],
+                      .map(
+                        (item) => Card(
+                          margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: ExpansionTile(
+                            title: Text(
+                              item.q,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ))
+                            childrenPadding: const EdgeInsets.fromLTRB(
+                              AppSpacing.md,
+                              0,
+                              AppSpacing.md,
+                              AppSpacing.md,
+                            ),
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  item.a,
+                                  style: textTheme.bodyMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
                       .toList(),
                 );
               },

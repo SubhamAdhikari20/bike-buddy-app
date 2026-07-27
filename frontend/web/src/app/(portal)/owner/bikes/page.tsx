@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { api, session } from "@/lib/api";
+import { useSession } from "@/components/auth/session-provider";
+import { api } from "@/lib/api";
 
 type BikeRow = {
     _id: string;
@@ -28,22 +29,23 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function OwnerBikesPage() {
+    const { session } = useSession();
     const [bikes, setBikes] = useState<BikeRow[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(() => {
-        const profileId = session.get()?.profileId;
+        const profileId = session?.profile.id;
         if (!profileId) return;
-        api.get(`/bikes?ownerId=${profileId}&limit=100&includeUnavailable=true`)
+        api.get<BikeRow[]>(`/bikes?ownerId=${profileId}&limit=100&includeUnavailable=true`)
             .then((res) => setBikes(res.data))
             .catch((err) => setError(err.message));
-    }, []);
+    }, [session?.profile.id]);
 
     useEffect(load, [load]);
 
     const setStatus = async (bikeId: string, status: string) => {
         try {
-            await api.patch(`/bikes/${bikeId}`, { status });
+            await api.patch<BikeRow>(`/bikes/${bikeId}`, { status });
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
@@ -54,8 +56,8 @@ export default function OwnerBikesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">My Bikes</h1>
-                    <p className="text-sm text-gray-500">Your fleet and its status.</p>
+                    <h1 className="text-2xl font-bold">My Bikes</h1>
+                    <p className="text-sm text-muted-foreground">Your fleet and its status.</p>
                 </div>
                 <Link href="/owner/bikes/new">
                     <Button className="bg-amber-500 text-white hover:bg-amber-600">

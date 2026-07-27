@@ -30,7 +30,7 @@ export default function AdminBikesPage() {
     const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(() => {
-        api.get("/bikes?limit=100&includeUnavailable=true")
+        api.get<BikeRow[]>("/bikes?limit=100&includeUnavailable=true")
             .then((res) => setBikes(res.data))
             .catch((err) => setError(err.message));
     }, []);
@@ -39,7 +39,7 @@ export default function AdminBikesPage() {
 
     const setStatus = async (bikeId: string, status: string) => {
         try {
-            await api.patch(`/admin/bikes/${bikeId}/status`, { status });
+            await api.patch<BikeRow>(`/admin/bikes/${bikeId}/status`, { status });
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
@@ -49,8 +49,8 @@ export default function AdminBikesPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Bikes</h1>
-                <p className="text-sm text-gray-500">
+                <h1 className="text-2xl font-bold">Bikes</h1>
+                <p className="text-sm text-muted-foreground">
                     Every listed bike on the platform. Suspend anything unsafe.
                 </p>
             </div>

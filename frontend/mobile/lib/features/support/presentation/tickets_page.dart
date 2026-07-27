@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/error/app_exception.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../data/support_api.dart';
@@ -14,7 +15,10 @@ class TicketsPage extends ConsumerWidget {
   const TicketsPage({super.key});
 
   Future<void> _rate(
-      BuildContext context, WidgetRef ref, SupportTicket ticket) async {
+    BuildContext context,
+    WidgetRef ref,
+    SupportTicket ticket,
+  ) async {
     var stars = 5;
     final controller = TextEditingController();
     final submitted = await showDialog<bool>(
@@ -22,7 +26,8 @@ class TicketsPage extends ConsumerWidget {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.large)),
+            borderRadius: BorderRadius.circular(AppRadius.large),
+          ),
           title: const Text('How was our support?'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -44,18 +49,19 @@ class TicketsPage extends ConsumerWidget {
               TextField(
                 controller: controller,
                 maxLength: 500,
-                decoration:
-                    const InputDecoration(hintText: 'Optional comment'),
+                decoration: const InputDecoration(hintText: 'Optional comment'),
               ),
             ],
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Submit')),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Submit'),
+            ),
           ],
         ),
       ),
@@ -63,7 +69,9 @@ class TicketsPage extends ConsumerWidget {
 
     if (submitted == true) {
       try {
-        await ref.read(supportApiProvider).rateTicket(
+        await ref
+            .read(supportApiProvider)
+            .rateTicket(
               ticket.id,
               stars,
               controller.text.trim().isEmpty ? null : controller.text.trim(),
@@ -74,7 +82,20 @@ class TicketsPage extends ConsumerWidget {
             const SnackBar(content: Text('Thanks for the feedback!')),
           );
         }
-      } catch (_) {}
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                error is AppException
+                    ? error.message
+                    : 'Could not save the rating. Try again.',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -95,7 +116,8 @@ class TicketsPage extends ConsumerWidget {
                 child: Padding(
                   padding: EdgeInsets.all(AppSpacing.lg),
                   child: Text(
-                      'No tickets yet. When you report an issue it will be tracked here.'),
+                    'No tickets yet. When you report an issue it will be tracked here.',
+                  ),
                 ),
               )
             : RefreshIndicator(
@@ -121,50 +143,63 @@ class TicketsPage extends ConsumerWidget {
                             Row(
                               children: [
                                 if (ticket.type == 'breakdown') ...[
-                                  const Icon(Icons.priority_high,
-                                      size: 16, color: AppColors.accent),
+                                  const Icon(
+                                    Icons.priority_high,
+                                    size: 16,
+                                    color: AppColors.accent,
+                                  ),
                                   const SizedBox(width: 4),
                                 ],
                                 Expanded(
-                                  child: Text(ticket.subject,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis),
+                                  child: Text(
+                                    ticket.subject,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: AppSpacing.sm, vertical: 3),
+                                    horizontal: AppSpacing.sm,
+                                    vertical: 3,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: color.withValues(alpha: 0.12),
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.pill),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.pill,
+                                    ),
                                   ),
-                                  child: Text(label,
-                                      style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: color)),
+                                  child: Text(
+                                    label,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: color,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 4),
-                            Text(ticket.message,
-                                style:
-                                    Theme.of(context).textTheme.bodyMedium,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis),
+                            Text(
+                              ticket.message,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             const SizedBox(height: AppSpacing.sm),
                             Row(
                               children: [
                                 if (ticket.createdAt != null)
                                   Text(
-                                    DateFormat('d MMM yyyy, h:mm a')
-                                        .format(ticket.createdAt!),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall,
+                                    DateFormat(
+                                      'd MMM yyyy, h:mm a',
+                                    ).format(ticket.createdAt!),
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelSmall,
                                   ),
                                 const Spacer(),
                                 if (ticket.status == 'resolved' &&
@@ -177,13 +212,17 @@ class TicketsPage extends ConsumerWidget {
                                 else if (ticket.rating != null)
                                   Row(
                                     children: [
-                                      const Icon(Icons.star,
-                                          size: 14,
-                                          color: AppColors.warning),
-                                      Text(' ${ticket.rating}/5',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall),
+                                      const Icon(
+                                        Icons.star,
+                                        size: 14,
+                                        color: AppColors.warning,
+                                      ),
+                                      Text(
+                                        ' ${ticket.rating}/5',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.labelSmall,
+                                      ),
                                     ],
                                   ),
                               ],
