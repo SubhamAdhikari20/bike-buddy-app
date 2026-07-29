@@ -52,5 +52,20 @@ flutter build apk --debug
    transition `open → in review → resolved`, never backwards.
 9. Navigate the portal by keyboard at narrow and desktop widths in both themes.
 
+Also confirm an unverified renter is directed to ID verification and the API
+rejects booking creation until KYC is approved.
+
 Runtime integration needs configured MongoDB and email/OAuth credentials.
 Automated schema/service tests do not claim external services are available.
+
+## Repeatable video demo
+
+`npm run seed` is an idempotent demo setup. It registers missing demo
+personas first, marks the accounts it creates, refuses to overwrite matching
+unmarked accounts, and recreates only tagged bikes and their linked demo
+workflow records. It does not clear unrelated Atlas collections.
+
+Run `npm run demo:verify` while the backend is listening to prove owner-scoped
+bike create, read, update and delete through the real HTTP API. See
+[DEMO_VIDEO_RUNBOOK.md](DEMO_VIDEO_RUNBOOK.md) for the filming order and
+speaking script.

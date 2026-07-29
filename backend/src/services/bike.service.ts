@@ -58,7 +58,7 @@ const ensureOwnerAccess = async (
   ownerId: string,
 ) => {
   if (auth.role === "admin") {
-    return;
+    return null;
   }
 
   if (auth.role !== "owner" || !auth.profileId) {
@@ -69,6 +69,21 @@ const ensureOwnerAccess = async (
   if (!owner || owner._id.toString() !== ownerId) {
     throw new AppError(403, "You can only manage your own bikes", "FORBIDDEN");
   }
+  return owner;
+};
+
+const ownerSafeBikePayload = (
+  auth: { role: AuthRole },
+  payload: Record<string, unknown>,
+) => {
+  if (auth.role === "admin") return payload;
+  const {
+    verifiedBike: _verifiedBike,
+    safetyScore: _safetyScore,
+    inspectionNotes: _inspectionNotes,
+    ...ownerFields
+  } = payload;
+  return ownerFields;
 };
 
 const bikeService = {
@@ -97,9 +112,16 @@ const bikeService = {
     if (!owner) {
       throw new AppError(404, "Owner not found", "NOT_FOUND");
     }
+    if (auth.role === "owner" && owner.ownerStatus !== "verified") {
+      throw new AppError(
+        403,
+        "Your owner account must be verified before you can publish bikes.",
+        "OWNER_NOT_VERIFIED",
+      );
+    }
 
     return bikeRepository.create({
-      ...payload,
+      ...ownerSafeBikePayload(auth, payload),
       ownerId,
     });
   },
@@ -114,8 +136,22 @@ const bikeService = {
       throw new AppError(404, "Bike not found", "NOT_FOUND");
     }
 
-    await ensureOwnerAccess(auth, toDocumentId(bike.ownerId) ?? "");
-    return bikeRepository.updateById(bikeId, payload);
+    const owner = await ensureOwnerAccess(auth, toDocumentId(bike.ownerId) ?? "");
+    if (
+      auth.role === "owner" &&
+      payload.status === "available" &&
+      owner?.ownerStatus !== "verified"
+    ) {
+      throw new AppError(
+        403,
+        "Your owner account must be verified before a bike can be made available.",
+        "OWNER_NOT_VERIFIED",
+      );
+    }
+    return bikeRepository.updateById(
+      bikeId,
+      ownerSafeBikePayload(auth, payload),
+    );
   },
 
   async deleteBike(
@@ -128,6 +164,14 @@ const bikeService = {
     }
 
     await ensureOwnerAccess(auth, toDocumentId(bike.ownerId) ?? "");
+    const bookingHistory = await bookingRepository.findByBikeId(bikeId);
+    if (bookingHistory.length > 0) {
+      throw new AppError(
+        409,
+        "This bike has booking history. Set it to inactive instead of deleting it.",
+        "BIKE_HAS_BOOKINGS",
+      );
+    }
     return bikeRepository.deleteById(bikeId);
   },
 

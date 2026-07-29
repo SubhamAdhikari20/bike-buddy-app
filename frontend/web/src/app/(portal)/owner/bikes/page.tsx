@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,8 @@ export default function OwnerBikesPage() {
     const { session } = useSession();
     const [bikes, setBikes] = useState<BikeRow[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
+    const [busyId, setBusyId] = useState<string | null>(null);
 
     const load = useCallback(() => {
         const profileId = session?.profile.id;
@@ -44,11 +47,37 @@ export default function OwnerBikesPage() {
     useEffect(load, [load]);
 
     const setStatus = async (bikeId: string, status: string) => {
+        setBusyId(bikeId);
+        setError(null);
+        setMessage(null);
         try {
             await api.patch<BikeRow>(`/bikes/${bikeId}`, { status });
+            setMessage(`Bike marked ${status}.`);
             load();
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed");
+        } finally {
+            setBusyId(null);
+        }
+    };
+
+    const removeBike = async (bike: BikeRow) => {
+        const confirmed = window.confirm(
+            `Delete "${bike.title}" permanently? This is only allowed when it has no booking history.`,
+        );
+        if (!confirmed) return;
+
+        setBusyId(bike._id);
+        setError(null);
+        setMessage(null);
+        try {
+            await api.delete<BikeRow>(`/bikes/${bike._id}`);
+            setMessage(`${bike.title} was deleted.`);
+            load();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Could not delete the bike.");
+        } finally {
+            setBusyId(null);
         }
     };
 
@@ -61,11 +90,13 @@ export default function OwnerBikesPage() {
                 </div>
                 <Link href="/owner/bikes/new">
                     <Button className="bg-amber-500 text-white hover:bg-amber-600">
-                        + List a new bike
+                        <Plus aria-hidden="true" />
+                        List a new bike
                     </Button>
                 </Link>
             </div>
             {error && <p className="text-sm text-red-600">{error}</p>}
+            {message && <p className="text-sm text-green-700" role="status">{message}</p>}
 
             <Card>
                 <CardHeader>
@@ -86,6 +117,13 @@ export default function OwnerBikesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
+                            {bikes.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                                        No bikes yet. List your first bike to begin.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                             {bikes.map((bike) => (
                                 <TableRow key={bike._id}>
                                     <TableCell className="font-medium">
@@ -109,11 +147,19 @@ export default function OwnerBikesPage() {
                                             {bike.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="space-x-2 text-right">
+                                    <TableCell className="text-right">
+                                        <div className="flex flex-wrap justify-end gap-2">
+                                        <Link href={`/owner/bikes/${bike._id}/edit`}>
+                                            <Button size="sm" variant="outline" aria-label={`Edit ${bike.title}`}>
+                                                <Pencil aria-hidden="true" />
+                                                Edit
+                                            </Button>
+                                        </Link>
                                         {bike.status === "available" ? (
                                             <Button
                                                 size="sm"
                                                 variant="outline"
+                                                disabled={busyId === bike._id}
                                                 onClick={() => setStatus(bike._id, "maintenance")}
                                             >
                                                 To maintenance
@@ -122,11 +168,24 @@ export default function OwnerBikesPage() {
                                             <Button
                                                 size="sm"
                                                 className="bg-green-600 text-white hover:bg-green-700"
+                                                disabled={busyId === bike._id}
                                                 onClick={() => setStatus(bike._id, "available")}
                                             >
                                                 Make available
                                             </Button>
                                         )}
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={busyId === bike._id}
+                                            className="border-red-300 text-red-700 hover:bg-red-50"
+                                            onClick={() => removeBike(bike)}
+                                            aria-label={`Delete ${bike.title}`}
+                                        >
+                                            <Trash2 aria-hidden="true" />
+                                            Delete
+                                        </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -3,3 +3,4 @@
 dist/
 *.tsbuildinfo
 frontend/mobile/android/build/
+.codex-run

@@ -134,6 +134,12 @@ class _HomeTabState extends ConsumerState<HomeTab> {
             if (_draft != null)
               _ResumeBookingBanner(
                 draft: _draft!,
+                onResume: () {
+                  final bikeId = _draft!['bikeId'] as String?;
+                  if (bikeId != null && bikeId.isNotEmpty) {
+                    context.push('/book/$bikeId');
+                  }
+                },
                 onDismiss: () {
                   LocalStore.clearBookingDraft();
                   setState(() => _draft = null);
@@ -269,9 +275,14 @@ class _HomeTabState extends ConsumerState<HomeTab> {
 
 class _ResumeBookingBanner extends StatelessWidget {
   final Map<String, dynamic> draft;
+  final VoidCallback onResume;
   final VoidCallback onDismiss;
 
-  const _ResumeBookingBanner({required this.draft, required this.onDismiss});
+  const _ResumeBookingBanner({
+    required this.draft,
+    required this.onResume,
+    required this.onDismiss,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -320,6 +331,14 @@ class _ResumeBookingBanner extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
+                ),
+              ),
+              IconButton(
+                onPressed: onResume,
+                tooltip: 'Continue booking',
+                icon: const Icon(
+                  Icons.arrow_forward,
+                  color: AppColors.primary,
                 ),
               ),
               IconButton(

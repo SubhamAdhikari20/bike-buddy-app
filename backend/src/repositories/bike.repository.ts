@@ -1,4 +1,5 @@
 import BikeModel from "../models/bike.model.ts";
+import "../models/owner.model.ts";
 
 export const bikeRepository = {
   create: (payload: Record<string, unknown>) => BikeModel.create(payload),

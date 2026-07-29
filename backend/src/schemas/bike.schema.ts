@@ -82,7 +82,21 @@ export const createBikeSchema = z.object({
 
 export const updateBikeSchema = createBikeSchema
   .partial()
-  .omit({ ownerId: true });
+  .omit({ ownerId: true })
+  .extend({
+    category: z
+      .enum(["commuter", "scooter", "cruiser", "sports", "electric", "mountain"])
+      .optional(),
+    description: z.string().max(4000).nullish(),
+    pricePerHour: z.number().positive().nullish(),
+    images: z.array(bikeImageSchema).optional(),
+    status: z
+      .enum(["available", "unavailable", "maintenance", "inactive"])
+      .optional(),
+    verifiedBike: z.boolean().optional(),
+    safetyScore: z.number().min(0).max(100).optional(),
+    tags: z.array(z.string().min(1).max(50)).optional(),
+  });
 
 export const bikeListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

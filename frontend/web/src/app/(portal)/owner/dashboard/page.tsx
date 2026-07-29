@@ -51,6 +51,12 @@ export default function OwnerDashboardPage() {
                     Your fleet, rentals and earnings in one place.
                 </p>
             </div>
+            {session?.profile.ownerStatus !== "verified" && (
+                <div className="border-l-4 border-amber-500 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+                    Your owner account is {session?.profile.ownerStatus ?? "pending"}.
+                    An administrator must verify it before you can publish bike listings.
+                </div>
+            )}
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

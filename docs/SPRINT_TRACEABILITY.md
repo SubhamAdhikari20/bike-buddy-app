@@ -30,8 +30,25 @@ misleading Google option.
 | 4 — safety, handover and return | Riders and owners need shared condition evidence and honest emergency boundaries. | Mandatory safety checklist and photo evidence; renter-owned active-ride controls; authorised SOS recording with emergency-service guidance; return preview, grace-period calculation, extension conflict checks and owner-scoped damage acknowledgement. |
 | 5 — polish, support and accessibility | Users need flexible booking changes, cash handling, visible support state and an inclusive portal. | Reschedule/cancellation preview; cash-at-pickup selection and owner receipt reconciliation; strict support priority/status workflow; responsive shadcn/Base UI portal; owner registration/recovery/profile; dark mode, skip link, keyboard focus, status/error feedback and reduced motion. |
 
+## Owner portal stories
+
+The research workbook focuses mainly on renter stories. These owner stories make
+the portal acceptance criteria explicit without changing those source records.
+
+| Story | Sprint | Acceptance evidence |
+|---|---|---|
+| OWN-01 Register and manage an owner profile | 1 | Owner registration creates a pending profile; login, recovery and profile editing are role guarded. |
+| OWN-02 Manage only my fleet | 2 | A verified owner can create, read, fully edit, change status and delete an unbooked bike. Cross-owner access is rejected, and bikes with booking history must be made inactive instead of deleted. |
+| OWN-03 Manage bookings and cash | 3 | The owner sees only related bookings and can record cash receipt before a receipt becomes available. |
+| OWN-04 Record handover and damage state | 4 | Handover evidence is preserved and an owner may acknowledge a damage report without claiming resolution. |
+| OWN-05 Use an accessible, predictable portal | 5 | Responsive navigation, keyboard focus, empty/loading/error states, confirmation before deletion and light/dark themes are implemented. |
+
 ## Security and truthfulness decisions
 
+- A renter must have an approved ID-verification profile before the server
+  creates a booking; the mobile app explains pending and unverified states.
+- Owners cannot set bike verification, safety score or inspection notes.
+  Those moderation fields remain administrator controlled.
 - Wallet payment is a coursework simulation. No UI claims that money was
   charged, transferred or refunded.
 - Cash becomes paid only after the owner records receipt; only then can a

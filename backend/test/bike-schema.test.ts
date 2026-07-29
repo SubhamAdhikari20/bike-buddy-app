@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   bikeListQuerySchema,
   createBikeSchema,
+  updateBikeSchema,
 } from "../src/schemas/bike.schema.ts";
 
 test("bike discovery schema supports sprint-2 categories and landmarks", () => {
@@ -37,4 +38,14 @@ test("bike discovery schema supports sprint-2 categories and landmarks", () => {
   assert.equal(query.category, "electric");
   assert.equal(query.sortBy, "rating");
   assert.equal(query.includeUnavailable, false);
+});
+
+test("bike updates do not inject create-time defaults", () => {
+  const result = updateBikeSchema.parse({ title: "Changed title" });
+
+  assert.deepEqual(result, { title: "Changed title" });
+  assert.equal("status" in result, false);
+  assert.equal("tags" in result, false);
+  assert.equal("images" in result, false);
+  assert.equal("verifiedBike" in result, false);
 });

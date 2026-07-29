@@ -91,10 +91,9 @@ const authService = {
       const profile = await renterRepository.create({
         baseUserId: baseUser._id,
         fullName: payload.fullName,
-        phoneNumber: payload.phoneNumber ?? null,
+        ...(payload.phoneNumber ? { phoneNumber: payload.phoneNumber } : {}),
         password: passwordHash,
         profilePictureUrl: null,
-        googleId: null,
         bio: payload.bio ?? null,
         terms: payload.terms,
       });

@@ -61,11 +61,21 @@ npm run dev
 Configure MongoDB, JWT and email settings before using related workflows.
 `PAYMENT_MODE=demo` is the safe coursework default and never moves money.
 
+The seed is repeatable and scoped to Bike Buddy demo accounts and their linked
+records. It marks accounts it creates, refuses to overwrite matching unmarked
+accounts, and removes only tagged demo bikes and their linked workflow data.
+
 Seed password: `Password@123`
 
 - Admin: `admin@bikebuddy.com`
 - Owners: `ramesh.owner@bikebuddy.com`, `sita.owner@bikebuddy.com`
-- Renters: `aashish@student.com`, `maya@student.com`
+- Renters: `aashish@student.com`, `maya@student.com`,
+  `saroj@student.com`, `nishant@student.com`, `binita@student.com`,
+  `krish@student.com`, `mohammad@student.com`, `dipesh@student.com`
+
+With the backend running, `npm run demo:verify` performs a disposable
+owner-scoped bike create, read, update and delete check. The prepared demo
+fleet is left unchanged.
 
 ### Mobile
 
@@ -102,7 +112,9 @@ Work is separated into `sprint-1` through `sprint-5`, then integrated into
 
 See [sprint traceability](docs/SPRINT_TRACEABILITY.md),
 [UX heuristic audit](docs/UX_HEURISTIC_AUDIT.md) and
-[verification guide](docs/VERIFICATION.md).
+[verification guide](docs/VERIFICATION.md). The
+[video demonstration runbook](docs/DEMO_VIDEO_RUNBOOK.md) provides a
+12-16 minute recording sequence, demo values and speaking script.
 
 ## Author
 

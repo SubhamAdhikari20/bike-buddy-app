@@ -1,6 +1,8 @@
 // src/config/db.ts
 import mongoose from "mongoose";
-import { MONGODB_URI } from "./index.ts";
+import "colors";
+import dns from "node:dns";
+import { MONGODB_DNS_SERVERS, MONGODB_URI } from "./index.ts";
 
 type ConnectionObject = {
   isConnected?: number;
@@ -22,6 +24,12 @@ const connectDB = async (): Promise<void> => {
           .red.bold,
       );
       process.exit(1);
+    }
+    if (
+      mongodbUri.startsWith("mongodb+srv://") &&
+      MONGODB_DNS_SERVERS.length > 0
+    ) {
+      dns.setServers(MONGODB_DNS_SERVERS);
     }
     const dbConnect = await mongoose.connect(mongodbUri, {});
     connection.isConnected = dbConnect.connections[0]!.readyState;

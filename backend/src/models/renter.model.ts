@@ -23,12 +23,9 @@ const renterSchema: Schema<IRenter> = new Schema(
     },
     phoneNumber: {
       type: String,
-      unique: true,
-      sparse: true,
       trim: true,
       minLength: [10, "Phone number must be 10 digits"],
       maxLength: [10, "Phone number must be 10 digits"],
-      // default: null
     },
     password: {
       type: String,
@@ -42,9 +39,6 @@ const renterSchema: Schema<IRenter> = new Schema(
     },
     googleId: {
       type: String,
-      unique: true,
-      sparse: true,
-      // default: null
     },
     bio: {
       type: String,
@@ -72,6 +66,21 @@ const renterSchema: Schema<IRenter> = new Schema(
   },
   {
     timestamps: true,
+  },
+);
+
+renterSchema.index(
+  { phoneNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { phoneNumber: { $type: "string" } },
+  },
+);
+renterSchema.index(
+  { googleId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { googleId: { $type: "string" } },
   },
 );
 

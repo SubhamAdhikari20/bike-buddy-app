@@ -29,6 +29,11 @@ const userSchema: Schema<IUser> = new Schema(
       type: Boolean,
       default: false,
     },
+    isDemoAccount: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
     verifyCode: {
       type: String,
       default: null,

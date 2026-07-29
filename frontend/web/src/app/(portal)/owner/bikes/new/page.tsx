@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useSession } from "@/components/auth/session-provider";
 import { api } from "@/lib/api";
 
 const CATEGORIES = ["commuter", "scooter", "cruiser", "sports", "electric", "mountain"];
@@ -16,6 +17,7 @@ const CITIES = ["Kathmandu", "Lalitpur", "Bhaktapur"];
 
 export default function NewBikePage() {
     const router = useRouter();
+    const { session, status: sessionStatus } = useSession();
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
@@ -82,6 +84,25 @@ export default function NewBikePage() {
 
     const selectClass =
         "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
+
+    if (sessionStatus === "loading") {
+        return <p className="text-sm text-muted-foreground" role="status">Checking owner verification...</p>;
+    }
+
+    if (session?.profile.ownerStatus !== "verified") {
+        return (
+            <div className="max-w-2xl space-y-4">
+                <h1 className="text-2xl font-bold">Owner verification required</h1>
+                <p className="text-sm text-muted-foreground">
+                    Your account is currently {session?.profile.ownerStatus ?? "pending"}.
+                    An administrator must verify it before you can publish bike listings.
+                </p>
+                <Button type="button" variant="outline" onClick={() => router.push("/owner/dashboard")}>
+                    Back to dashboard
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="max-w-3xl space-y-6">

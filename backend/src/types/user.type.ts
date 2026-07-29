@@ -6,6 +6,7 @@ const userSchema = z.object({
   email: z.email().min(5).max(50),
   role: z.enum(["admin", "owner", "renter"]),
   isVerified: z.boolean(),
+  isDemoAccount: z.boolean().optional(),
   verifyCode: z.string().nullish(),
   verifyCodeExpiryDate: z.date().nullish(),
   verifyEmailResetPassword: z.string().nullish(),

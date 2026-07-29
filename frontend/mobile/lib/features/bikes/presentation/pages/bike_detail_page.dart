@@ -94,6 +94,41 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
       return;
     }
 
+    if (!auth.isKycApproved) {
+      final verify = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.large),
+          ),
+          icon: const Icon(
+            Icons.badge_outlined,
+            size: 40,
+            color: AppColors.primary,
+          ),
+          title: const Text('Verify your ID to book'),
+          content: Text(
+            auth.isKycPending
+                ? 'Your ID is waiting for review. You can keep browsing while its status is updated.'
+                : 'Bike Buddy needs one ID document before a rental can be booked.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Keep browsing'),
+            ),
+            if (!auth.isKycPending)
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Verify ID'),
+              ),
+          ],
+        ),
+      );
+      if (verify == true && mounted) context.push('/verify-id');
+      return;
+    }
+
     context.push('/book/${bike.id}');
   }
 

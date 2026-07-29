@@ -274,6 +274,17 @@ const bookingService = {
     if (!auth.profileId) {
       throw new AppError(400, "Renter profile is missing", "BAD_REQUEST");
     }
+    const renter = await renterRepository.findById(auth.profileId);
+    if (!renter || renter.baseUserId.toString() !== auth.userId) {
+      throw new AppError(403, "Renter profile is invalid", "FORBIDDEN");
+    }
+    if (renter.kycStatus !== "approved") {
+      throw new AppError(
+        403,
+        "Complete ID verification before booking a bike.",
+        "ID_VERIFICATION_REQUIRED",
+      );
+    }
 
     validateBookingDates(payload.startDate, payload.endDate);
     const bike = await bikeRepository.findById(payload.bikeId);

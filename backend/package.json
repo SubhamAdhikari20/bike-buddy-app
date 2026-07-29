@@ -17,7 +17,8 @@
     "test": "tsx --test \"test/**/*.test.ts\"",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "demo:verify": "tsx src/scripts/verify-demo.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
