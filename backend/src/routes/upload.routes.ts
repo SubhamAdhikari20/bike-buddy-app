@@ -1,7 +1,7 @@
 // backend/src/routes/upload.routes.ts
 import { Router } from "express";
 import { authenticate } from "../middlewares/auth.ts";
-import { uploadImage } from "../middlewares/upload.ts";
+import { resolveUploadUrlPath, uploadImage } from "../middlewares/upload.ts";
 import ApiResponse from "../utils/ApiResponse.ts";
 import AppError from "../errors/AppError.ts";
 import { BACKEND_URL } from "../config/index.ts";
@@ -24,7 +24,7 @@ uploadRoutes.post(
       return;
     }
 
-    const url = `${BACKEND_URL}/uploads/${req.file.filename}`;
+    const url = `${BACKEND_URL}/uploads/${resolveUploadUrlPath(req.file.path)}`;
     res.status(201).json(
       new ApiResponse(201, "File uploaded successfully", {
         url,

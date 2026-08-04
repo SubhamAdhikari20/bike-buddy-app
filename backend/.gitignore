@@ -5,6 +5,20 @@ dist/
 .env
 !.env.sample
 src/config/config.env
+
+# Files uploaded at runtime by multer (bike photos, profile pictures, KYC).
+# The folders are recreated on demand, so only the .gitkeep files are tracked.
+uploads/*
+!uploads/.gitkeep
+!uploads/bike/
+uploads/bike/*
+!uploads/bike/.gitkeep
+!uploads/profile/
+uploads/profile/*
+!uploads/profile/.gitkeep
+!uploads/kyc/
+uploads/kyc/*
+!uploads/kyc/.gitkeep
 public/uploads
 
 # Environment variables
