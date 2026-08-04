@@ -1,6 +1,10 @@
 // backend/src/helpers/send-otp-email.ts
 import nodemailer from "nodemailer";
 import type { ApiResponseType } from "./../types/api-response.type.ts";
+import {
+  canUseConsoleDelivery,
+  deliverCodeToConsole,
+} from "./console-code-delivery.ts";
 
 export const sendOtpEmail = async (
   fullName: string,
@@ -12,6 +16,14 @@ export const sendOtpEmail = async (
       success: true,
       message: "Skipped sending email during test environment.",
     };
+  }
+
+  if (!email) {
+    return { success: false, message: "Missing email address" };
+  }
+
+  if (canUseConsoleDelivery()) {
+    return deliverCodeToConsole("sign-in", fullName, email, otp, 10);
   }
 
   const html = `
@@ -56,10 +68,6 @@ export const sendOtpEmail = async (
       </body>
     </html>
   `;
-
-  if (!email) {
-    return { success: false, message: "Missing email address" };
-  }
 
   try {
     const transporter = nodemailer.createTransport({
