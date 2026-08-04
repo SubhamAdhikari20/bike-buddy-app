@@ -20,6 +20,11 @@ export type AuthSession = {
   };
 };
 
+export type UploadedFile = {
+  url: string;
+  filename: string;
+};
+
 export type ApiEnvelope<T> = {
   statusCode: number;
   success: boolean;
@@ -52,12 +57,17 @@ async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<ApiEnvelope<T>> {
+  // A multipart upload must not carry an explicit Content-Type: the browser
+  // has to set it itself so the multipart boundary is included.
+  const isMultipart = options.body instanceof FormData;
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     credentials: "include",
     headers: {
       Accept: "application/json",
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.body && !isMultipart
+        ? { "Content-Type": "application/json" }
+        : {}),
       ...options.headers,
     },
   });
@@ -88,4 +98,17 @@ export const api = {
       body: JSON.stringify(data ?? {}),
     }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  /**
+   * Sends one image to the multer-backed upload endpoint and returns the URL
+   * it was stored at. `kind` selects the folder on the server, so bike photos
+   * land in uploads/bike rather than in one flat directory.
+   */
+  upload: (file: File, kind: "bike" | "profile" | "kyc") => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<UploadedFile>(`/uploads?type=${kind}`, {
+      method: "POST",
+      body,
+    });
+  },
 };

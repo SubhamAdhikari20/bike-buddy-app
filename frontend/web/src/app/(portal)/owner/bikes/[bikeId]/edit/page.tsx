@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { BikeImageManager, type BikeImage } from "@/components/bike-image-manager";
 import { api } from "@/lib/api";
 
 type BikeDetails = {
@@ -36,7 +37,7 @@ type BikeDetails = {
     latitude?: number | null;
     longitude?: number | null;
   };
-  images: Array<{ url: string; alt?: string | null }>;
+  images: BikeImage[];
   specs?: {
     weightKg?: number | null;
     mileageKmPerL?: number | null;
@@ -72,17 +73,8 @@ export default function EditBikePage() {
       : current);
   };
 
-  const setPrimaryImage = (url: string) => {
-    setBike((current) => {
-      if (!current) return current;
-      const remainingImages = current.images.slice(1);
-      return {
-        ...current,
-        images: url
-          ? [{ url, alt: current.images[0]?.alt ?? current.title }, ...remainingImages]
-          : remainingImages,
-      };
-    });
+  const setImages = (images: BikeImage[]) => {
+    setBike((current) => (current ? { ...current, images } : current));
   };
 
   const save = async (event: React.FormEvent) => {
@@ -268,14 +260,9 @@ export default function EditBikePage() {
               <Label htmlFor="description">Description</Label>
               <Textarea id="description" rows={4} maxLength={4000} value={bike.description ?? ""} onChange={(event) => set("description", event.target.value)} />
             </div>
-            <div className="space-y-1 sm:col-span-2">
-              <Label htmlFor="image">Primary photo URL</Label>
-              <Input
-                id="image"
-                type="url"
-                value={bike.images[0]?.url ?? ""}
-                onChange={(event) => setPrimaryImage(event.target.value)}
-              />
+            <div className="space-y-2 sm:col-span-2">
+              <Label>Photos</Label>
+              <BikeImageManager images={bike.images} onChange={setImages} disabled={busy} />
             </div>
           </CardContent>
         </Card>

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSession } from "@/components/auth/session-provider";
+import { BikeImageManager, type BikeImage } from "@/components/bike-image-manager";
 import { api } from "@/lib/api";
 
 const CATEGORIES = ["commuter", "scooter", "cruiser", "sports", "electric", "mountain"];
@@ -20,6 +21,7 @@ export default function NewBikePage() {
     const { session, status: sessionStatus } = useSession();
     const [error, setError] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [images, setImages] = useState<BikeImage[]>([]);
 
     const [form, setForm] = useState({
         title: "",
@@ -39,7 +41,6 @@ export default function NewBikePage() {
         address: "",
         city: "Kathmandu",
         landmark: "",
-        imageUrl: "",
         helmetIncluded: true,
     });
 
@@ -71,7 +72,10 @@ export default function NewBikePage() {
                     city: form.city,
                     landmark: form.landmark || undefined,
                 },
-                images: form.imageUrl ? [{ url: form.imageUrl }] : [],
+                images: images.map((image) => ({
+                    url: image.url,
+                    ...(image.alt?.trim() ? { alt: image.alt.trim() } : {}),
+                })),
                 specs: { helmetIncluded: form.helmetIncluded },
             });
             router.push("/owner/bikes");
@@ -175,9 +179,9 @@ export default function NewBikePage() {
                             <Label>Description</Label>
                             <Textarea rows={3} placeholder="Service history, quirks, what's included..." value={form.description} onChange={(e) => set("description", e.target.value)} />
                         </div>
-                        <div className="space-y-1 sm:col-span-2">
-                            <Label>Photo URL</Label>
-                            <Input placeholder="https://..." value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)} />
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label>Photos</Label>
+                            <BikeImageManager images={images} onChange={setImages} disabled={busy} />
                         </div>
                         <label className="flex items-center gap-2 text-sm">
                             <input type="checkbox" checked={form.helmetIncluded} onChange={(e) => set("helmetIncluded", e.target.checked)} />
