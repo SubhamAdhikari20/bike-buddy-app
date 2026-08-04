@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'api_client.dart';
+import 'api_endpoints.dart';
 
 enum UploadKind { profile, kyc, evidence, bike }
 
@@ -21,7 +22,7 @@ class MediaUploadApi {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath),
     });
-    final res = await _client.upload('/uploads/${kind.name}', formData);
+    final res = await _client.upload(ApiEndpoints.upload(kind.name), formData);
     final data = (res['data'] as Map).cast<String, dynamic>();
     return data['url'] as String;
   }
@@ -38,7 +39,7 @@ class MediaUploadApi {
       files.add(await MultipartFile.fromFile(path));
     }
     final formData = FormData.fromMap({'files': files});
-    final res = await _client.upload('/uploads/${kind.name}', formData);
+    final res = await _client.upload(ApiEndpoints.upload(kind.name), formData);
     final data = (res['data'] as Map).cast<String, dynamic>();
     final stored = data['files'] as List? ?? const [];
     return stored

@@ -1,3 +1,4 @@
+import 'package:bike_buddy/core/api/api_endpoints.dart';
 import 'package:bike_buddy/core/widgets/secure_badge.dart';
 import 'package:bike_buddy/features/bookings/data/booking_model.dart';
 import 'package:bike_buddy/features/bookings/presentation/payment_awaiting_sheet.dart';
@@ -55,7 +56,10 @@ void main() {
       'mode': 'sandbox',
       'paymentUrl': 'http://10.0.2.2:5050/payments/esewa/bridge',
     });
-    expect(localBridge.checkoutUri?.host, '10.0.2.2');
+    expect(
+      localBridge.checkoutUri?.host,
+      Uri.parse(ApiEndpoints.serverUrl).host,
+    );
   });
 
   test('payment succeeds only when the server state is paid and terminal', () {

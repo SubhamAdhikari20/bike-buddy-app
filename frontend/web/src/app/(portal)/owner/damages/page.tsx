@@ -4,6 +4,7 @@
 // administrators resolve disputes.
 import { useCallback, useEffect, useState } from "react";
 import { ExternalLink, SearchCheck } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 import { TableActionsMenu } from "@/components/table-actions-menu";
 import { Badge } from "@/components/ui/badge";
@@ -107,13 +108,19 @@ export default function OwnerDamagesPage() {
                 {report.photos.length > 0 && (
                   <div className="flex gap-2">
                     {report.photos.map((photo) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <div
                         key={photo}
-                        src={mediaUrl(photo)}
-                        alt="Damage evidence"
-                        className="h-20 w-20 rounded-lg object-cover"
-                      />
+                        className="relative size-20 overflow-hidden rounded-lg border bg-muted"
+                      >
+                        <Image
+                          fill
+                          unoptimized
+                          src={mediaUrl(photo)}
+                          alt="Damage evidence"
+                          className="object-cover"
+                          sizes="80px"
+                        />
+                      </div>
                     ))}
                   </div>
                 )}

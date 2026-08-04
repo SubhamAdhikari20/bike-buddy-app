@@ -9,6 +9,7 @@
 // not decoration (H1 visibility, and accessibility).
 import { useRef, useState } from "react";
 import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,13 +167,13 @@ export function BikeImageManager({ images, onChange, disabled }: Props) {
               key={`${image.url}-${index}`}
               className="space-y-2 rounded-md border p-2"
             >
-              <div className="relative">
-                {/* Plain img: listing photos can point at any host. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+              <div className="relative h-36 overflow-hidden rounded bg-muted">
+                <Image
+                  fill
                   src={mediaUrl(image.url)}
                   alt={image.alt || `Bike photo ${index + 1}`}
-                  className="h-36 w-full rounded object-cover"
+                  className="object-cover"
+                  sizes="(min-width: 640px) 50vw, 100vw"
                 />
                 {index === 0 && (
                   <span className="absolute left-2 top-2 rounded bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">

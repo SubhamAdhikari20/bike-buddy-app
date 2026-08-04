@@ -1,3 +1,4 @@
+import '../../../core/api/api_endpoints.dart';
 import '../../bikes/data/bike_model.dart';
 
 class PriceBreakdown {
@@ -237,20 +238,7 @@ class PaymentIntent {
 
   bool get isSandbox => mode.toLowerCase() == 'sandbox';
 
-  Uri? get checkoutUri {
-    final uri = Uri.tryParse(paymentUrl ?? '');
-    if (uri == null || !uri.hasAuthority || uri.userInfo.isNotEmpty) {
-      return null;
-    }
-    if (uri.scheme == 'https') {
-      return uri;
-    }
-    final localTestHosts = {'localhost', '127.0.0.1', '10.0.2.2'};
-    if (uri.scheme != 'http' || !localTestHosts.contains(uri.host)) {
-      return null;
-    }
-    return uri;
-  }
+  Uri? get checkoutUri => ApiEndpoints.trustedCheckoutUri(paymentUrl);
 }
 
 class PaymentStatus {

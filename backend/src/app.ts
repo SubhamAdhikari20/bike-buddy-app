@@ -40,9 +40,7 @@ morgan.token("safe-path", (req) => {
   return (request.originalUrl || request.url).split("?", 1)[0];
 });
 app.use(
-  morgan(
-    ":method :safe-path :status :res[content-length] - :response-time ms",
-  ),
+  morgan(":method :safe-path :status :res[content-length] - :response-time ms"),
 );
 app.use(cookieParser());
 
@@ -112,11 +110,14 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(limiter);
 const publicUploadOptions = {
   dotfiles: "deny" as const,
   index: false,
   setHeaders: (res: Response) => {
+    // The owner/admin portal is served from a different origin (port 3000 in
+    // local development). Helmet's same-origin default blocks otherwise valid
+    // <Image> and Avatar requests even when CORS permits the portal.
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Cache-Control", "public, max-age=86400");
   },
@@ -124,9 +125,17 @@ const publicUploadOptions = {
 for (const kind of ["bike", "profile"] as const) {
   app.use(
     `/uploads/${kind}`,
-    express.static(path.join(process.cwd(), "uploads", kind), publicUploadOptions),
+    express.static(
+      path.join(process.cwd(), "uploads", kind),
+      publicUploadOptions,
+    ),
   );
 }
+
+// Public image loading must not consume the API request budget. A six-photo
+// carousel plus avatars can otherwise exhaust the general limiter while a
+// user is only browsing media.
+app.use(limiter);
 
 app.get("/health", (_req: Request, res: Response) => {
   res

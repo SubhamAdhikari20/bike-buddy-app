@@ -1,0 +1,42 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Bike Buddy: physical Android (USB)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define=API_BASE_URL=http://127.0.0.1:5050"],
+      "preLaunchTask": "Bike Buddy: connect USB backend"
+    },
+    {
+      "name": "Bike Buddy: Android emulator",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define=API_BASE_URL=http://10.0.2.2:5050"]
+    },
+    {
+      "name": "Bike Buddy: desktop or web",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define=API_BASE_URL=http://localhost:5050"]
+    },
+    {
+      "name": "Bike Buddy: physical phone (LAN / HTTPS)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": ["--dart-define=API_BASE_URL=${input:bikeBuddyServerOrigin}"]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "bikeBuddyServerOrigin",
+      "type": "promptString",
+      "description": "Server origin only (PC LAN URL for Android or HTTPS for iPhone; do not add /api/v1)",
+      "default": "http://192.168.1.20:5050"
+    }
+  ]
+}

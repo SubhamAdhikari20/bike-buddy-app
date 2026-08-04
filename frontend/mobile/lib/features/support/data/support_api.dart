@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_endpoints.dart';
 
 final supportApiProvider = Provider<SupportApi>(
   (ref) => SupportApi(ref.watch(apiClientProvider)),
@@ -50,7 +51,7 @@ class SupportApi {
   SupportApi(this._client);
 
   Future<List<({String q, String a})>> faq() async {
-    final res = await _client.get('/support/faq');
+    final res = await _client.get(ApiEndpoints.faq);
     final items = (res['data'] as List? ?? const []);
     return items
         .map(
@@ -70,7 +71,7 @@ class SupportApi {
     String? bookingId,
   }) async {
     final res = await _client.post(
-      '/support/tickets',
+      ApiEndpoints.supportTickets,
       data: {
         'type': type,
         'subject': subject,
@@ -83,7 +84,7 @@ class SupportApi {
   }
 
   Future<List<SupportTicket>> myTickets() async {
-    final res = await _client.get('/support/tickets/mine');
+    final res = await _client.get(ApiEndpoints.mySupportTickets);
     final items = (res['data'] as List? ?? const []);
     return items
         .map(
@@ -95,7 +96,7 @@ class SupportApi {
 
   Future<void> rateTicket(String ticketId, int rating, String? comment) async {
     await _client.post(
-      '/support/tickets/$ticketId/rate',
+      ApiEndpoints.rateSupportTicket(ticketId),
       data: {'rating': rating, 'comment': ?comment},
     );
   }

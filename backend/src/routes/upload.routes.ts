@@ -169,6 +169,7 @@ uploadRoutes.get(
       }
 
       res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.sendFile(filename, { root: resolveUploadDir("kyc") }, (error) => {
         if (error)
@@ -198,6 +199,7 @@ uploadRoutes.get(
       }
 
       res.setHeader("Cache-Control", "private, no-store");
+      res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.sendFile(
         filename,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2, LogOut, UserRound } from "lucide-react";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -20,7 +21,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { mediaUrl, type AuthSession } from "@/lib/api";
+import type { AuthSession } from "@/lib/api";
 
 export function PortalProfileMenu({
   session,
@@ -33,11 +34,6 @@ export function PortalProfileMenu({
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const name = session.profile.fullName || session.user.email;
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
 
   const signOut = async () => {
     setBusy(true);
@@ -62,19 +58,12 @@ export function PortalProfileMenu({
             />
           }
         >
-          <span className="flex size-8 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200">
-            {session.profile.profilePictureUrl ? (
-              // Profile images may come from Bike Buddy uploads or Google.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={mediaUrl(session.profile.profilePictureUrl)}
-                alt=""
-                className="size-full object-cover"
-              />
-            ) : (
-              initials || "BB"
-            )}
-          </span>
+          <ProfileAvatar
+            src={session.profile.profilePictureUrl}
+            name={name}
+            className="size-8 bg-blue-100 text-xs font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+            fallbackClassName="bg-blue-100 font-bold text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+          />
           <span className="hidden max-w-32 truncate text-sm sm:inline">
             {name}
           </span>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Autoplay from "embla-carousel-autoplay";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,8 +10,6 @@ import {
   Bike,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   CircleDollarSign,
   Clock3,
   ImageOff,
@@ -31,6 +31,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Carousel,
+  type CarouselApi,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 import {
   Table,
   TableBody,
@@ -272,10 +280,27 @@ function Metric({
 
 function BikeGallery({ bike }: { bike: BikeDetails }) {
   const [selected, setSelected] = useState(0);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
+  const [autoplayPlugin] = useState(() =>
+    Autoplay({ delay: 5000, stopOnInteraction: true }),
+  );
   const images = bike.images ?? [];
-  const current = images[selected] ?? images[0];
 
-  if (!current) {
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const updateSelected = () => setSelected(carouselApi.selectedScrollSnap());
+    updateSelected();
+    carouselApi.on("select", updateSelected);
+    carouselApi.on("reInit", updateSelected);
+
+    return () => {
+      carouselApi.off("select", updateSelected);
+      carouselApi.off("reInit", updateSelected);
+    };
+  }, [carouselApi]);
+
+  if (images.length === 0) {
     return (
       <div className="flex aspect-[16/10] min-h-64 flex-col items-center justify-center rounded-xl border bg-muted/40 text-muted-foreground">
         <ImageOff className="mb-3 size-10" aria-hidden="true" />
@@ -285,44 +310,63 @@ function BikeGallery({ bike }: { bike: BikeDetails }) {
     );
   }
 
-  const move = (direction: -1 | 1) => {
-    setSelected((index) => (index + direction + images.length) % images.length);
-  };
-
   return (
     <div className="space-y-3" aria-label={`${bike.title} photo gallery`}>
-      <div className="relative overflow-hidden rounded-xl border bg-muted">
-        {/* Listing media can be hosted by the API or an approved demo image host. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={mediaUrl(current.url)}
-          alt={current.alt || `${bike.title}, photo ${selected + 1}`}
-          className="aspect-[16/10] min-h-64 w-full object-cover"
-        />
-        <p className="absolute bottom-3 right-3 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white">
+      <Carousel
+        setApi={setCarouselApi}
+        plugins={images.length > 1 ? [autoplayPlugin] : undefined}
+        opts={{ loop: images.length > 1 }}
+        onMouseEnter={
+          images.length > 1 ? () => autoplayPlugin.stop() : undefined
+        }
+        onMouseLeave={
+          images.length > 1 ? () => autoplayPlugin.reset() : undefined
+        }
+        onFocusCapture={
+          images.length > 1 ? () => autoplayPlugin.stop() : undefined
+        }
+        onBlurCapture={
+          images.length > 1 ? () => autoplayPlugin.reset() : undefined
+        }
+        aria-label={`${bike.title} photos`}
+        className="overflow-hidden rounded-xl border bg-muted"
+      >
+        <CarouselContent className="-ml-0">
+          {images.map((image, index) => (
+            <CarouselItem
+              key={`${image.url}-${index}`}
+              className="pl-0"
+              aria-label={`Photo ${index + 1} of ${images.length}`}
+            >
+              <div className="relative aspect-[16/10] min-h-64 w-full overflow-hidden">
+                <Image
+                  fill
+                  src={mediaUrl(image.url)}
+                  alt={image.alt || `${bike.title}, photo ${index + 1}`}
+                  className="object-cover"
+                  sizes="(min-width: 1280px) 55vw, (min-width: 768px) 75vw, 100vw"
+                  priority={index === 0}
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <p className="absolute right-3 bottom-3 z-10 rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white">
           {selected + 1} / {images.length}
         </p>
         {images.length > 1 && (
           <>
-            <button
-              type="button"
-              className="absolute left-3 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow transition-colors hover:bg-background"
+            <CarouselPrevious
+              className="left-3 border-0 bg-background/90 shadow hover:bg-background"
               aria-label="Show previous bike photo"
-              onClick={() => move(-1)}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow transition-colors hover:bg-background"
+            />
+            <CarouselNext
+              className="right-3 border-0 bg-background/90 shadow hover:bg-background"
               aria-label="Show next bike photo"
-              onClick={() => move(1)}
-            >
-              <ChevronRight aria-hidden="true" />
-            </button>
+            />
           </>
         )}
-      </div>
+      </Carousel>
       {images.length > 1 && (
         <div
           className="flex gap-2 overflow-x-auto pb-1"
@@ -335,17 +379,22 @@ function BikeGallery({ bike }: { bike: BikeDetails }) {
                 type="button"
                 aria-label={`Show bike photo ${index + 1}`}
                 aria-pressed={selected === index}
-                onClick={() => setSelected(index)}
+                onClick={() => {
+                  carouselApi?.scrollTo(index);
+                  autoplayPlugin.reset();
+                  setSelected(index);
+                }}
                 className={cn(
-                  "shrink-0 overflow-hidden rounded-lg border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "relative h-20 w-28 shrink-0 overflow-hidden rounded-lg border-2 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   selected === index ? "border-blue-600" : "border-transparent",
                 )}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
+                  fill
                   src={mediaUrl(image.url)}
                   alt=""
-                  className="h-20 w-28 object-cover"
+                  className="object-cover"
+                  sizes="112px"
                 />
               </button>
             </div>
@@ -957,14 +1006,16 @@ export function BikeManagementDetails({
                                     href={mediaUrl(photo)}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="shrink-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring"
+                                    className="relative h-24 w-32 shrink-0 overflow-hidden rounded-lg border focus-visible:ring-2 focus-visible:ring-ring"
                                     aria-label={`Open damage evidence photo ${index + 1}`}
                                   >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
+                                    <Image
+                                      fill
+                                      unoptimized
                                       src={mediaUrl(photo)}
                                       alt={`Damage evidence ${index + 1}`}
-                                      className="h-24 w-32 rounded-lg border object-cover"
+                                      className="object-cover"
+                                      sizes="128px"
                                     />
                                   </a>
                                 ))}

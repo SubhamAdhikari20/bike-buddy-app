@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_endpoints.dart';
 import 'bike_model.dart';
 
 final bikeApiProvider = Provider<BikeApi>(
@@ -29,7 +30,7 @@ class BikeApi {
     int limit = 20,
   }) async {
     final res = await _client.get(
-      '/bikes',
+      ApiEndpoints.bikes,
       query: {
         'page': page,
         'limit': limit,
@@ -55,14 +56,14 @@ class BikeApi {
   }
 
   Future<Bike> getBike(String bikeId) async {
-    final res = await _client.get('/bikes/$bikeId');
+    final res = await _client.get(ApiEndpoints.bike(bikeId));
     return Bike.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
   /// Compare 2-3 bikes side by side (UI-04).
   Future<List<Bike>> compareBikes(List<String> ids) async {
     final res = await _client.get(
-      '/bikes/compare',
+      ApiEndpoints.compareBikes,
       query: {'ids': ids.join(',')},
     );
     final items = (res['data'] as List? ?? const []);

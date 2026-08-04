@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_endpoints.dart';
 import '../../../core/error/app_exception.dart';
 import 'notification_model.dart';
 import 'sse_parser.dart';
@@ -21,7 +22,7 @@ class NotificationApi {
     bool unreadOnly = false,
   }) async {
     final response = await _client.get(
-      '/notifications',
+      ApiEndpoints.notifications,
       query: {
         'limit': limit.clamp(1, 50),
         'unreadOnly': unreadOnly,
@@ -35,7 +36,7 @@ class NotificationApi {
 
   Future<BikeBuddyNotification> markRead(String notificationId) async {
     final response = await _client.patch(
-      '/notifications/${Uri.encodeComponent(notificationId)}/read',
+      ApiEndpoints.markNotificationRead(notificationId),
     );
     return BikeBuddyNotification.fromJson(
       (response['data'] as Map).cast<String, dynamic>(),
@@ -43,7 +44,7 @@ class NotificationApi {
   }
 
   Future<({int updatedCount, DateTime readAt})> markAllRead() async {
-    final response = await _client.patch('/notifications/read-all');
+    final response = await _client.patch(ApiEndpoints.markAllNotificationsRead);
     final data = (response['data'] as Map).cast<String, dynamic>();
     return (
       updatedCount: (data['updatedCount'] as num?)?.toInt() ?? 0,
@@ -59,7 +60,7 @@ class NotificationApi {
   }) async* {
     try {
       final response = await _client.dio.get<ResponseBody>(
-        '/notifications/stream',
+        ApiEndpoints.notificationStream,
         queryParameters: {'after': after.clamp(0, 0x7fffffff)},
         cancelToken: cancelToken,
         options: Options(

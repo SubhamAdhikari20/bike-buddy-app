@@ -19,6 +19,7 @@ import '../../../bookings/data/booking_api.dart';
 import '../../../reviews/data/review_api.dart';
 import '../../data/bike_model.dart';
 import '../providers/bikes_provider.dart';
+import '../widgets/bike_image_carousel.dart';
 
 /// Bike detail: photos, verified owner badge (TR-01), pickup card with
 /// landmark and walk time (MAP-01/04), damage policy (TR-06) and real
@@ -34,8 +35,6 @@ class BikeDetailPage extends ConsumerStatefulWidget {
 }
 
 class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
-  int _photoIndex = 0;
-
   // Full-screen swipeable gallery with photo dates (BC-01).
   void _openGallery(Bike bike, int startIndex) {
     Navigator.of(context).push(
@@ -285,66 +284,10 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
     return ListView(
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       children: [
-        // Photo carousel with dots.
-        SizedBox(
-          height: 240,
-          child: Stack(
-            children: [
-              PageView.builder(
-                itemCount: bike.imageUrls.isEmpty ? 1 : bike.imageUrls.length,
-                onPageChanged: (index) => setState(() => _photoIndex = index),
-                itemBuilder: (context, index) => GestureDetector(
-                  onTap: bike.imageUrls.isEmpty
-                      ? null
-                      : () => _openGallery(bike, index),
-                  child: bike.imageUrls.isEmpty
-                      ? Container(
-                          color: AppColors.primaryLight,
-                          child: const Icon(
-                            Icons.two_wheeler,
-                            size: 96,
-                            color: AppColors.primary,
-                          ),
-                        )
-                      : CachedNetworkImage(
-                          imageUrl: bike.imageUrls[index],
-                          fit: BoxFit.cover,
-                          errorWidget: (context, url, error) => Container(
-                            color: AppColors.primaryLight,
-                            child: const Icon(
-                              Icons.two_wheeler,
-                              size: 96,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                ),
-              ),
-              if (bike.imageUrls.length > 1)
-                Positioned(
-                  bottom: AppSpacing.sm,
-                  left: 0,
-                  right: 0,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      bike.imageUrls.length,
-                      (index) => Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 3),
-                        width: index == _photoIndex ? 20 : 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: index == _photoIndex
-                              ? Colors.white
-                              : Colors.white54,
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+        BikeImageCarousel(
+          imageUrls: bike.imageUrls,
+          bikeTitle: bike.title,
+          onImageTap: (index) => _openGallery(bike, index),
         ),
 
         Padding(

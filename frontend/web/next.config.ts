@@ -1,31 +1,55 @@
 import type { NextConfig } from "next";
 
+const defaultApiBase = "http://localhost:5050/api/v1";
+
+function apiOrigin() {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_API_URL || defaultApiBase);
+  } catch {
+    return new URL(defaultApiBase);
+  }
+}
+
+const backend = apiOrigin();
+const backendProtocol = backend.protocol.replace(":", "") as "http" | "https";
+
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
   devIndicators: {
-    position: "bottom-right", // top-right, bottom-right, top-left, bottom-left
+    position: "bottom-right",
   },
   images: {
     dangerouslyAllowLocalIP: true,
     remotePatterns: [
       {
-        protocol: "http",
-        hostname: "localhost",
-        port: "5050",
+        protocol: backendProtocol,
+        hostname: backend.hostname,
+        port: backend.port,
         pathname: "/uploads/**",
-      }, // other external image sources
+      },
+      {
+        protocol: backendProtocol,
+        hostname: backend.hostname,
+        port: backend.port,
+        pathname: "/api/v1/uploads/**",
+      },
       {
         protocol: "https",
-        hostname: "unsplash.com",
-      }
-    ]
+        hostname: "images.unsplash.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
+    ],
   },
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",
     },
-  }
+  },
 };
 
 export default nextConfig;

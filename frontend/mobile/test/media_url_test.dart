@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:bike_buddy/core/constants/app_constants.dart';
+import 'package:bike_buddy/core/api/api_endpoints.dart';
 import 'package:bike_buddy/core/utils/media_url.dart';
 import 'package:bike_buddy/features/bikes/data/bike_model.dart';
 
 void main() {
   test('relative upload paths use the configured API origin', () {
-    final apiBase = Uri.parse(AppConstants.baseUrl);
+    final apiBase = Uri.parse(ApiEndpoints.mediaServerUrl);
     final publicUrl = Uri.parse(
       resolveMediaUrl('/uploads/bike/demo/pulsar-220f-1.jpg'),
     );
@@ -21,7 +21,7 @@ void main() {
   });
 
   test('owner-uploaded photos are pointed at the host the app can reach', () {
-    final apiHost = Uri.parse(AppConstants.baseUrl).host;
+    final apiHost = Uri.parse(ApiEndpoints.mediaServerUrl).host;
     final resolved = resolveMediaUrl(
       'http://localhost:5050/uploads/bike/photo.png',
     );
@@ -53,7 +53,7 @@ void main() {
       },
     });
 
-    final apiHost = Uri.parse(AppConstants.baseUrl).host;
+    final apiHost = Uri.parse(ApiEndpoints.mediaServerUrl).host;
     expect(Uri.parse(bike.imageUrls.first).host, apiHost);
     expect(bike.imageUrls.last, 'https://images.unsplash.com/photo-9?w=800');
   });

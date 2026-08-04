@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_endpoints.dart';
 import 'review_model.dart';
 
 final reviewApiProvider = Provider<ReviewApi>(
@@ -22,7 +23,7 @@ class ReviewApi {
   ReviewApi(this._client);
 
   Future<List<Review>> listByBike(String bikeId) async {
-    final res = await _client.get('/reviews/bike/$bikeId');
+    final res = await _client.get(ApiEndpoints.reviewsForBike(bikeId));
     final items = (res['data'] as List? ?? const []);
     return items
         .map((item) => Review.fromJson((item as Map).cast<String, dynamic>()))
@@ -36,7 +37,7 @@ class ReviewApi {
     required String comment,
   }) async {
     await _client.post(
-      '/reviews',
+      ApiEndpoints.reviews,
       data: {
         'bikeId': bikeId,
         'bookingId': bookingId,

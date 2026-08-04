@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "@/components/auth/session-provider";
+import { ProfileAvatar } from "@/components/profile-avatar";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -26,7 +27,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { api, mediaUrl, type AuthSession } from "@/lib/api";
+import { api, type AuthSession } from "@/lib/api";
 
 const acceptedAvatarTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxAvatarBytes = 5 * 1024 * 1024;
@@ -67,17 +68,10 @@ function ProfileForm({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     session.profile.profilePictureUrl ?? null,
   );
-  console.log("ProfilePictureUrl:", session.profile.profilePictureUrl);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const initials = (fullName || session.user.email)
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
 
   const chooseAvatar = (file?: File) => {
     setError(null);
@@ -174,19 +168,14 @@ function ProfileForm({
         <CardContent>
           <form onSubmit={save} className="space-y-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex size-24 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-blue-50 text-xl font-semibold text-blue-800 dark:bg-blue-950">
-                {avatarUrl ? (
-                  // User avatars can be returned from the local API or Google.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={mediaUrl(avatarUrl)}
-                    alt={`${fullName || "User"} profile`}
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <span aria-label="Profile initials">{initials || "BB"}</span>
-                )}
-              </div>
+              <ProfileAvatar
+                src={avatarUrl}
+                name={fullName || session.user.email}
+                sizes="96px"
+                priority
+                className="size-24 border bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+                fallbackClassName="text-2xl font-semibold"
+              />
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
                   <Label

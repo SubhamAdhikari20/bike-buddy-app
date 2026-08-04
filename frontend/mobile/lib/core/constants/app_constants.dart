@@ -1,32 +1,6 @@
-import 'package:flutter/foundation.dart';
-
 /// App-wide constants.
 class AppConstants {
   AppConstants._();
-
-  /// Backend base URL supplied at build time, for example:
-  /// `flutter run --dart-define=API_BASE_URL=http://192.168.1.20:5050`
-  /// A physical phone must use the host machine's LAN IP.
-  static const String _configuredBaseUrl = String.fromEnvironment(
-    'API_BASE_URL',
-  );
-
-  /// Where the backend is reached when no API_BASE_URL was supplied.
-  ///
-  /// An Android emulator reaches the host machine through 10.0.2.2, while
-  /// Windows, web, iOS simulator, macOS and Linux builds reach it through
-  /// localhost. Choosing per platform means the app can simply be started
-  /// from the IDE Run button on any of those targets.
-  static String get _defaultBaseUrl {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5050';
-    }
-    return 'http://localhost:5050';
-  }
-
-  static String get baseUrl =>
-      _configuredBaseUrl.isNotEmpty ? _configuredBaseUrl : _defaultBaseUrl;
-  static String get apiBaseUrl => '$baseUrl/api/v1';
 
   /// OAuth web client ID used as the server audience for Google ID tokens.
   /// Supply with:

@@ -1,4 +1,4 @@
-import '../constants/app_constants.dart';
+import '../api/api_endpoints.dart';
 
 /// Rewrites the host of a Bike Buddy media URL so it is reachable from the
 /// device the app is running on.
@@ -16,7 +16,7 @@ String resolveMediaUrl(String url) {
   final parsed = Uri.tryParse(url);
   if (parsed == null) return url;
 
-  final apiBase = Uri.parse(AppConstants.baseUrl);
+  final apiBase = Uri.parse(ApiEndpoints.mediaServerUrl);
   if (!parsed.hasScheme) {
     if (!url.startsWith('/')) return url;
     return apiBase
