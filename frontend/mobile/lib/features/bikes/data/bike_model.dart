@@ -1,3 +1,5 @@
+import '../../../core/utils/media_url.dart';
+
 class BikeLocation {
   final String label;
   final String address;
@@ -57,7 +59,10 @@ class BikeOwner {
       json['ownerVerificationDate'] as String? ?? '',
     ),
     bio: json['bio'] as String?,
-    profilePictureUrl: json['profilePictureUrl'] as String?,
+    profilePictureUrl: switch (json['profilePictureUrl']) {
+      final String url when url.isNotEmpty => resolveMediaUrl(url),
+      _ => null,
+    },
   );
 }
 
@@ -130,6 +135,9 @@ class Bike {
     final images = (json['images'] as List? ?? const [])
         .map((img) => (img as Map)['url'] as String? ?? '')
         .where((url) => url.isNotEmpty)
+        // Owner-uploaded photos are stored against the backend's own host,
+        // which the emulator cannot reach as "localhost".
+        .map(resolveMediaUrl)
         .toList();
 
     return Bike(
@@ -174,7 +182,7 @@ class Bike {
           ((json['conditionInfo'] as Map?)?['photos'] as List? ?? const [])
               .map(
                 (photo) => (
-                  url: (photo as Map)['url'] as String? ?? '',
+                  url: resolveMediaUrl((photo as Map)['url'] as String? ?? ''),
                   takenAt: DateTime.tryParse(photo['takenAt'] as String? ?? ''),
                 ),
               )

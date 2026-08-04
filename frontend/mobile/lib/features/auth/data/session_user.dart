@@ -1,3 +1,5 @@
+import '../../../core/utils/media_url.dart';
+
 /// The signed-in user as returned by the backend: the base account plus
 /// the role profile (renter or owner).
 class SessionUser {
@@ -41,7 +43,10 @@ class SessionUser {
       profileId: (profile['_id'] ?? profile['id'])?.toString(),
       fullName: profile['fullName'] as String? ?? '',
       phoneNumber: profile['phoneNumber'] as String?,
-      profilePictureUrl: profile['profilePictureUrl'] as String?,
+      profilePictureUrl: switch (profile['profilePictureUrl']) {
+        final String url when url.isNotEmpty => resolveMediaUrl(url),
+        _ => null,
+      },
       bio: profile['bio'] as String?,
       kycStatus: profile['kycStatus'] as String? ?? 'unverified',
     );
