@@ -68,6 +68,18 @@ belonging to the pending and rejected owners, one `maintenance` and one
 6. Admin portal: dashboard, owner verification, support queue.
 7. Close on traceability across the five sprints.
 
+## Map view: not configured
+
+`android/app/src/main/AndroidManifest.xml` still carries the placeholder
+`YOUR_GOOGLE_MAPS_API_KEY`, so Google Maps renders a grey panel. The map is
+reached from the "Explore on Map" card on Home and the List/Map toggle on
+Search.
+
+The location permission dialog in front of it is worth showing, because it
+states that Bike Buddy never tracks the rider in the background. Read that
+line, press "Not now", and go back rather than continuing into the empty map.
+The underlying pickup data is real and is fully visible in the List view.
+
 ## Filming safeguards
 
 - Hide `.env`, tokens, cookies and any connection string.
