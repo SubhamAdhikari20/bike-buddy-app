@@ -48,7 +48,28 @@ sprint backlog and interface prototypes.
 
 ## Getting started
 
-### Backend
+Bike Buddy runs directly on Node, Flutter and a local MongoDB. Docker is not
+required.
+
+### 1. MongoDB (local)
+
+Install MongoDB Community Server, then start it. If the Windows service is
+installed and you have administrator rights:
+
+```powershell
+Start-Service MongoDB
+```
+
+Otherwise run the server yourself against a folder you own:
+
+```powershell
+mkdir C:\Users\<you>\mongodb-data\bike-buddy
+& "C:\Program Files\MongoDB\Server\8.3\bin\mongod.exe" --dbpath C:\Users\<you>\mongodb-data\bike-buddy
+```
+
+Leave that window open. The database is created on first write.
+
+### 2. Backend
 
 ```bash
 cd backend
@@ -58,26 +79,37 @@ npm run seed
 npm run dev
 ```
 
-Configure MongoDB, JWT and email settings before using related workflows.
+Set `MONGODB_URI=mongodb://127.0.0.1:27017/bike-buddy` in `.env`.
 `PAYMENT_MODE=demo` is the safe coursework default and never moves money.
+
+If `GMAIL_USER` and `GMAIL_APP_PASSWORD` are left blank outside production,
+sign-in and password-reset codes are printed to the backend terminal instead of
+being emailed, so the OTP and recovery journeys can still be demonstrated
+locally. In production a missing mail configuration remains a hard failure.
 
 The seed is repeatable and scoped to Bike Buddy demo accounts and their linked
 records. It marks accounts it creates, refuses to overwrite matching unmarked
 accounts, and removes only tagged demo bikes and their linked workflow data.
+It prepares 17 accounts, 22 bikes, 28 bookings, 21 payments, 12 reviews, 12
+support tickets, 5 damage reports and 4 SOS records.
 
 Seed password: `Password@123`
 
 - Admin: `admin@bikebuddy.com`
-- Owners: `ramesh.owner@bikebuddy.com`, `sita.owner@bikebuddy.com`
+- Owners: `ramesh.owner@bikebuddy.com` (verified),
+  `bimal.owner@bikebuddy.com` (verified), `sita.owner@bikebuddy.com` (pending),
+  `anjali.owner@bikebuddy.com` (rejected)
 - Renters: `aashish@student.com`, `maya@student.com`,
   `saroj@student.com`, `nishant@student.com`, `binita@student.com`,
-  `krish@student.com`, `mohammad@student.com`, `dipesh@student.com`
+  `krish@student.com`, `mohammad@student.com`, `dipesh@student.com`,
+  `pratima@student.com`, `sujan@student.com`, `anita@student.com`,
+  `roshan@student.com`
 
 With the backend running, `npm run demo:verify` performs a disposable
 owner-scoped bike create, read, update and delete check. The prepared demo
 fleet is left unchanged.
 
-### Mobile
+### 3. Mobile
 
 ```bash
 cd frontend/mobile
@@ -85,10 +117,18 @@ flutter pub get
 flutter run
 ```
 
-The Android emulator API default is `http://10.0.2.2:5050`. Supply Maps and
-Google OAuth platform configuration for those integrations.
+The API base URL is chosen per platform when none is supplied: an Android
+emulator uses `http://10.0.2.2:5050` and Windows, web, iOS simulator, macOS and
+Linux builds use `http://localhost:5050`. A physical phone needs the host
+machine's LAN IP:
 
-### Web
+```bash
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:5050
+```
+
+Supply Maps and Google OAuth platform configuration for those integrations.
+
+### 4. Web
 
 ```bash
 cd frontend/web
@@ -113,8 +153,8 @@ Work is separated into `sprint-1` through `sprint-5`, then integrated into
 See [sprint traceability](docs/SPRINT_TRACEABILITY.md),
 [UX heuristic audit](docs/UX_HEURISTIC_AUDIT.md) and
 [verification guide](docs/VERIFICATION.md). The
-[video demonstration runbook](docs/DEMO_VIDEO_RUNBOOK.md) provides a
-12-16 minute recording sequence, demo values and speaking script.
+[video demonstration runbook](docs/DEMO_VIDEO_RUNBOOK.md) provides the
+recording sequence, demo values and speaking script.
 
 ## Author
 
