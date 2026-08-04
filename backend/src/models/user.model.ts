@@ -37,18 +37,22 @@ const userSchema: Schema<IUser> = new Schema(
     verifyCode: {
       type: String,
       default: null,
+      select: false,
     },
     verifyCodeExpiryDate: {
       type: Date,
       default: null,
+      select: false,
     },
     verifyEmailResetPassword: {
       type: String,
       default: null,
+      select: false,
     },
     verifyEmailResetPasswordExpiryDate: {
       type: Date,
       default: null,
+      select: false,
     },
   },
   {

@@ -25,6 +25,10 @@ export type UploadedFile = {
   filename: string;
 };
 
+export type UploadedFiles = {
+  files: UploadedFile[];
+};
+
 export type ApiEnvelope<T> = {
   statusCode: number;
   success: boolean;
@@ -98,15 +102,18 @@ export const api = {
       body: JSON.stringify(data ?? {}),
     }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
-  /**
-   * Sends one image to the multer-backed upload endpoint and returns the URL
-   * it was stored at. `kind` selects the folder on the server, so bike photos
-   * land in uploads/bike rather than in one flat directory.
-   */
-  upload: (file: File, kind: "bike" | "profile" | "kyc") => {
+  upload: (file: File, kind: "profile" | "kyc") => {
     const body = new FormData();
     body.append("file", file);
-    return request<UploadedFile>(`/uploads?type=${kind}`, {
+    return request<UploadedFile>(`/uploads/${kind}`, {
+      method: "POST",
+      body,
+    });
+  },
+  uploadMany: (files: File[], kind: "bike" | "evidence") => {
+    const body = new FormData();
+    files.forEach((file) => body.append("files", file));
+    return request<UploadedFiles>(`/uploads/${kind}`, {
       method: "POST",
       body,
     });

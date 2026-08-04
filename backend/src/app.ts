@@ -103,7 +103,20 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(limiter);
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+const publicUploadOptions = {
+  dotfiles: "deny" as const,
+  index: false,
+  setHeaders: (res: Response) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+  },
+};
+for (const kind of ["bike", "profile"] as const) {
+  app.use(
+    `/uploads/${kind}`,
+    express.static(path.join(process.cwd(), "uploads", kind), publicUploadOptions),
+  );
+}
 
 app.get("/health", (_req: Request, res: Response) => {
   res

@@ -7,6 +7,10 @@ export const userRepository: UserRepositoryInterface = {
   findById: (id) => UserModel.findById(id).exec(),
   findByEmail: (email) =>
     UserModel.findOne({ email: email.trim().toLowerCase() }).exec(),
+  findByEmailWithVerification: (email) =>
+    UserModel.findOne({ email: email.trim().toLowerCase() })
+      .select("+verifyCode +verifyCodeExpiryDate")
+      .exec(),
   updateById: (id, data) =>
     UserModel.findByIdAndUpdate(id, data, { new: true }).exec(),
   deleteById: (id) => UserModel.findByIdAndDelete(id).exec(),

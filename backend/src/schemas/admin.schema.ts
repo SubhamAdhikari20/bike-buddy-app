@@ -20,6 +20,16 @@ export const kycReviewSchema = z
   })
   .strict();
 
+export const kycListQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    status: z
+      .enum(["unverified", "pending", "approved", "rejected"])
+      .default("pending"),
+  })
+  .strict();
+
 export const bikeStatusSchema = z
   .object({
     status: z.enum(["available", "unavailable", "maintenance", "inactive"]),

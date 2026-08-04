@@ -26,7 +26,9 @@ test("pending owners cannot publish bike listings", async (context) => {
       ownerStatus: "pending",
     })) as unknown as typeof ownerRepository.findById;
   bikeRepository.create = (() =>
-    Promise.reject(new Error("create should not be called"))) as typeof bikeRepository.create;
+    Promise.reject(
+      new Error("create should not be called"),
+    )) as typeof bikeRepository.create;
 
   await assert.rejects(
     () =>
@@ -63,9 +65,13 @@ test("bike deletion preserves linked booking history", async (context) => {
       ownerId: "owner-profile",
     })) as unknown as typeof bikeRepository.findById;
   bookingRepository.findByBikeId = (() =>
-    Promise.resolve([{ _id: "booking-id" }])) as unknown as typeof bookingRepository.findByBikeId;
+    Promise.resolve([
+      { _id: "booking-id" },
+    ])) as unknown as typeof bookingRepository.findByBikeId;
   bikeRepository.deleteById = (() =>
-    Promise.reject(new Error("delete should not be called"))) as unknown as typeof bikeRepository.deleteById;
+    Promise.reject(
+      new Error("delete should not be called"),
+    )) as unknown as typeof bikeRepository.deleteById;
 
   await assert.rejects(
     () =>
@@ -101,7 +107,9 @@ test("pending owners cannot make draft bikes available", async (context) => {
       ownerId: "owner-profile",
     })) as unknown as typeof bikeRepository.findById;
   bikeRepository.updateById = (() =>
-    Promise.reject(new Error("update should not be called"))) as unknown as typeof bikeRepository.updateById;
+    Promise.reject(
+      new Error("update should not be called"),
+    )) as unknown as typeof bikeRepository.updateById;
 
   await assert.rejects(
     () =>
@@ -154,4 +162,64 @@ test("owners cannot self-assign bike moderation fields", async (context) => {
   assert.equal("verifiedBike" in created, false);
   assert.equal("safetyScore" in created, false);
   assert.equal("inspectionNotes" in created, false);
+});
+
+test("public discovery is limited to available bikes from verified owners", async (context) => {
+  const originalFindVerifiedIds = ownerRepository.findVerifiedIds;
+  const originalList = bikeRepository.list;
+  const originalCount = bikeRepository.count;
+  context.after(() => {
+    ownerRepository.findVerifiedIds = originalFindVerifiedIds;
+    bikeRepository.list = originalList;
+    bikeRepository.count = originalCount;
+  });
+
+  let capturedFilter: Record<string, unknown> = {};
+  ownerRepository.findVerifiedIds = () => Promise.resolve(["verified-owner"]);
+  bikeRepository.list = ((filter: Record<string, unknown>) => {
+    capturedFilter = filter;
+    return Promise.resolve([]);
+  }) as unknown as typeof bikeRepository.list;
+  bikeRepository.count = (() =>
+    Promise.resolve(0)) as unknown as typeof bikeRepository.count;
+
+  await bikeService.listBikes({ page: 1, limit: 10 });
+
+  assert.equal(capturedFilter.status, "available");
+  assert.deepEqual(capturedFilter.ownerId, { $in: ["verified-owner"] });
+});
+
+test("renters cannot opt into unavailable inventory", async () => {
+  await assert.rejects(
+    () =>
+      bikeService.listBikes(
+        { page: 1, limit: 10, includeUnavailable: true },
+        { userId: "renter-user", role: "renter", profileId: "renter-profile" },
+      ),
+    (error: unknown) =>
+      error instanceof AppError &&
+      error.statusCode === 403 &&
+      error.code === "FORBIDDEN",
+  );
+});
+
+test("known bike IDs do not reveal listings from unverified owners", async (context) => {
+  const originalFindById = bikeRepository.findById;
+  context.after(() => {
+    bikeRepository.findById = originalFindById;
+  });
+  bikeRepository.findById = (() =>
+    Promise.resolve({
+      _id: { toString: () => "bike-id" },
+      status: "available",
+      ownerId: { _id: "owner-profile", ownerStatus: "pending" },
+    })) as unknown as typeof bikeRepository.findById;
+
+  await assert.rejects(
+    () => bikeService.getBike("bike-id"),
+    (error: unknown) =>
+      error instanceof AppError &&
+      error.statusCode === 404 &&
+      error.code === "NOT_FOUND",
+  );
 });

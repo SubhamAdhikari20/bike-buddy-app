@@ -5,6 +5,7 @@ import {
   bikeStatusSchema,
   bookingStatusSchema,
   kycReviewSchema,
+  kycListQuerySchema,
   ownerListQuerySchema,
   ownerVerificationSchema,
 } from "../schemas/admin.schema.ts";
@@ -14,6 +15,7 @@ import {
   listBikes,
   listBookings,
   listOwners,
+  listKyc,
   listReviews,
   listUsers,
   reviewKyc,
@@ -36,6 +38,7 @@ adminRoutes.patch(
   validate(bikeStatusSchema),
   updateBikeStatus,
 );
+adminRoutes.get("/renters/kyc", validate(kycListQuerySchema, "query"), listKyc);
 adminRoutes.patch(
   "/bookings/:bookingId/status",
   validate(bookingStatusSchema),

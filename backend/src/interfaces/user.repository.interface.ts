@@ -5,6 +5,7 @@ export interface UserRepositoryInterface {
   create(data: Partial<IUser>): Promise<IUser>;
   findById(id: string): Promise<IUser | null>;
   findByEmail(email: string): Promise<IUser | null>;
+  findByEmailWithVerification(email: string): Promise<IUser | null>;
   updateById(id: string, data: Record<string, unknown>): Promise<IUser | null>;
   deleteById(id: string): Promise<IUser | null>;
   list(

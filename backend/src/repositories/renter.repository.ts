@@ -6,6 +6,7 @@ export const renterRepository: RenterRepositoryInterface = {
   create: (data) => RenterModel.create(data),
   findById: (id) => RenterModel.findById(id).exec(),
   findByBaseUserId: (baseUserId) => RenterModel.findOne({ baseUserId }).exec(),
+  findByGoogleId: (googleId) => RenterModel.findOne({ googleId }).exec(),
   findByBaseUserIdWithPassword: (baseUserId) =>
     RenterModel.findOne({ baseUserId }).select("+password").exec(),
   updateById: (id, data) =>
@@ -14,6 +15,12 @@ export const renterRepository: RenterRepositoryInterface = {
       runValidators: true,
     }).exec(),
   deleteById: (id) => RenterModel.findByIdAndDelete(id).exec(),
-  list: (filter = {}) => RenterModel.find(filter).exec(),
+  list: (filter = {}, options = {}) =>
+    RenterModel.find(filter)
+      .sort(options.sort ?? { createdAt: -1 })
+      .skip(options.skip ?? 0)
+      .limit(options.limit ?? 0)
+      .populate("baseUserId", "email isVerified")
+      .exec(),
   count: (filter = {}) => RenterModel.countDocuments(filter).exec(),
 };

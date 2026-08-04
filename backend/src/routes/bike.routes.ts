@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { authenticate, authorize } from "../middlewares/auth.ts";
+import {
+  authenticate,
+  authorize,
+  optionalAuthenticate,
+} from "../middlewares/auth.ts";
 import validate from "../middlewares/validate.ts";
 import {
   bikeListQuerySchema,
@@ -17,9 +21,14 @@ import {
 
 const bikeRoutes = Router();
 
-bikeRoutes.get("/", validate(bikeListQuerySchema, "query"), listBikes);
+bikeRoutes.get(
+  "/",
+  optionalAuthenticate,
+  validate(bikeListQuerySchema, "query"),
+  listBikes,
+);
 bikeRoutes.get("/compare", compareBikes);
-bikeRoutes.get("/:bikeId", getBike);
+bikeRoutes.get("/:bikeId", optionalAuthenticate, getBike);
 bikeRoutes.post(
   "/",
   authenticate,

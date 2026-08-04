@@ -44,7 +44,7 @@ export const createBikeSchema = z.object({
   securityDeposit: z.number().nonnegative().optional(),
   serviceFee: z.number().nonnegative().optional(),
   location: locationSchema,
-  images: z.array(bikeImageSchema).default([]),
+  images: z.array(bikeImageSchema).max(6).default([]),
   specs: z
     .object({
       weightKg: z.number().positive().optional(),
@@ -85,11 +85,18 @@ export const updateBikeSchema = createBikeSchema
   .omit({ ownerId: true })
   .extend({
     category: z
-      .enum(["commuter", "scooter", "cruiser", "sports", "electric", "mountain"])
+      .enum([
+        "commuter",
+        "scooter",
+        "cruiser",
+        "sports",
+        "electric",
+        "mountain",
+      ])
       .optional(),
     description: z.string().max(4000).nullish(),
     pricePerHour: z.number().positive().nullish(),
-    images: z.array(bikeImageSchema).optional(),
+    images: z.array(bikeImageSchema).max(6).optional(),
     status: z
       .enum(["available", "unavailable", "maintenance", "inactive"])
       .optional(),

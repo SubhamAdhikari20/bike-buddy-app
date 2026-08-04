@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/api/media_upload_api.dart';
 import '../../../core/error/app_exception.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 
@@ -21,6 +25,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late final TextEditingController _name;
   late final TextEditingController _phone;
   late final TextEditingController _bio;
+  final _picker = ImagePicker();
+  XFile? _avatar;
+  bool _removeAvatar = false;
   bool _busy = false;
 
   @override
@@ -30,6 +37,30 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _name = TextEditingController(text: auth?.fullName ?? '');
     _phone = TextEditingController(text: auth?.phoneNumber ?? '');
     _bio = TextEditingController(text: auth?.bio ?? '');
+  }
+
+  Future<void> _pickAvatar() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 82,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    );
+    if (picked == null) return;
+    if (await picked.length() > 5 * 1024 * 1024) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Choose a photo smaller than 5 MB.')),
+        );
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _avatar = picked;
+        _removeAvatar = false;
+      });
+    }
   }
 
   @override
@@ -44,10 +75,18 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _busy = true);
     try {
+      final auth = ref.read(authProvider).valueOrNull;
+      String? avatarUrl = _removeAvatar ? null : auth?.profilePictureUrl;
+      if (_avatar != null) {
+        avatarUrl = await ref
+            .read(mediaUploadApiProvider)
+            .uploadOne(UploadKind.profile, _avatar!.path);
+      }
       await ref.read(authProvider.notifier).updateProfile({
         'fullName': _name.text.trim(),
-        if (_phone.text.trim().isNotEmpty) 'phoneNumber': _phone.text.trim(),
-        if (_bio.text.trim().isNotEmpty) 'bio': _bio.text.trim(),
+        'phoneNumber': _phone.text.trim().isEmpty ? null : _phone.text.trim(),
+        'bio': _bio.text.trim().isEmpty ? null : _bio.text.trim(),
+        'profilePictureUrl': avatarUrl,
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -80,6 +119,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider).valueOrNull;
+    final ImageProvider<Object>? avatarImage = _avatar != null
+        ? FileImage(File(_avatar!.path))
+        : !_removeAvatar && auth?.profilePictureUrl != null
+        ? NetworkImage(auth!.profilePictureUrl!)
+        : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profile')),
@@ -93,6 +137,52 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      Center(
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              radius: 48,
+                              backgroundColor: AppColors.primaryLight,
+                              backgroundImage: avatarImage,
+                              child: avatarImage == null
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 44,
+                                      color: AppColors.primary,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              right: -8,
+                              bottom: -8,
+                              child: IconButton.filled(
+                                tooltip: 'Choose profile picture',
+                                onPressed: _busy ? null : _pickAvatar,
+                                icon: const Icon(Icons.photo_camera_outlined),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      if (avatarImage != null)
+                        TextButton.icon(
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() {
+                                  _avatar = null;
+                                  _removeAvatar = true;
+                                }),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Remove profile picture'),
+                        ),
+                      Text(
+                        'JPG, PNG or WEBP · up to 5 MB',
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
                       TextFormField(
                         controller: _name,
                         textCapitalization: TextCapitalization.words,

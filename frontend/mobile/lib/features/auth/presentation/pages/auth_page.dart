@@ -147,17 +147,14 @@ class _AuthPageState extends ConsumerState<AuthPage>
           child: Column(
             children: [
               const SizedBox(height: AppSpacing.lg),
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.pedal_bike,
-                  color: Colors.white,
-                  size: 36,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.large),
+                child: Image.asset(
+                  'assets/images/bike-buddy-logo.png',
+                  width: 88,
+                  height: 88,
+                  fit: BoxFit.cover,
+                  semanticLabel: 'Bike Buddy logo',
                 ),
               ),
               const SizedBox(height: AppSpacing.md),

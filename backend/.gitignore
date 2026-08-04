@@ -19,6 +19,9 @@ uploads/profile/*
 !uploads/kyc/
 uploads/kyc/*
 !uploads/kyc/.gitkeep
+!uploads/evidence/
+uploads/evidence/*
+!uploads/evidence/.gitkeep
 public/uploads
 
 # Environment variables

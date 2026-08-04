@@ -30,7 +30,7 @@ export const reviewRepository = {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("userId"),
+      .populate("userId", "_id"),
   listByUserId: (userId: string, skip: number, limit: number) =>
     ReviewModel.find({ userId })
       .sort({ createdAt: -1 })

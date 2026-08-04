@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bike,
   CalendarDays,
   Gauge,
+  IdCard,
   LifeBuoy,
-  LogOut,
   Menu,
   ShieldCheck,
   UserRound,
@@ -16,6 +17,8 @@ import {
   Wrench,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { useSession } from "@/components/auth/session-provider";
 import { LoadingState } from "@/components/page-state";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -24,6 +27,7 @@ import { Button } from "@/components/ui/button";
 const adminNav = [
   { href: "/admin/dashboard", label: "Dashboard", icon: Gauge },
   { href: "/admin/owners", label: "Owner verification", icon: ShieldCheck },
+  { href: "/admin/kyc", label: "Renter ID review", icon: IdCard },
   { href: "/admin/bikes", label: "Bikes", icon: Bike },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/admin/tickets", label: "Support tickets", icon: LifeBuoy },
@@ -38,7 +42,11 @@ const ownerNav = [
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
-export default function PortalLayout({ children }: { children: React.ReactNode }) {
+export default function PortalLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const { session, status, logout } = useSession();
@@ -52,7 +60,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     if (!session) return;
     if (pathname.startsWith("/admin") && session.user.role !== "admin") {
       router.replace(
-        session.user.role === "owner" ? "/owner/dashboard" : "/login?notice=renter",
+        session.user.role === "owner"
+          ? "/owner/dashboard"
+          : "/login?notice=renter",
       );
     }
     if (
@@ -76,13 +86,23 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const signOut = async () => {
     await logout();
+    toast.success("Signed out", {
+      description: "Your portal session is closed.",
+    });
     router.replace("/login");
   };
 
   const navigation = (
     <>
-      <div className="flex items-center gap-2 px-5 py-5 text-lg font-bold">
-        <Bike className="size-6" aria-hidden="true" />
+      <div className="flex items-center gap-3 px-5 py-5 text-lg font-bold">
+        <Image
+          src="/bike-buddy-logo.png"
+          alt=""
+          width={36}
+          height={36}
+          priority
+          className="size-9 rounded-lg bg-white object-cover"
+        />
         Bike Buddy
       </div>
       <div className="px-5 pb-4 text-xs uppercase tracking-wider text-blue-200">
@@ -118,14 +138,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           {session.profile.fullName || session.user.email}
         </p>
         <p className="truncate text-xs text-blue-200">{session.user.email}</p>
-        <button
-          type="button"
-          onClick={signOut}
-          className="mt-3 flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-blue-100 hover:bg-blue-600 focus-visible:outline-white"
-        >
-          <LogOut className="size-4" aria-hidden="true" />
-          Sign out
-        </button>
+        <div className="mt-3">
+          <ConfirmActionDialog
+            triggerLabel="Sign out"
+            triggerVariant="ghost"
+            triggerClassName="min-h-11 w-full justify-start text-blue-100 hover:bg-blue-600 hover:text-white"
+            confirmVariant="default"
+            title="Sign out of Bike Buddy?"
+            description="You will return to the portal login page. Unsaved form changes will be lost."
+            confirmLabel="Sign out"
+            onConfirm={signOut}
+          />
+        </div>
       </div>
     </>
   );
@@ -189,7 +213,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             <ThemeToggle />
           </div>
         </header>
-        <main id="main-content" className="mx-auto max-w-screen-2xl p-4 sm:p-6 lg:p-8">
+        <main
+          id="main-content"
+          className="mx-auto max-w-screen-2xl p-4 sm:p-6 lg:p-8"
+        >
           {children}
         </main>
       </div>

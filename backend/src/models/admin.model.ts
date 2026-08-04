@@ -39,6 +39,11 @@ const adminSchema: Schema<IAdmin> = new Schema(
       type: String,
       default: null,
     },
+    bio: {
+      type: String,
+      maxLength: [500, "Bio cannot exceed 500 characters"],
+      default: null,
+    },
   },
   {
     timestamps: true,

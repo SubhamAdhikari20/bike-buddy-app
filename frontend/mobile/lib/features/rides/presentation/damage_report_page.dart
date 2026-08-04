@@ -7,8 +7,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/api/media_upload_api.dart';
 import '../../../core/error/app_exception.dart';
-import '../../auth/presentation/providers/auth_provider.dart';
 import '../../bookings/data/booking_api.dart';
 
 /// Post-return damage report with photo evidence (BC-04).
@@ -58,11 +58,12 @@ class _DamageReportPageState extends ConsumerState<DamageReportPage> {
 
     setState(() => _busy = true);
     try {
-      final auth = ref.read(authProvider.notifier);
-      final urls = <String>[];
-      for (final photo in _photos) {
-        urls.add(await auth.uploadImage(photo.path));
-      }
+      final urls = await ref
+          .read(mediaUploadApiProvider)
+          .uploadMany(
+            UploadKind.evidence,
+            _photos.map((photo) => photo.path).toList(growable: false),
+          );
 
       await ref
           .read(bookingApiProvider)

@@ -176,7 +176,7 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                               color: AppColors.success,
                             ),
                             Text(
-                              ' Verified by Bike Buddy'
+                              ' Owner account reviewed'
                               '${owner.verifiedAt != null ? ' · ${DateFormat('MMM yyyy').format(owner.verifiedAt!)}' : ''}',
                               style: const TextStyle(
                                 fontSize: 13,
@@ -201,8 +201,8 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
             const SizedBox(height: AppSpacing.md),
             Text(
               owner.isVerified
-                  ? 'Verified owners have submitted their identity documents and bike ownership papers, which our team has checked.'
-                  : 'This owner has not completed verification yet. You can still rent, but verified owners are the safer choice.',
+                  ? 'A Bike Buddy administrator approved this owner account. Confirm the bike and its documents during handover.'
+                  : 'This owner account has not been approved for public listing.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             if (owner.bio != null) ...[
@@ -617,7 +617,7 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Verified condition details (BC-05, trust signals).
+              // Owner-provided condition details (BC-05, transparency).
               if (bike.serviceDate != null || bike.odometerKm != null) ...[
                 Text('Condition', style: textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.sm),
@@ -629,13 +629,13 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                         const Row(
                           children: [
                             Icon(
-                              Icons.verified,
+                              Icons.info_outline,
                               size: 18,
                               color: AppColors.success,
                             ),
                             SizedBox(width: 6),
                             Text(
-                              'Verified by Bike Buddy',
+                              'Condition details provided by the owner',
                               style: TextStyle(
                                 color: AppColors.success,
                                 fontWeight: FontWeight.w600,

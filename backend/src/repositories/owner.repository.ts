@@ -21,4 +21,11 @@ export const ownerRepository: OwnerRepositoryInterface = {
       .limit(options.limit ?? 0)
       .exec(),
   count: (filter = {}) => OwnerModel.countDocuments(filter).exec(),
+  findVerifiedIds: async () => {
+    const owners = await OwnerModel.find({ ownerStatus: "verified" })
+      .select("_id")
+      .lean()
+      .exec();
+    return owners.map((owner) => owner._id.toString());
+  },
 };

@@ -1,4 +1,3 @@
-import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
@@ -91,15 +90,6 @@ class AuthApi {
   ) async {
     final res = await _client.patch('/auth/profile', data: payload);
     return (res['data'] as Map).cast<String, dynamic>();
-  }
-
-  Future<String> uploadImage(String filePath) async {
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(filePath),
-    });
-    final res = await _client.upload('/uploads', formData);
-    final data = (res['data'] as Map).cast<String, dynamic>();
-    return data['url'] as String;
   }
 
   Future<Map<String, dynamic>> submitKyc(String idDocumentUrl) async {

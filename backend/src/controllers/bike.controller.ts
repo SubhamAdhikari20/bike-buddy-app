@@ -40,7 +40,7 @@ export const deleteBike: RequestHandler = async (req, res, next) => {
 export const getBike: RequestHandler = async (req, res, next) => {
   try {
     const bikeId = String(req.params.bikeId);
-    const result = await bikeService.getBike(bikeId);
+    const result = await bikeService.getBike(bikeId, req.auth);
     res
       .status(200)
       .json(new ApiResponse(200, "Bike fetched successfully", result));
@@ -68,6 +68,7 @@ export const listBikes: RequestHandler = async (req, res, next) => {
   try {
     const result = await bikeService.listBikes(
       req.query as Record<string, unknown>,
+      req.auth,
     );
     res
       .status(200)

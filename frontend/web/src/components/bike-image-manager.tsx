@@ -62,26 +62,25 @@ export function BikeImageManager({ images, onChange, disabled }: Props) {
 
     const queue = files.slice(0, room);
     setBusy(true);
-    const uploaded: BikeImage[] = [];
     try {
-      for (const [index, file] of queue.entries()) {
-        setStatus(`Uploading photo ${index + 1} of ${queue.length}...`);
-        const response = await api.upload(file, "bike");
-        uploaded.push({
-          url: response.data.url,
-          alt: file.name.replace(/\.[^.]+$/, ""),
-        });
-      }
+      setStatus(
+        `Uploading ${queue.length} photo${queue.length === 1 ? "" : "s"}...`,
+      );
+      const response = await api.uploadMany(queue, "bike");
+      const uploaded = response.data.files.map((stored, index) => ({
+        url: stored.url,
+        alt: queue[index]?.name.replace(/\.[^.]+$/, "") ?? "Bike photo",
+      }));
       onChange([...images, ...uploaded]);
       setStatus(
         `${queue.length} photo${queue.length === 1 ? "" : "s"} uploaded.` +
           (files.length > room ? ` Only ${room} could be added.` : ""),
       );
     } catch (caught) {
-      // Anything already uploaded is kept, so the owner does not lose work.
-      if (uploaded.length > 0) onChange([...images, ...uploaded]);
       setError(
-        caught instanceof Error ? caught.message : "Could not upload the photo.",
+        caught instanceof Error
+          ? caught.message
+          : "Could not upload the photo.",
       );
       setStatus(null);
     } finally {
@@ -138,12 +137,16 @@ export function BikeImageManager({ images, onChange, disabled }: Props) {
           {busy ? "Uploading..." : "Upload photos"}
         </Button>
         <p className="text-xs text-muted-foreground">
-          JPG, PNG or WEBP · up to 5 MB each · {images.length}/{MAX_IMAGES} added
+          JPG, PNG or WEBP · up to 5 MB each · {images.length}/{MAX_IMAGES}{" "}
+          added
         </p>
       </div>
 
       {error && (
-        <p className="rounded-md bg-red-50 p-2 text-sm text-red-700" role="alert">
+        <p
+          className="rounded-md bg-red-50 p-2 text-sm text-red-700"
+          role="alert"
+        >
           {error}
         </p>
       )}

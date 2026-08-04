@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { Bike } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AuthShell({
@@ -23,10 +29,17 @@ export function AuthShell({
         <CardHeader className="text-center">
           <Link
             href="/"
-            className="mx-auto mb-2 flex size-14 items-center justify-center rounded-2xl bg-blue-700 text-white"
+            className="mx-auto mb-2 block size-16 overflow-hidden rounded-2xl border bg-white shadow-sm"
             aria-label="Bike Buddy home"
           >
-            <Bike className="size-7" />
+            <Image
+              src="/bike-buddy-logo.png"
+              alt="Bike Buddy"
+              width={64}
+              height={64}
+              priority
+              className="size-full object-cover"
+            />
           </Link>
           <CardTitle className="text-2xl text-blue-700 dark:text-blue-300">
             {title}

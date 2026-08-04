@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
+import '../../../../core/api/media_upload_api.dart';
 import '../../../../core/error/app_exception.dart';
 import '../../../../core/services/permission_service.dart';
 import '../providers/auth_provider.dart';
@@ -58,7 +59,7 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
               icon: Icons.storage_outlined,
               title: 'How it is stored',
               subtitle:
-                  'Encrypted on our servers and used only to confirm your identity once.',
+                  'Stored in a private upload area and served only through an authenticated review route.',
             ),
             const _StepRow(
               icon: Icons.delete_outline,
@@ -121,7 +122,9 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
     setState(() => _busy = true);
     try {
       final notifier = ref.read(authProvider.notifier);
-      final url = await notifier.uploadImage(_photo!.path);
+      final url = await ref
+          .read(mediaUploadApiProvider)
+          .uploadOne(UploadKind.kyc, _photo!.path);
       await notifier.submitKyc(url);
       if (mounted) setState(() => _submitted = true);
     } catch (e) {
@@ -248,7 +251,7 @@ class _IdVerificationPageState extends ConsumerState<IdVerificationPage> {
               icon: Icons.lock_outline,
               title: 'Stored securely',
               subtitle:
-                  'Your ID is encrypted, used only to confirm who you are, and never shared with owners.',
+                  'Your ID is kept outside public uploads, used for administrator review, and never shared with owners.',
             ),
             const _StepRow(
               icon: Icons.check_circle_outline,

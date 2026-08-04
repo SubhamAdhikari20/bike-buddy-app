@@ -7,8 +7,8 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/api/media_upload_api.dart';
 import '../../../core/error/app_exception.dart';
-import '../../auth/presentation/providers/auth_provider.dart';
 import '../data/support_api.dart';
 
 /// Report an issue with up to three photos. Breakdown reports are marked as
@@ -58,11 +58,14 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
 
     setState(() => _busy = true);
     try {
-      final auth = ref.read(authProvider.notifier);
-      final urls = <String>[];
-      for (final photo in _photos) {
-        urls.add(await auth.uploadImage(photo.path));
-      }
+      final urls = _photos.isEmpty
+          ? <String>[]
+          : await ref
+                .read(mediaUploadApiProvider)
+                .uploadMany(
+                  UploadKind.evidence,
+                  _photos.map((photo) => photo.path).toList(growable: false),
+                );
 
       final result = await ref
           .read(supportApiProvider)

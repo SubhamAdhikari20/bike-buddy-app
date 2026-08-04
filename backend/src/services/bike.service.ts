@@ -5,6 +5,13 @@ import { ownerRepository } from "../repositories/owner.repository.ts";
 import { bookingRepository } from "../repositories/booking.repository.ts";
 import type { AuthRole } from "../interfaces/auth.interface.ts";
 import { toDocumentId } from "../utils/mongo-reference.ts";
+import { deleteLocalUpload } from "../utils/local-media.ts";
+
+type AuthContext = {
+  userId: string;
+  role: AuthRole;
+  profileId?: string;
+};
 
 const escapeRegularExpression = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -86,6 +93,38 @@ const ownerSafeBikePayload = (
   return ownerFields;
 };
 
+const isPubliclyVisible = (bike: any) =>
+  bike.status === "available" && bike.ownerId?.ownerStatus === "verified";
+
+const removeReplacedBikeImages = async (
+  existingImages: Array<{ url?: string }> | undefined,
+  nextImages: unknown,
+) => {
+  if (!Array.isArray(nextImages)) return;
+  const retained = new Set(
+    nextImages
+      .map((image) =>
+        image && typeof image === "object" && "url" in image
+          ? String((image as { url: unknown }).url)
+          : "",
+      )
+      .filter(Boolean),
+  );
+  const removed = (existingImages ?? [])
+    .map((image) => image.url)
+    .filter(
+      (url): url is string =>
+        typeof url === "string" && url.length > 0 && !retained.has(url),
+    );
+  await Promise.all(
+    removed.map((url) =>
+      deleteLocalUpload(url).catch((error) =>
+        console.error("Could not remove replaced bike image", error),
+      ),
+    ),
+  );
+};
+
 const bikeService = {
   async createBike(
     auth: { userId: string; role: AuthRole; profileId?: string },
@@ -136,7 +175,10 @@ const bikeService = {
       throw new AppError(404, "Bike not found", "NOT_FOUND");
     }
 
-    const owner = await ensureOwnerAccess(auth, toDocumentId(bike.ownerId) ?? "");
+    const owner = await ensureOwnerAccess(
+      auth,
+      toDocumentId(bike.ownerId) ?? "",
+    );
     if (
       auth.role === "owner" &&
       payload.status === "available" &&
@@ -148,10 +190,14 @@ const bikeService = {
         "OWNER_NOT_VERIFIED",
       );
     }
-    return bikeRepository.updateById(
+    const updated = await bikeRepository.updateById(
       bikeId,
       ownerSafeBikePayload(auth, payload),
     );
+    if (updated) {
+      await removeReplacedBikeImages(bike.images, payload.images);
+    }
+    return updated;
   },
 
   async deleteBike(
@@ -172,7 +218,11 @@ const bikeService = {
         "BIKE_HAS_BOOKINGS",
       );
     }
-    return bikeRepository.deleteById(bikeId);
+    const deleted = await bikeRepository.deleteById(bikeId);
+    if (deleted) {
+      await removeReplacedBikeImages(bike.images, []);
+    }
+    return deleted;
   },
 
   // Side-by-side comparison of up to 3 bikes (UI-04, Miller's law).
@@ -199,6 +249,13 @@ const bikeService = {
         "NOT_FOUND",
       );
     }
+    if (!found.every(isPubliclyVisible)) {
+      throw new AppError(
+        404,
+        "One of the selected bikes is not available",
+        "NOT_FOUND",
+      );
+    }
 
     // Flag the cheapest per-day bike so the UI can highlight best value.
     const cheapest = found.reduce((minimum, bike) =>
@@ -210,16 +267,27 @@ const bikeService = {
     }));
   },
 
-  async getBike(bikeId: string) {
+  async getBike(bikeId: string, auth?: AuthContext) {
     const bike = await bikeRepository.findById(bikeId);
     if (!bike) {
       throw new AppError(404, "Bike not found", "NOT_FOUND");
     }
 
-    return bike;
+    if (isPubliclyVisible(bike) || auth?.role === "admin") {
+      return bike;
+    }
+    if (
+      auth?.role === "owner" &&
+      auth.profileId &&
+      toDocumentId(bike.ownerId) === auth.profileId
+    ) {
+      return bike;
+    }
+
+    throw new AppError(404, "Bike not found", "NOT_FOUND");
   },
 
-  async listBikes(query: Record<string, unknown>) {
+  async listBikes(query: Record<string, unknown>, auth?: AuthContext) {
     const page = Number(query.page ?? 1);
     const limit = Number(query.limit ?? 10);
     const skip = (page - 1) * limit;
@@ -231,12 +299,41 @@ const bikeService = {
     const lat = typeof query.lat === "number" ? query.lat : undefined;
     const lng = typeof query.lng === "number" ? query.lng : undefined;
 
-    // Public discovery only ever shows available listings, so a bike belonging
-    // to a pending or rejected owner can never appear in renter search results.
-    // Owner and administrator views ask for the wider set explicitly with
-    // includeUnavailable, and an explicit status filter is always respected.
-    if (!query.status && !query.includeUnavailable) {
+    const requestsNonPublic =
+      query.includeUnavailable === true ||
+      (query.status !== undefined && query.status !== "available");
+    const canManage = auth?.role === "owner" || auth?.role === "admin";
+
+    if (requestsNonPublic && !canManage) {
+      throw new AppError(
+        403,
+        "Only owners and administrators can view unavailable listings",
+        "FORBIDDEN",
+      );
+    }
+
+    if (requestsNonPublic && auth?.role === "owner") {
+      if (!auth.profileId) {
+        throw new AppError(403, "Owner profile is required", "FORBIDDEN");
+      }
+      if (query.ownerId && query.ownerId !== auth.profileId) {
+        throw new AppError(
+          403,
+          "You can only view your own managed listings",
+          "FORBIDDEN",
+        );
+      }
+      filter.ownerId = auth.profileId;
+    } else if (!requestsNonPublic) {
       filter.status = "available";
+      const verifiedOwnerIds = await ownerRepository.findVerifiedIds();
+      if (query.ownerId) {
+        filter.ownerId = verifiedOwnerIds.includes(String(query.ownerId))
+          ? query.ownerId
+          : { $in: [] };
+      } else {
+        filter.ownerId = { $in: verifiedOwnerIds };
+      }
     }
 
     // Nearby search: sorted by distance from the supplied point (MAP-05)

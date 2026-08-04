@@ -17,4 +17,5 @@ export interface OwnerRepositoryInterface {
     },
   ): Promise<IOwner[]>;
   count(filter?: Record<string, unknown>): Promise<number>;
+  findVerifiedIds(): Promise<string[]>;
 }

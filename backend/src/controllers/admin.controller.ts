@@ -147,6 +147,26 @@ export const reviewKyc: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const listKyc: RequestHandler = async (req, res, next) => {
+  try {
+    const result = await adminService.listKyc(
+      req.query as Record<string, unknown>,
+    );
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          "Renter verification requests fetched",
+          result.items,
+          result.pagination,
+        ),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const listOwners: RequestHandler = async (req, res, next) => {
   try {
     const result = await adminService.listOwners(

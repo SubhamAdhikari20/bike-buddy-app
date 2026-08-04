@@ -153,6 +153,37 @@ const adminService = {
     return renterRepository.updateById(renterId, { kycStatus: status });
   },
 
+  async listKyc(query: Record<string, unknown>) {
+    const filter = { kycStatus: String(query.status ?? "pending") };
+    const result = await listWithPagination(
+      async (f, sort, skip, limit) =>
+        renterRepository.list(f, { sort, skip, limit }),
+      renterRepository.count,
+      filter,
+      query,
+    );
+
+    return {
+      ...result,
+      items: result.items.map((value) => {
+        const renter = value as any;
+        const baseUser = renter.baseUserId;
+        return {
+          id: renter._id.toString(),
+          fullName: renter.fullName,
+          email:
+            baseUser && typeof baseUser === "object" ? baseUser.email : null,
+          phoneNumber: renter.phoneNumber ?? null,
+          profilePictureUrl: renter.profilePictureUrl ?? null,
+          idDocumentUrl: renter.idDocumentUrl ?? null,
+          kycStatus: renter.kycStatus,
+          kycSubmittedAt: renter.kycSubmittedAt ?? null,
+          createdAt: renter.createdAt,
+        };
+      }),
+    };
+  },
+
   async updateBookingStatus(bookingId: string, status: string) {
     const booking = await bookingRepository.findById(bookingId);
     if (!booking) {

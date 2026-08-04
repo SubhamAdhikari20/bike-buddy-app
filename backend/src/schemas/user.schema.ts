@@ -4,9 +4,9 @@ import { z } from "zod";
 export const fullNameValidation = z
   .string()
   .min(3, { message: "Name must be atleast 3 characters long" })
-  .max(20, { message: "Name must not exceed 20 characters" })
-  .regex(/^[a-zA-Z ]+$/, {
-    message: "Name must contain only alphabets and spaces",
+  .max(60, { message: "Name must not exceed 60 characters" })
+  .regex(/^[\p{L}][\p{L}' .-]*$/u, {
+    message: "Name contains unsupported characters",
   });
 
 export const emailValidation = z

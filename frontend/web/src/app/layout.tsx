@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SessionProvider } from "@/components/auth/session-provider";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -7,8 +8,7 @@ export const metadata: Metadata = {
     default: "Bike Buddy Portal",
     template: "%s · Bike Buddy",
   },
-  description:
-    "Accessible administration and fleet management for Bike Buddy.",
+  description: "Accessible administration and fleet management for Bike Buddy.",
 };
 
 export default function RootLayout({
@@ -18,6 +18,7 @@ export default function RootLayout({
     <html lang="en" className="h-full" suppressHydrationWarning>
       <body className="min-h-full">
         <SessionProvider>{children}</SessionProvider>
+        <Toaster />
       </body>
     </html>
   );

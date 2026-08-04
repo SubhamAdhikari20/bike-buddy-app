@@ -12,6 +12,7 @@ const adminSchema = z.object({
   phoneNumber: phoneNumberValidation,
   password: passwordValidation,
   profilePictureUrl: z.string().nullish(),
+  bio: z.string().max(500).nullish(),
   baseUserId: z.string(),
 });
 

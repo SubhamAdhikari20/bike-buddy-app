@@ -18,6 +18,7 @@ import SupportTicketModel from "../models/support-ticket.model.ts";
 import SosAlertModel from "../models/sos-alert.model.ts";
 import DamageReportModel from "../models/damage-report.model.ts";
 import ReviewModel from "../models/review.model.ts";
+import { deleteLocalUpload } from "../utils/local-media.ts";
 
 const googleClient = new OAuth2Client();
 
@@ -195,9 +196,29 @@ const authService = {
       throw new AppError(404, "Profile not found", "NOT_FOUND");
     }
 
+    if (
+      (auth.role === "owner" || auth.role === "admin") &&
+      payload.phoneNumber === null
+    ) {
+      throw new AppError(
+        400,
+        "A phone number is required for owner and administrator profiles",
+        "BAD_REQUEST",
+      );
+    }
+
+    const previousPicture = profile.profilePictureUrl;
     const updatedProfile = await repository.updateById(profile._id.toString(), {
       ...payload,
     });
+    if (
+      payload.profilePictureUrl !== undefined &&
+      payload.profilePictureUrl !== previousPicture
+    ) {
+      await deleteLocalUpload(previousPicture).catch((error) =>
+        console.error("Could not remove replaced profile picture", error),
+      );
+    }
 
     return {
       user: toSafeUser(baseUser),
@@ -318,75 +339,54 @@ const authService = {
     }
 
     const email = googlePayload.email.trim().toLowerCase();
-    let baseUser = await userRepository.findByEmail(email);
-
-    if (baseUser && baseUser.role !== "renter") {
-      throw new AppError(
-        403,
-        "Google sign-in is available only for renter accounts",
-        "FORBIDDEN",
-      );
-    }
-
-    if (!baseUser) {
-      baseUser = await createBaseUser(email, "renter", true);
-      try {
-        const profile = await renterRepository.create({
-          baseUserId: baseUser._id,
-          fullName:
-            googlePayload.name?.trim() ||
-            email.split("@")[0] ||
-            "Bike Buddy renter",
-          phoneNumber: null,
-          password: null,
-          profilePictureUrl: googlePayload.picture ?? null,
-          googleId: googlePayload.sub,
-          bio: null,
-          terms: payload.terms,
-        });
-        return buildSession(baseUser, profile, "renter");
-      } catch (error) {
-        await userRepository.deleteById(baseUser._id.toString());
-        throw error;
-      }
-    }
-
-    const existingProfile = await renterRepository.findByBaseUserId(
-      baseUser._id.toString(),
+    const linkedProfile = await renterRepository.findByGoogleId(
+      googlePayload.sub,
     );
-    if (!existingProfile) {
-      throw new AppError(
-        409,
-        "This account is missing its renter profile",
-        "ACCOUNT_CONFIGURATION_ERROR",
+    if (linkedProfile) {
+      const linkedUser = await userRepository.findById(
+        String(linkedProfile.baseUserId),
       );
+      if (!linkedUser || linkedUser.role !== "renter") {
+        throw new AppError(
+          409,
+          "This Google account has an invalid Bike Buddy link",
+          "ACCOUNT_CONFIGURATION_ERROR",
+        );
+      }
+      return buildSession(linkedUser, linkedProfile, "renter");
     }
-    if (
-      existingProfile.googleId &&
-      existingProfile.googleId !== googlePayload.sub
-    ) {
+
+    const existingUser = await userRepository.findByEmail(email);
+    if (existingUser) {
       throw new AppError(
         409,
-        "This email is already linked to a different Google account",
-        "CONFLICT",
+        existingUser.role === "renter"
+          ? "This email already uses password sign-in. Sign in with your password instead."
+          : "Google sign-in is available only for renter accounts",
+        "ACCOUNT_LINK_REQUIRED",
       );
     }
 
-    const profile =
-      (await renterRepository.updateById(existingProfile._id.toString(), {
+    const baseUser = await createBaseUser(email, "renter", true);
+    try {
+      const profile = await renterRepository.create({
+        baseUserId: baseUser._id,
+        fullName:
+          googlePayload.name?.trim() ||
+          email.split("@")[0] ||
+          "Bike Buddy renter",
+        phoneNumber: null,
+        password: null,
+        profilePictureUrl: googlePayload.picture ?? null,
         googleId: googlePayload.sub,
-        profilePictureUrl:
-          existingProfile.profilePictureUrl ?? googlePayload.picture ?? null,
-      })) ?? existingProfile;
-
-    if (!baseUser.isVerified) {
-      baseUser =
-        (await userRepository.updateById(baseUser._id.toString(), {
-          isVerified: true,
-        })) ?? baseUser;
+        bio: null,
+        terms: payload.terms,
+      });
+      return buildSession(baseUser, profile, "renter");
+    } catch (error) {
+      await userRepository.deleteById(baseUser._id.toString());
+      throw error;
     }
-
-    return buildSession(baseUser, profile, "renter");
   },
 
   async sendOtp(payload: { email: string }) {
@@ -428,7 +428,9 @@ const authService = {
   },
 
   async verifyOtp(payload: { email: string; code: string }) {
-    const baseUser = await userRepository.findByEmail(payload.email);
+    const baseUser = await userRepository.findByEmailWithVerification(
+      payload.email,
+    );
     if (!baseUser) {
       throw new AppError(404, "No account found with this email.", "NOT_FOUND");
     }
@@ -485,11 +487,17 @@ const authService = {
       throw new AppError(409, "Your ID is already verified", "CONFLICT");
     }
 
+    const previousDocument = renter.idDocumentUrl;
     const updated = await renterRepository.updateById(renter._id.toString(), {
       idDocumentUrl: payload.idDocumentUrl,
       kycStatus: "pending",
       kycSubmittedAt: new Date(),
     });
+    if (previousDocument && previousDocument !== payload.idDocumentUrl) {
+      await deleteLocalUpload(previousDocument).catch((error) =>
+        console.error("Could not remove replaced verification image", error),
+      );
+    }
 
     return {
       kycStatus: updated?.kycStatus,
@@ -537,9 +545,8 @@ const authService = {
         auth.role === "owner"
           ? { ownerId: profileId, status: { $in: activeStatuses } }
           : { renterId: profileId, status: { $in: activeStatuses } };
-      const activeBookingExists = await BookingModel.exists(
-        activeBookingFilter,
-      );
+      const activeBookingExists =
+        await BookingModel.exists(activeBookingFilter);
       if (activeBookingExists) {
         throw new AppError(
           409,
@@ -569,6 +576,16 @@ const authService = {
       await repository.deleteById(profile._id.toString());
     }
     await userRepository.deleteById(auth.userId);
+    await Promise.all([
+      deleteLocalUpload(profile?.profilePictureUrl),
+      deleteLocalUpload(
+        "idDocumentUrl" in (profile ?? {})
+          ? (profile as { idDocumentUrl?: string | null }).idDocumentUrl
+          : null,
+      ),
+    ]).catch((error) =>
+      console.error("Could not remove deleted account media", error),
+    );
 
     return {
       deleted: true,

@@ -29,6 +29,36 @@ export const authenticate: RequestHandler = async (req, res, next) => {
   }
 };
 
+/**
+ * Adds an authenticated identity when a cookie or bearer token is present,
+ * while keeping genuine public requests public. An invalid supplied token is
+ * still rejected instead of being silently downgraded to a guest request.
+ */
+export const optionalAuthenticate: RequestHandler = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : req.cookies?.accessToken;
+
+  if (!token) {
+    next();
+    return;
+  }
+
+  try {
+    const auth = verifyToken(token);
+    const accountExists = await UserModel.exists({ _id: auth.userId });
+    if (!accountExists) {
+      next(new AppError(401, "Account no longer exists", "UNAUTHORIZED"));
+      return;
+    }
+    req.auth = auth;
+    next();
+  } catch {
+    next(new AppError(401, "Invalid or expired token", "UNAUTHORIZED"));
+  }
+};
+
 export const authorize = (...allowedRoles: AuthRole[]): RequestHandler => {
   return (req, res, next) => {
     if (!req.auth) {

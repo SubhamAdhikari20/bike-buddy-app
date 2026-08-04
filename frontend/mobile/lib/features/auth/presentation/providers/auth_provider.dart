@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/session_service.dart';
 import '../../../../core/services/google_auth_service.dart';
+import '../../../../core/error/app_exception.dart';
 import '../../data/auth_api.dart';
 import '../../data/session_user.dart';
 
@@ -24,6 +25,10 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
     try {
       final currentSession = await _api.me();
       final user = SessionUser.fromSession(currentSession);
+      if (!user.isRenter) {
+        await SessionService.clear();
+        return null;
+      }
       await SessionService.saveSession(token: token, user: user.toJson());
       return user;
     } catch (_) {
@@ -34,6 +39,14 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
 
   Future<void> _storeSession(Map<String, dynamic> session) async {
     final user = SessionUser.fromSession(session);
+    if (!user.isRenter) {
+      await SessionService.clear();
+      throw const AppException(
+        'Owner and administrator accounts use the Bike Buddy web portal.',
+        statusCode: 403,
+        code: 'MOBILE_RENTER_ONLY',
+      );
+    }
     await SessionService.saveSession(
       token: session['token'] as String,
       user: user.toJson(),
@@ -100,8 +113,6 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
     await _api.updateProfile(payload);
     await refresh();
   }
-
-  Future<String> uploadImage(String filePath) => _api.uploadImage(filePath);
 
   Future<Map<String, dynamic>> submitKyc(String idDocumentUrl) async {
     final result = await _api.submitKyc(idDocumentUrl);

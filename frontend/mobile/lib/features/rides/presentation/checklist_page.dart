@@ -8,8 +8,8 @@ import 'package:intl/intl.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
+import '../../../core/api/media_upload_api.dart';
 import '../../../core/error/app_exception.dart';
-import '../../auth/presentation/providers/auth_provider.dart';
 import '../../bookings/data/booking_api.dart';
 import '../../bookings/data/booking_model.dart';
 
@@ -133,11 +133,12 @@ class _ChecklistPageState extends ConsumerState<ChecklistPage> {
     setState(() => _busy = true);
     try {
       // Upload evidence photos first, then submit the checklist.
-      final auth = ref.read(authProvider.notifier);
-      final photoUrls = <String>[];
-      for (final photo in _photos) {
-        photoUrls.add(await auth.uploadImage(photo.path));
-      }
+      final photoUrls = await ref
+          .read(mediaUploadApiProvider)
+          .uploadMany(
+            UploadKind.evidence,
+            _photos.map((photo) => photo.path).toList(growable: false),
+          );
 
       await ref
           .read(bookingApiProvider)
