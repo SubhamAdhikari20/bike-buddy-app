@@ -7,6 +7,7 @@ import adminRoutes from "./admin.routes.ts";
 import uploadRoutes from "./upload.routes.ts";
 import safetyRoutes from "./safety.routes.ts";
 import supportRoutes from "./support.routes.ts";
+import notificationRoutes from "./notification.routes.ts";
 
 const apiRoutes = Router();
 
@@ -18,5 +19,6 @@ apiRoutes.use("/admin", adminRoutes);
 apiRoutes.use("/uploads", uploadRoutes);
 apiRoutes.use("/safety", safetyRoutes);
 apiRoutes.use("/support", supportRoutes);
+apiRoutes.use("/notifications", notificationRoutes);
 
 export default apiRoutes;

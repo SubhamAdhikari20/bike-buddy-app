@@ -16,6 +16,7 @@ class LocalStore {
   static const _kRecentSearches = 'recent_searches';
   static const _kBookingDraft = 'booking_draft';
   static const _kThemeMode = 'theme_mode';
+  static const _kNotificationSequences = 'notification_sequences';
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -80,4 +81,42 @@ class LocalStore {
 
   static Future<void> setThemeMode(String mode) =>
       _prefs.setString(_kThemeMode, mode);
+
+  // --- Foreground notification stream resume cursor ---
+
+  /// Last SSE sequence accepted for each signed-in renter. Keeping this
+  /// per-account prevents a shared device from applying one renter's cursor
+  /// to another renter's notification stream.
+  static int? notificationLastSequence(String userId) {
+    final raw = _prefs.getString(_kNotificationSequences);
+    if (raw == null) return null;
+    try {
+      final values = (jsonDecode(raw) as Map).cast<String, dynamic>();
+      return (values[userId] as num?)?.toInt();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<void> setNotificationLastSequence(
+    String userId,
+    int sequence,
+  ) async {
+    if (userId.isEmpty || sequence <= 0) return;
+
+    final values = <String, dynamic>{};
+    final raw = _prefs.getString(_kNotificationSequences);
+    if (raw != null) {
+      try {
+        values.addAll((jsonDecode(raw) as Map).cast<String, dynamic>());
+      } catch (_) {
+        // A malformed non-sensitive cursor cache can safely be replaced.
+      }
+    }
+
+    final previous = (values[userId] as num?)?.toInt() ?? 0;
+    if (sequence <= previous) return;
+    values[userId] = sequence;
+    await _prefs.setString(_kNotificationSequences, jsonEncode(values));
+  }
 }

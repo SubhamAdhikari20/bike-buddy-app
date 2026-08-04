@@ -18,6 +18,7 @@ import '../../features/rides/presentation/damage_report_page.dart';
 import '../../features/rides/presentation/return_page.dart';
 import '../../features/map/presentation/map_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
+import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/profile/presentation/edit_profile_page.dart';
 import '../../features/profile/presentation/privacy_page.dart';
 import '../../features/support/presentation/chat_page.dart';
@@ -56,6 +57,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(path: '/map', builder: (context, state) => const MapPage()),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsPage(),
+      ),
       GoRoute(
         path: '/bike/:bikeId',
         builder: (context, state) =>

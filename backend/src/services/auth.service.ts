@@ -19,6 +19,7 @@ import SosAlertModel from "../models/sos-alert.model.ts";
 import DamageReportModel from "../models/damage-report.model.ts";
 import ReviewModel from "../models/review.model.ts";
 import { deleteLocalUpload } from "../utils/local-media.ts";
+import notificationService from "./notification.service.ts";
 
 const googleClient = new OAuth2Client();
 
@@ -571,6 +572,7 @@ const authService = {
       SosAlertModel.deleteMany({ userId: auth.userId }),
       DamageReportModel.deleteMany({ reportedBy: auth.userId }),
       ReviewModel.deleteMany({ userId: auth.userId }),
+      notificationService.deleteInbox(auth.userId),
     ]);
     if (profile) {
       await repository.deleteById(profile._id.toString());

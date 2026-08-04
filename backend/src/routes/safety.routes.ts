@@ -8,11 +8,9 @@ import AppError from "../errors/AppError.ts";
 import DamageReportModel from "../models/damage-report.model.ts";
 import SosAlertModel from "../models/sos-alert.model.ts";
 import BookingModel from "../models/booking.model.ts";
-import {
-  referencesDocument,
-  toDocumentId,
-} from "../utils/mongo-reference.ts";
+import { referencesDocument, toDocumentId } from "../utils/mongo-reference.ts";
 import damageReportService from "../services/damage-report.service.ts";
+import notificationEvents from "../services/notification-events.service.ts";
 
 const objectIdSchema = z
   .string()
@@ -132,15 +130,12 @@ safetyRoutes.post(
         description: req.body.description,
         status: "open",
       });
+      await notificationEvents.damageCreated(report, booking._id);
 
       res
         .status(201)
         .json(
-          new ApiResponse(
-            201,
-            "Damage report submitted for review",
-            report,
-          ),
+          new ApiResponse(201, "Damage report submitted for review", report),
         );
     } catch (error) {
       next(error);
@@ -155,9 +150,7 @@ safetyRoutes.get("/damage-reports/mine", async (req, res, next) => {
     })
       .sort({ createdAt: -1 })
       .limit(100);
-    res
-      .status(200)
-      .json(new ApiResponse(200, "Your damage reports", reports));
+    res.status(200).json(new ApiResponse(200, "Your damage reports", reports));
   } catch (error) {
     next(error);
   }
@@ -231,18 +224,12 @@ safetyRoutes.patch(
       }
 
       report.status = req.body.status;
-      report.resolvedAt =
-        req.body.status === "resolved" ? new Date() : null;
+      report.resolvedAt = req.body.status === "resolved" ? new Date() : null;
       await report.save();
+      await notificationEvents.damageUpdated(report);
       res
         .status(200)
-        .json(
-          new ApiResponse(
-            200,
-            `Report marked ${report.status}`,
-            report,
-          ),
-        );
+        .json(new ApiResponse(200, `Report marked ${report.status}`, report));
     } catch (error) {
       next(error);
     }
@@ -283,6 +270,7 @@ safetyRoutes.post(
         note: req.body.note ?? null,
         status: "open",
       });
+      await notificationEvents.sosCreated(alert);
 
       res.status(201).json(
         new ApiResponse(
@@ -290,8 +278,7 @@ safetyRoutes.post(
           "Alert recorded for the Bike Buddy support queue",
           {
             alertId: alert._id,
-            locationShared:
-              alert.latitude != null && alert.longitude != null,
+            locationShared: alert.latitude != null && alert.longitude != null,
             nextStep:
               "Call local emergency services now if you are in immediate danger.",
           },
@@ -340,6 +327,7 @@ safetyRoutes.patch(
       }
       alert.status = req.body.status;
       await alert.save();
+      await notificationEvents.sosUpdated(alert);
       res
         .status(200)
         .json(new ApiResponse(200, `Alert marked ${alert.status}`, alert));

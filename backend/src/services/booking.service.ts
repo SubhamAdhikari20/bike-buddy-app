@@ -8,6 +8,7 @@ import type { AuthRole } from "../interfaces/auth.interface.ts";
 import { referencesDocument, toDocumentId } from "../utils/mongo-reference.ts";
 import { amountToMinor } from "./payment-gateway.service.ts";
 import { BOOKING_HOLD_MINUTES } from "../config/index.ts";
+import notificationEvents from "./notification-events.service.ts";
 
 const dayMs = 24 * 60 * 60 * 1000;
 const maxAdvanceDays = 90;
@@ -135,8 +136,7 @@ export const buildCancellationPolicy = (
   now = new Date(),
 ) => {
   const hoursToStart =
-    (new Date(booking.startDate).getTime() - now.getTime()) /
-    (60 * 60 * 1000);
+    (new Date(booking.startDate).getTime() - now.getTime()) / (60 * 60 * 1000);
   const cancellable = ["pending", "confirmed"].includes(booking.status);
   const fullRefund = hoursToStart >= 12;
   const isPaid = booking.paymentStatus === "paid";
@@ -148,10 +148,9 @@ export const buildCancellationPolicy = (
     fullRefund,
     refundPercent,
     refundWorkflowAvailable: !isPaid || demoRefundAvailable,
-    estimatedRefundAmount:
-      isPaid
-        ? Math.round((Number(booking.totalAmount) * refundPercent) / 100)
-        : 0,
+    estimatedRefundAmount: isPaid
+      ? Math.round((Number(booking.totalAmount) * refundPercent) / 100)
+      : 0,
     policyText: !isPaid
       ? "No payment is recorded, so cancellation does not require a refund."
       : fullRefund
@@ -322,58 +321,63 @@ const bookingService = {
     }
 
     validateBookingDates(payload.startDate, payload.endDate);
-    return bookingRepository.withBikeLease(payload.bikeId, async () => {
-      const now = new Date();
-      await bookingRepository.expireUnpaidHolds(now, payload.bikeId);
+    const booking = await bookingRepository.withBikeLease(
+      payload.bikeId,
+      async () => {
+        const now = new Date();
+        await bookingRepository.expireUnpaidHolds(now, payload.bikeId);
 
-      // Re-read inside the cross-process lease so availability cannot be stale
-      // relative to the overlap check and insert.
-      const bike = await bikeRepository.findById(payload.bikeId);
-      if (!bike) {
-        throw new AppError(404, "Bike not found", "NOT_FOUND");
-      }
-      if (bike.status !== "available") {
-        throw new AppError(409, "Bike is currently unavailable", "CONFLICT");
-      }
+        // Re-read inside the cross-process lease so availability cannot be stale
+        // relative to the overlap check and insert.
+        const bike = await bikeRepository.findById(payload.bikeId);
+        if (!bike) {
+          throw new AppError(404, "Bike not found", "NOT_FOUND");
+        }
+        if (bike.status !== "available") {
+          throw new AppError(409, "Bike is currently unavailable", "CONFLICT");
+        }
 
-      const overlap = await bookingRepository.findOverlap(
-        payload.bikeId,
-        payload.startDate,
-        payload.endDate,
-        now,
-      );
-      if (overlap) {
-        throw new AppError(
-          409,
-          "Bike is already booked for the selected period",
-          "CONFLICT",
+        const overlap = await bookingRepository.findOverlap(
+          payload.bikeId,
+          payload.startDate,
+          payload.endDate,
+          now,
         );
-      }
+        if (overlap) {
+          throw new AppError(
+            409,
+            "Bike is already booked for the selected period",
+            "CONFLICT",
+          );
+        }
 
-      const priceBreakdown = buildPriceBreakdown(
-        bike,
-        payload.startDate,
-        payload.endDate,
-      );
-      return bookingRepository.create({
-        bikeId: payload.bikeId,
-        renterId: auth.profileId,
-        ownerId: toDocumentId(bike.ownerId),
-        startDate: payload.startDate,
-        endDate: payload.endDate,
-        pickupLocation: payload.pickupLocation,
-        dropoffLocation: payload.dropoffLocation ?? null,
-        notes: payload.notes ?? null,
-        status: "pending",
-        paymentStatus: "unpaid",
-        holdExpiresAt: holdExpiryFor(payload.startDate, now),
-        holdExpiredAt: null,
-        totalAmount: priceBreakdown.total,
-        currency: "NPR",
-        priceBreakdown,
-        priceLockedAt: now,
-      });
-    });
+        const priceBreakdown = buildPriceBreakdown(
+          bike,
+          payload.startDate,
+          payload.endDate,
+        );
+        return bookingRepository.create({
+          bikeId: payload.bikeId,
+          renterId: auth.profileId,
+          ownerId: toDocumentId(bike.ownerId),
+          startDate: payload.startDate,
+          endDate: payload.endDate,
+          pickupLocation: payload.pickupLocation,
+          dropoffLocation: payload.dropoffLocation ?? null,
+          notes: payload.notes ?? null,
+          status: "pending",
+          paymentStatus: "unpaid",
+          holdExpiresAt: holdExpiryFor(payload.startDate, now),
+          holdExpiredAt: null,
+          totalAmount: priceBreakdown.total,
+          currency: "NPR",
+          priceBreakdown,
+          priceLockedAt: now,
+        });
+      },
+    );
+    await notificationEvents.bookingCreated(booking);
+    return booking;
   },
 
   async getBooking(
@@ -485,6 +489,7 @@ const bookingService = {
       );
     }
     await refreshBikeAvailability(toDocumentId(booking.bikeId) ?? "");
+    await notificationEvents.bookingApproved(updated);
     return updated;
   },
 
@@ -519,8 +524,13 @@ const bookingService = {
           "REFUND_PROVIDER_NOT_CONFIGURED",
         );
       }
-      const payment = await paymentRepository.findSucceededByBookingId(bookingId);
-      if (!payment || payment.status !== "succeeded" || payment.mode !== "demo") {
+      const payment =
+        await paymentRepository.findSucceededByBookingId(bookingId);
+      if (
+        !payment ||
+        payment.status !== "succeeded" ||
+        payment.mode !== "demo"
+      ) {
         throw new AppError(
           409,
           "The successful demo payment could not be reconciled",
@@ -569,6 +579,7 @@ const bookingService = {
       paymentStatus,
     });
     await refreshBikeAvailability(toDocumentId(booking.bikeId) ?? "");
+    await notificationEvents.bookingCancelled(updated ?? booking, auth.userId);
     return { booking: updated, policy, refund };
   },
 
@@ -627,7 +638,10 @@ const bookingService = {
     );
     if (!updated) {
       const current = await bookingRepository.findById(bookingId);
-      if (current && (await persistExpiredHold(current, now)).status === "expired") {
+      if (
+        current &&
+        (await persistExpiredHold(current, now)).status === "expired"
+      ) {
         throw new AppError(
           409,
           "This unpaid booking hold has expired. Create a new booking to choose a payment method.",
@@ -735,6 +749,7 @@ const bookingService = {
             },
           )) ?? payment;
       }
+      await notificationEvents.cashReceived(updatedBooking);
       return {
         booking: updatedBooking,
         payment: finalPayment,
@@ -816,7 +831,7 @@ const bookingService = {
     if (!bikeId) {
       throw new AppError(409, "Booking has no bike reference", "CONFLICT");
     }
-    return bookingRepository.withBikeLease(bikeId, async () => {
+    const updated = await bookingRepository.withBikeLease(bikeId, async () => {
       const now = new Date();
       await bookingRepository.expireUnpaidHolds(now, bikeId);
       const current = await bookingRepository.findById(bookingId);
@@ -849,7 +864,8 @@ const bookingService = {
 
       const expectedStartDate = new Date(activeBooking.startDate);
       const expectedEndDate = new Date(activeBooking.endDate);
-      const durationMs = expectedEndDate.getTime() - expectedStartDate.getTime();
+      const durationMs =
+        expectedEndDate.getTime() - expectedStartDate.getTime();
       const newEndDate = new Date(newStartDate.getTime() + durationMs);
       validateBookingDates(newStartDate, newEndDate);
       const overlap = await bookingRepository.findOverlap(
@@ -901,6 +917,8 @@ const bookingService = {
       }
       return updated;
     });
+    await notificationEvents.bookingRescheduled(updated);
+    return updated;
   },
 
   getCancellationPolicy(booking: any) {
@@ -933,6 +951,7 @@ const bookingService = {
       status: "completed",
     });
     await refreshBikeAvailability(toDocumentId(booking.bikeId) ?? "");
+    await notificationEvents.bookingCompleted(updated ?? booking);
     return updated;
   },
 
@@ -1086,8 +1105,7 @@ const bookingService = {
         {
           endDate: newEndDate,
           extensionHours: Number(current.extensionHours ?? 0) + extraHours,
-          extensionAmount:
-            Number(current.extensionAmount ?? 0) + extensionCost,
+          extensionAmount: Number(current.extensionAmount ?? 0) + extensionCost,
           totalAmount: newTotal,
           ...(currentBreakdown
             ? {
@@ -1152,6 +1170,7 @@ const bookingService = {
     });
 
     await refreshBikeAvailability(toDocumentId(booking.bikeId) ?? "");
+    await notificationEvents.bookingCompleted(updated ?? booking);
 
     return {
       booking: updated,

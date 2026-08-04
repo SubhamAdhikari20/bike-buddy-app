@@ -50,13 +50,19 @@ flutter build apk --debug
    resolve—the damage report.
 8. Submit a breakdown ticket. Verify server-derived priority and the admin
    transition `open → in review → resolved`, never backwards.
-9. Navigate the portal by keyboard at narrow and desktop widths in both themes.
+9. Keep the owner portal and renter app open. Create and approve a booking;
+   verify each recipient sees only their own live update, unread state survives
+   refresh, and a reconnect silently replays anything missed.
+10. Navigate the portal by keyboard at narrow and desktop widths in both
+    themes.
 
 Also confirm an unverified renter is directed to ID verification and the API
 rejects booking creation until KYC is approved.
 
 Runtime integration needs configured MongoDB and email/OAuth credentials.
 Automated schema/service tests do not claim external services are available.
+The notification check demonstrates foreground SSE with durable MongoDB replay,
+not an operating-system push notification or background delivery service.
 
 ## Repeatable video demo
 

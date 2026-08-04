@@ -6,6 +6,7 @@ import { bikeRepository } from "../repositories/bike.repository.ts";
 import { bookingRepository } from "../repositories/booking.repository.ts";
 import { reviewRepository } from "../repositories/review.repository.ts";
 import { paymentRepository } from "../repositories/payment.repository.ts";
+import notificationEvents from "./notification-events.service.ts";
 
 const listWithPagination = async (
   listFn: (
@@ -108,7 +109,9 @@ const adminService = {
       throw new AppError(404, "Bike not found", "NOT_FOUND");
     }
 
-    return bikeRepository.updateById(bikeId, { status });
+    const updated = await bikeRepository.updateById(bikeId, { status });
+    await notificationEvents.bikeStatus(updated ?? bikeId, status);
+    return updated;
   },
 
   async listOwners(query: Record<string, unknown>) {
@@ -130,10 +133,12 @@ const adminService = {
       throw new AppError(404, "Owner not found", "NOT_FOUND");
     }
 
-    return ownerRepository.updateById(ownerId, {
+    const updated = await ownerRepository.updateById(ownerId, {
       ownerStatus: status,
       ownerVerificationDate: status === "verified" ? new Date() : null,
     });
+    await notificationEvents.ownerDecision(updated ?? ownerId, status);
+    return updated;
   },
 
   async reviewKyc(renterId: string, status: "approved" | "rejected") {
@@ -150,7 +155,11 @@ const adminService = {
       );
     }
 
-    return renterRepository.updateById(renterId, { kycStatus: status });
+    const updated = await renterRepository.updateById(renterId, {
+      kycStatus: status,
+    });
+    await notificationEvents.kycDecision(updated ?? renterId, status);
+    return updated;
   },
 
   async listKyc(query: Record<string, unknown>) {
@@ -190,7 +199,17 @@ const adminService = {
       throw new AppError(404, "Booking not found", "NOT_FOUND");
     }
 
-    return bookingRepository.updateById(bookingId, { status });
+    const updated = await bookingRepository.updateById(bookingId, { status });
+    if (status === "confirmed") {
+      await notificationEvents.bookingApproved(updated ?? booking);
+    } else if (status === "rejected") {
+      await notificationEvents.bookingRejected(updated ?? booking);
+    } else if (status === "cancelled") {
+      await notificationEvents.bookingCancelled(updated ?? booking);
+    } else if (status === "completed") {
+      await notificationEvents.bookingCompleted(updated ?? booking);
+    }
+    return updated;
   },
 };
 

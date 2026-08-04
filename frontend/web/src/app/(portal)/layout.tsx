@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Bell,
   Bike,
   CalendarDays,
   Gauge,
@@ -23,6 +24,8 @@ import { useSession } from "@/components/auth/session-provider";
 import { LoadingState } from "@/components/page-state";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notifications/notification-bell";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
 
 const adminNav = [
   { href: "/admin/dashboard", label: "Dashboard", icon: Gauge },
@@ -31,6 +34,7 @@ const adminNav = [
   { href: "/admin/bikes", label: "Bikes", icon: Bike },
   { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/admin/tickets", label: "Support tickets", icon: LifeBuoy },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
@@ -39,6 +43,7 @@ const ownerNav = [
   { href: "/owner/bikes", label: "My bikes", icon: Bike },
   { href: "/owner/bookings", label: "Bookings", icon: CalendarDays },
   { href: "/owner/damages", label: "Damage reports", icon: Wrench },
+  { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
@@ -66,7 +71,9 @@ export default function PortalLayout({
       );
     }
     if (
-      (pathname.startsWith("/owner") || pathname === "/profile") &&
+      (pathname.startsWith("/owner") ||
+        pathname === "/profile" ||
+        pathname === "/notifications") &&
       !["owner", "admin"].includes(session.user.role)
     ) {
       router.replace("/login?notice=renter");
@@ -81,6 +88,8 @@ export default function PortalLayout({
   const roleAllowed =
     (pathname.startsWith("/admin") && session.user.role === "admin") ||
     (pathname.startsWith("/owner") && session.user.role === "owner") ||
+    (pathname === "/notifications" &&
+      ["admin", "owner"].includes(session.user.role)) ||
     pathname === "/profile";
   if (!roleAllowed) return <LoadingState label="Opening the correct portal…" />;
 
@@ -155,71 +164,78 @@ export default function PortalLayout({
   );
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <a
-        href="#main-content"
-        className="fixed left-3 top-3 z-50 -translate-y-20 rounded-lg bg-background px-4 py-2 font-medium shadow focus:translate-y-0"
-      >
-        Skip to content
-      </a>
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-blue-700 text-white lg:flex">
-        {navigation}
-      </aside>
-      {menuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/50"
-            aria-label="Close navigation"
-            onClick={() => setMenuOpen(false)}
-          />
-          <aside className="relative flex h-full w-[min(20rem,85vw)] flex-col bg-blue-700 text-white shadow-xl">
+    <NotificationProvider
+      key={session.user.id}
+      userId={session.user.id}
+      role={session.user.role}
+    >
+      <div className="min-h-screen bg-muted/30">
+        <a
+          href="#main-content"
+          className="fixed left-3 top-3 z-50 -translate-y-20 rounded-lg bg-background px-4 py-2 font-medium shadow focus:translate-y-0"
+        >
+          Skip to content
+        </a>
+        <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col bg-blue-700 text-white lg:flex">
+          {navigation}
+        </aside>
+        {menuOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/50"
+              aria-label="Close navigation"
+              onClick={() => setMenuOpen(false)}
+            />
+            <aside className="relative flex h-full w-[min(20rem,85vw)] flex-col bg-blue-700 text-white shadow-xl">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-3 text-white hover:bg-blue-600 hover:text-white"
+                aria-label="Close menu"
+                onClick={() => setMenuOpen(false)}
+              >
+                <X />
+              </Button>
+              {navigation}
+            </aside>
+          </div>
+        )}
+        <div className="lg:pl-64">
+          <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur sm:px-6">
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="absolute right-3 top-3 text-white hover:bg-blue-600 hover:text-white"
-              aria-label="Close menu"
-              onClick={() => setMenuOpen(false)}
+              className="lg:hidden"
+              aria-label="Open navigation"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
             >
-              <X />
+              <Menu />
             </Button>
-            {navigation}
-          </aside>
-        </div>
-      )}
-      <div className="lg:pl-64">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/95 px-4 backdrop-blur sm:px-6">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="lg:hidden"
-            aria-label="Open navigation"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(true)}
+            <p className="hidden text-sm text-muted-foreground sm:block">
+              {session.user.role === "admin"
+                ? "Platform administration"
+                : `Owner status: ${session.profile.ownerStatus ?? "none"}`}
+            </p>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="sr-only">
+                Signed in as {session.profile.fullName || session.user.email}
+              </span>
+              <NotificationBell role={session.user.role} />
+              <ThemeToggle />
+            </div>
+          </header>
+          <main
+            id="main-content"
+            className="mx-auto max-w-screen-2xl p-4 sm:p-6 lg:p-8"
           >
-            <Menu />
-          </Button>
-          <p className="hidden text-sm text-muted-foreground sm:block">
-            {session.user.role === "admin"
-              ? "Platform administration"
-              : `Owner status: ${session.profile.ownerStatus ?? "none"}`}
-          </p>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="sr-only">
-              Signed in as {session.profile.fullName || session.user.email}
-            </span>
-            <ThemeToggle />
-          </div>
-        </header>
-        <main
-          id="main-content"
-          className="mx-auto max-w-screen-2xl p-4 sm:p-6 lg:p-8"
-        >
-          {children}
-        </main>
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </NotificationProvider>
   );
 }

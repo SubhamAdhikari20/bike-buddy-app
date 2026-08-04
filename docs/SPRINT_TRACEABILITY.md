@@ -25,9 +25,9 @@ misleading Google option.
 | Sprint | User need and pain point | Delivered evidence |
 |---|---|---|
 | 1 — foundation and authentication | People need understandable onboarding and recoverable, role-correct access. | Strict auth schemas; password strength and hashing; HttpOnly web cookie; mobile secure token storage/session restore; register/login/logout; OTP and forgot/reset password; renter-only Google ID-token verification; profile editing and guarded account deletion. |
-| 2 — discovery and trust | Renters cannot easily judge condition, availability, location or owner credibility. | Guest browse; validated search/filter/date queries; overlap-aware availability; map/list discovery; comparison capped at three; bike details, dated evidence, review summaries and verified-owner/bike signals; owner-scoped bike management. |
-| 3 — booking and payment | Manual pricing creates hidden-fee anxiety and booking errors. | Server-calculated quote and locked itemised totals; availability recheck; booking access control; explicit demo-wallet boundary; server-owned payment amount/reference; PDF receipt after successful record; clear success/failure recovery. |
-| 4 — safety, handover and return | Riders and owners need shared condition evidence and honest emergency boundaries. | Mandatory safety checklist and photo evidence; renter-owned active-ride controls; authorised SOS recording with emergency-service guidance; return preview, grace-period calculation, extension conflict checks and owner-scoped damage acknowledgement. |
+| 2 — discovery and trust | Renters cannot easily judge condition, availability, location or owner credibility. | Guest browse; validated search/filter/date queries; overlap-aware availability; OpenStreetMap map/list discovery; comparison capped at three; responsive details, dated evidence, review summaries and verified-owner/bike signals; owner-scoped bike management. |
+| 3 — booking and payment | Manual pricing creates hidden-fee anxiety and booking errors. | Server-calculated and locked itemised totals; per-bike reservation lease and expiring unpaid hold; provider-hosted eSewa UAT/Khalti sandbox checkout; authoritative amount/reference/status verification; owner approval kept separate from payment; test-labelled PDF receipt and clear recovery. |
+| 4 — safety, return and live state | Riders and owners need shared condition evidence, honest emergency boundaries and timely workflow feedback. | Mandatory safety checklist and photo evidence; renter-owned active-ride controls; authorised SOS recording with emergency-service guidance; return preview, grace-period calculation and owner-scoped damage acknowledgement; durable recipient-scoped Mongo inbox with authenticated foreground SSE, replay and unread state for all roles. |
 | 5 — polish, support and accessibility | Users need flexible booking changes, cash handling, visible support state and an inclusive portal. | Reschedule/cancellation preview; cash-at-pickup selection and owner receipt reconciliation; strict support priority/status workflow; responsive shadcn/Base UI portal; owner registration/recovery/profile; dark mode, skip link, keyboard focus, status/error feedback and reduced motion. |
 
 ## Owner portal stories
@@ -49,12 +49,14 @@ the portal acceptance criteria explicit without changing those source records.
   creates a booking; the mobile app explains pending and unverified states.
 - Owners cannot set bike verification, safety score or inspection notes.
   Those moderation fields remain administrator controlled.
-- Wallet payment is a coursework simulation. No UI claims that money was
-  charged, transferred or refunded.
+- Wallet payment is demo or provider sandbox/UAT only. No UI claims that test
+  money was charged, transferred or refunded, and `live` mode fails closed.
 - Cash becomes paid only after the owner records receipt; only then can a
   receipt be generated.
 - Paid live/cash cancellation is blocked until a verified refund workflow
   exists.
+- Live notifications are an in-app foreground SSE inbox with durable replay;
+  they are not operating-system push, SMS or a hosted delivery guarantee.
 - SOS records an alert in Bike Buddy. It does not claim to dispatch responders.
 - Support has priority and visible state, but no fabricated response-time or
   round-the-clock staffing promise.
@@ -63,7 +65,8 @@ the portal acceptance criteria explicit without changing those source records.
 
 ## Known coursework boundaries
 
-Production requires real MongoDB, email, Google OAuth and media-storage
-configuration. A live payment provider, cash-refund operation, staffed chat,
-notification delivery and emergency dispatch integration are deliberately not
-simulated as real services.
+Production requires managed deployment, email, Google OAuth and media-storage
+configuration. Live wallet charging, cash/provider refund operations, staffed
+chat, operating-system notification push, multi-instance instant SSE fan-out
+and emergency dispatch integration are deliberately not presented as complete
+production services.

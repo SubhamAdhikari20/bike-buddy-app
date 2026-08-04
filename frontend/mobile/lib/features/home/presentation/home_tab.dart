@@ -11,6 +11,7 @@ import '../../../core/widgets/loading_view.dart';
 import '../../auth/presentation/providers/auth_provider.dart';
 import '../../bikes/presentation/providers/bikes_provider.dart';
 import '../../bikes/presentation/widgets/bike_card.dart';
+import '../../notifications/presentation/widgets/notification_bell.dart';
 
 /// Home tab from the prototype: location header, search bar, category
 /// chips, "Nearby Bikes" carousel and an "Explore on Map" CTA.
@@ -71,6 +72,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                     ),
                   ),
                 ),
+                if (auth != null) const NotificationBell(),
                 IconButton(
                   onPressed: () => context.push('/support'),
                   tooltip: 'Help & support',
@@ -342,10 +344,7 @@ class _ResumeBookingBanner extends StatelessWidget {
               IconButton(
                 onPressed: onResume,
                 tooltip: 'Continue booking',
-                icon: const Icon(
-                  Icons.arrow_forward,
-                  color: AppColors.primary,
-                ),
+                icon: const Icon(Icons.arrow_forward, color: AppColors.primary),
               ),
               IconButton(
                 onPressed: onDismiss,

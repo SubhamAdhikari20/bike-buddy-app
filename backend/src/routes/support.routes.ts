@@ -8,6 +8,7 @@ import AppError from "../errors/AppError.ts";
 import SupportTicketModel from "../models/support-ticket.model.ts";
 import BookingModel from "../models/booking.model.ts";
 import { referencesDocument } from "../utils/mongo-reference.ts";
+import notificationEvents from "../services/notification-events.service.ts";
 
 const objectIdSchema = z
   .string()
@@ -145,6 +146,7 @@ supportRoutes.post(
         photos: req.body.photos,
         status: "open",
       });
+      await notificationEvents.supportCreated(ticket);
 
       res.status(201).json(
         new ApiResponse(201, "Support ticket created", {
@@ -167,9 +169,7 @@ supportRoutes.get("/tickets/mine", async (req, res, next) => {
     })
       .sort({ createdAt: -1 })
       .limit(100);
-    res
-      .status(200)
-      .json(new ApiResponse(200, "Your support tickets", tickets));
+    res.status(200).json(new ApiResponse(200, "Your support tickets", tickets));
   } catch (error) {
     next(error);
   }
@@ -187,9 +187,7 @@ supportRoutes.get(
       const tickets = await SupportTicketModel.find(filter)
         .sort({ priority: 1, createdAt: -1 })
         .limit(Number(req.query.limit));
-      res
-        .status(200)
-        .json(new ApiResponse(200, "Support tickets", tickets));
+      res.status(200).json(new ApiResponse(200, "Support tickets", tickets));
     } catch (error) {
       next(error);
     }
@@ -222,9 +220,9 @@ supportRoutes.patch(
       }
 
       ticket.status = req.body.status;
-      ticket.resolvedAt =
-        req.body.status === "resolved" ? new Date() : null;
+      ticket.resolvedAt = req.body.status === "resolved" ? new Date() : null;
       await ticket.save();
+      await notificationEvents.supportUpdated(ticket);
       res
         .status(200)
         .json(

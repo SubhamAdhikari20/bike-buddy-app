@@ -33,6 +33,8 @@ sprint backlog and interface prototypes.
   damage reporting
 - Configurable support phone, searchable FAQ and photo tickets with honest
   status tracking; chat is explicitly a preview
+- Durable in-app notification history with foreground live updates, unread
+  state and reconnect replay
 - Light, dark and system themes
 
 **Owner/admin web portal**
@@ -43,6 +45,8 @@ sprint backlog and interface prototypes.
   support workflow
 - Owner fleet dashboard, listing form, booking/cash reconciliation and damage
   acknowledgement
+- Live notification bell, severity-aware Sonner feedback and a responsive
+  notification history for both portal roles
 - Responsive navigation, keyboard focus, skip link, reduced-motion support and
   light/dark themes
 
@@ -180,6 +184,8 @@ Work is separated into `sprint-1` through `sprint-5`, then integrated into
 See [sprint traceability](docs/SPRINT_TRACEABILITY.md),
 [UX heuristic audit](docs/UX_HEURISTIC_AUDIT.md) and
 [verification guide](docs/VERIFICATION.md). The
+[live notification guide](docs/LIVE_NOTIFICATIONS.md) documents the manual
+MongoDB/SSE implementation and its foreground-only boundary. The
 [video demonstration runbook](docs/DEMO_VIDEO_RUNBOOK.md) provides the
 recording sequence, demo values and speaking script.
 

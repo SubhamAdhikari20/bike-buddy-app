@@ -1,5 +1,7 @@
-const API_BASE =
+export const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5050/api/v1";
+
+export const apiUrl = (path: string) => `${API_BASE}${path}`;
 
 export type Role = "admin" | "owner" | "renter";
 
@@ -101,6 +103,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(data ?? {}),
     }),
+  patchEmpty: <T>(path: string) => request<T>(path, { method: "PATCH" }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   upload: (file: File, kind: "profile" | "kyc") => {
     const body = new FormData();

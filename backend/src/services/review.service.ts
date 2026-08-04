@@ -4,6 +4,7 @@ import { bikeRepository } from "../repositories/bike.repository.ts";
 import { reviewRepository } from "../repositories/review.repository.ts";
 import type { AuthRole } from "../interfaces/auth.interface.ts";
 import { referencesDocument, toDocumentId } from "../utils/mongo-reference.ts";
+import notificationEvents from "./notification-events.service.ts";
 
 const recomputeBikeRating = async (bikeId: string) => {
   const stats = await reviewRepository.aggregateStatsByBikeId(bikeId);
@@ -92,6 +93,7 @@ const reviewService = {
     });
 
     await recomputeBikeRating(payload.bikeId);
+    await notificationEvents.reviewCreated(review, payload.bikeId);
     return review;
   },
 

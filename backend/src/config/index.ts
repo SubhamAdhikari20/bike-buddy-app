@@ -18,9 +18,7 @@ export const MONGODB_DNS_SERVERS: string[] = (
   .filter(Boolean);
 const configuredJwtSecret = process.env.JWT_SECRET?.trim();
 const usesLocalMongo =
-  /^mongodb:\/\/(127\.0\.0\.1|localhost|\[::1\])(?::\d+)?\//i.test(
-    MONGODB_URI,
-  );
+  /^mongodb:\/\/(127\.0\.0\.1|localhost|\[::1\])(?::\d+)?\//i.test(MONGODB_URI);
 
 if (
   (IS_PRODUCTION || !usesLocalMongo) &&
@@ -34,12 +32,14 @@ if (
 export const JWT_SECRET: string =
   configuredJwtSecret ||
   "bike-buddy-development-secret-change-before-production";
-const jwtDuration = (name: string, value: string | undefined, fallback: string) => {
+const jwtDuration = (
+  name: string,
+  value: string | undefined,
+  fallback: string,
+) => {
   const duration = value?.trim() || fallback;
   if (/^\d+$/.test(duration)) {
-    throw new Error(
-      `${name} must include a time unit such as 15m, 24h or 30d`,
-    );
+    throw new Error(`${name} must include a time unit such as 15m, 24h or 30d`);
   }
   return duration;
 };
@@ -104,7 +104,9 @@ const parseOrigin = (name: string, value: string | undefined) => {
     parsed.search ||
     parsed.hash
   ) {
-    throw new Error(`${name} must contain only an origin, without credentials, path, query or hash`);
+    throw new Error(
+      `${name} must contain only an origin, without credentials, path, query or hash`,
+    );
   }
   return parsed.origin;
 };
@@ -163,6 +165,41 @@ if (
   throw new Error("BOOKING_HOLD_MINUTES must be an integer from 5 to 60");
 }
 export const BOOKING_HOLD_MINUTES = configuredBookingHoldMinutes;
+
+const boundedNotificationInteger = (
+  name: string,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+) => {
+  const value = Number(process.env[name] ?? fallback);
+  if (!Number.isInteger(value) || value < minimum || value > maximum) {
+    throw new Error(`${name} must be an integer from ${minimum} to ${maximum}`);
+  }
+  return value;
+};
+
+export const NOTIFICATION_RETENTION_DAYS = boundedNotificationInteger(
+  "NOTIFICATION_RETENTION_DAYS",
+  90,
+  7,
+  365,
+);
+export const NOTIFICATION_MAX_CONNECTIONS_PER_USER = boundedNotificationInteger(
+  "NOTIFICATION_MAX_CONNECTIONS_PER_USER",
+  3,
+  1,
+  10,
+);
+export const NOTIFICATION_MAX_CONNECTIONS_TOTAL = boundedNotificationInteger(
+  "NOTIFICATION_MAX_CONNECTIONS_TOTAL",
+  500,
+  10,
+  5000,
+);
+export const NOTIFICATION_REPLAY_LIMIT = 100;
+export const NOTIFICATION_HEARTBEAT_MS = 20_000;
+export const NOTIFICATION_AUTH_RECHECK_MS = 30 * 60_000;
 export const GOOGLE_CLIENT_IDS: string[] = (process.env.GOOGLE_CLIENT_IDS || "")
   .split(",")
   .map((clientId) => clientId.trim())

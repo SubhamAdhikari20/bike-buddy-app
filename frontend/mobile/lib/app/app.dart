@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/services/local_store.dart';
+import '../features/notifications/presentation/widgets/notification_toast_host.dart';
 import 'routes/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -30,6 +31,8 @@ class BikeBuddyApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       routerConfig: router,
+      builder: (context, child) =>
+          NotificationToastHost(child: child ?? const SizedBox.shrink()),
     );
   }
 }

@@ -28,6 +28,7 @@ import {
   hashCheckoutToken,
   verifyCheckoutToken,
 } from "../utils/payment-checkout.ts";
+import notificationEvents from "./notification-events.service.ts";
 
 type PaymentAuth = {
   userId: string;
@@ -150,8 +151,7 @@ const toPaymentStatus = (payment: any) => ({
   provider: payment.provider,
   mode: payment.mode,
   status: payment.status,
-  paid:
-    payment.status === "succeeded" && !payment.reconciliationRequired,
+  paid: payment.status === "succeeded" && !payment.reconciliationRequired,
   terminal:
     !payment.reconciliationRequired &&
     ["succeeded", "failed", "refunded"].includes(payment.status),
@@ -232,7 +232,9 @@ const callbackUrl = (path: string) => `${requireSandboxCallbackBase()}${path}`;
 
 const reconcileBookingForPayment = async (payment: any) => {
   const bookingId = bookingIdOf(payment);
-  const booking = bookingId ? await bookingRepository.findById(bookingId) : null;
+  const booking = bookingId
+    ? await bookingRepository.findById(bookingId)
+    : null;
   if (!booking) {
     throw new AppError(
       409,
@@ -342,7 +344,7 @@ const applyProviderVerification = async (
     // A retry may only reconcile the already-recorded terminal state. It can
     // never replace one terminal outcome with another.
     if (resolved.status !== verification.state) {
-      return paymentRepository.updateById(paymentId, {
+      const conflicted = await paymentRepository.updateById(paymentId, {
         providerStatus: verification.providerStatus,
         providerTransactionId: verification.providerTransactionId,
         verifiedAt: new Date(),
@@ -350,10 +352,18 @@ const applyProviderVerification = async (
         reconciliationMessage:
           "The provider's verified result arrived after Bike Buddy had already closed this payment. Manual reconciliation is required.",
       });
+      await notificationEvents.paymentState(
+        conflicted ?? resolved,
+        resolved.bookingId,
+      );
+      return conflicted;
     }
   }
   await reconcileBookingForPayment(resolved);
-  return (await paymentRepository.findById(paymentId)) ?? resolved;
+  const finalPayment =
+    (await paymentRepository.findById(paymentId)) ?? resolved;
+  await notificationEvents.paymentState(finalPayment, finalPayment.bookingId);
+  return finalPayment;
 };
 
 const lookupSandboxPayment = async (paymentId: string) => {
@@ -362,7 +372,10 @@ const lookupSandboxPayment = async (paymentId: string) => {
   if (payment.mode !== "sandbox") return payment;
   if (payment.status !== "pending") {
     await reconcileBookingForPayment(payment);
-    return (await paymentRepository.findById(paymentId)) ?? payment;
+    const finalPayment =
+      (await paymentRepository.findById(paymentId)) ?? payment;
+    await notificationEvents.paymentState(finalPayment, finalPayment.bookingId);
+    return finalPayment;
   }
 
   const now = new Date();
@@ -578,7 +591,11 @@ const rejectIneligiblePaymentClaim = async (
   }
 
   const current = await bookingRepository.findById(bookingId);
-  if (!current || current.status === "expired" || isExpiredUnpaidHold(current, now)) {
+  if (
+    !current ||
+    current.status === "expired" ||
+    isExpiredUnpaidHold(current, now)
+  ) {
     throw new AppError(
       409,
       "This unpaid booking hold has expired. Create a new booking to pay.",
@@ -798,6 +815,7 @@ const paymentService = {
     await reconcileBookingForPayment(resolved);
     const finalPayment =
       (await paymentRepository.findById(paymentId)) ?? resolved;
+    await notificationEvents.paymentState(finalPayment, finalPayment.bookingId);
     const succeeded =
       finalPayment.status === "succeeded" &&
       !finalPayment.reconciliationRequired;
@@ -986,7 +1004,8 @@ const paymentService = {
         "PROVIDER_VERIFICATION_REQUIRED",
       );
     }
-    const expectedStatus = payload.status === "refunded" ? "succeeded" : "pending";
+    const expectedStatus =
+      payload.status === "refunded" ? "succeeded" : "pending";
     if (payment.status !== expectedStatus) {
       throw new AppError(
         409,
@@ -1005,7 +1024,11 @@ const paymentService = {
       },
     );
     if (!updated) {
-      throw new AppError(409, "Payment state changed; refresh and retry", "CONFLICT");
+      throw new AppError(
+        409,
+        "Payment state changed; refresh and retry",
+        "CONFLICT",
+      );
     }
     await reconcileBookingForPayment(updated);
     return toSafePayment(updated);
