@@ -26,6 +26,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { NotificationProvider } from "@/components/notifications/notification-provider";
+import { PortalProfileMenu } from "@/components/portal-profile-menu";
 
 const adminNav = [
   { href: "/admin/dashboard", label: "Dashboard", icon: Gauge },
@@ -226,6 +227,7 @@ export default function PortalLayout({
               </span>
               <NotificationBell role={session.user.role} />
               <ThemeToggle />
+              <PortalProfileMenu session={session} onSignOut={signOut} />
             </div>
           </header>
           <main

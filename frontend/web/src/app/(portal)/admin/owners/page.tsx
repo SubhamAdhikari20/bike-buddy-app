@@ -3,8 +3,9 @@
 // Verification Center (TR-01): approve or reject bike owners. The green
 // verified badge in the app comes from this decision.
 import { useCallback, useEffect, useState } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { TableActionsMenu } from "@/components/table-actions-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -122,29 +123,42 @@ export default function AdminOwnersPage() {
                   <TableCell className="max-w-xs truncate text-muted-foreground">
                     {owner.bio ?? "-"}
                   </TableCell>
-                  <TableCell className="space-x-2 text-right">
-                    {owner.ownerStatus !== "verified" && (
-                      <ConfirmActionDialog
-                        triggerLabel="Approve"
-                        triggerVariant="default"
-                        confirmVariant="default"
-                        disabled={busyId === owner._id}
-                        title={`Approve ${owner.fullName}'s owner account?`}
-                        description="This records an administrator approval and makes the owner's available listings eligible for public discovery. It does not certify ownership papers that are not stored here."
-                        confirmLabel="Approve owner"
-                        onConfirm={() => decide(owner._id, "verified")}
-                      />
-                    )}
-                    {owner.ownerStatus !== "rejected" && (
-                      <ConfirmActionDialog
-                        triggerLabel="Reject"
-                        disabled={busyId === owner._id}
-                        title={`Reject ${owner.fullName}'s owner account?`}
-                        description="The owner's bikes will be suppressed from renter discovery until an administrator approves the account."
-                        confirmLabel="Reject owner"
-                        onConfirm={() => decide(owner._id, "rejected")}
-                      />
-                    )}
+                  <TableCell className="text-right">
+                    <TableActionsMenu
+                      label={`Actions for ${owner.fullName}`}
+                      actions={[
+                        {
+                          label: "Approve owner",
+                          icon: <CheckCircle2 aria-hidden="true" />,
+                          disabled:
+                            owner.ownerStatus === "verified" ||
+                            busyId === owner._id,
+                          confirmation: {
+                            title: `Approve ${owner.fullName}'s owner account?`,
+                            description:
+                              "This records administrator approval and makes the owner's available listings eligible for renter discovery.",
+                            confirmLabel: "Approve owner",
+                          },
+                          onSelect: () => decide(owner._id, "verified"),
+                        },
+                        {
+                          label: "Reject owner",
+                          icon: <XCircle aria-hidden="true" />,
+                          disabled:
+                            owner.ownerStatus === "rejected" ||
+                            busyId === owner._id,
+                          destructive: true,
+                          separatorBefore: true,
+                          confirmation: {
+                            title: `Reject ${owner.fullName}'s owner account?`,
+                            description:
+                              "The owner's bikes will be hidden from renter discovery until an administrator approves the account.",
+                            confirmLabel: "Reject owner",
+                          },
+                          onSelect: () => decide(owner._id, "rejected"),
+                        },
+                      ]}
+                    />
                   </TableCell>
                 </TableRow>
               ))}

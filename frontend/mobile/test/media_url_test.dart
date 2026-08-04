@@ -5,6 +5,21 @@ import 'package:bike_buddy/core/utils/media_url.dart';
 import 'package:bike_buddy/features/bikes/data/bike_model.dart';
 
 void main() {
+  test('relative upload paths use the configured API origin', () {
+    final apiBase = Uri.parse(AppConstants.baseUrl);
+    final publicUrl = Uri.parse(
+      resolveMediaUrl('/uploads/bike/demo/pulsar-220f-1.jpg'),
+    );
+    final protectedUrl = Uri.parse(
+      resolveMediaUrl('/api/v1/uploads/kyc/demo-renter-id.png'),
+    );
+
+    expect(publicUrl.host, apiBase.host);
+    expect(publicUrl.port, apiBase.port);
+    expect(publicUrl.path, '/uploads/bike/demo/pulsar-220f-1.jpg');
+    expect(protectedUrl.path, '/api/v1/uploads/kyc/demo-renter-id.png');
+  });
+
   test('owner-uploaded photos are pointed at the host the app can reach', () {
     final apiHost = Uri.parse(AppConstants.baseUrl).host;
     final resolved = resolveMediaUrl(
@@ -31,7 +46,11 @@ void main() {
         {'url': 'http://localhost:5050/uploads/bike/one.png'},
         {'url': 'https://images.unsplash.com/photo-9?w=800'},
       ],
-      'location': {'label': 'Thamel Hub', 'address': 'Thamel', 'city': 'Kathmandu'},
+      'location': {
+        'label': 'Thamel Hub',
+        'address': 'Thamel',
+        'city': 'Kathmandu',
+      },
     });
 
     final apiHost = Uri.parse(AppConstants.baseUrl).host;

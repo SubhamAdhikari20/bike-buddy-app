@@ -26,7 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { api, type AuthSession } from "@/lib/api";
+import { api, mediaUrl, type AuthSession } from "@/lib/api";
 
 const acceptedAvatarTypes = ["image/jpeg", "image/png", "image/webp"];
 const maxAvatarBytes = 5 * 1024 * 1024;
@@ -67,6 +67,7 @@ function ProfileForm({
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     session.profile.profilePictureUrl ?? null,
   );
+  console.log("ProfilePictureUrl:", session.profile.profilePictureUrl);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -178,7 +179,7 @@ function ProfileForm({
                   // User avatars can be returned from the local API or Google.
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={avatarUrl}
+                    src={mediaUrl(avatarUrl)}
                     alt={`${fullName || "User"} profile`}
                     className="size-full object-cover"
                   />

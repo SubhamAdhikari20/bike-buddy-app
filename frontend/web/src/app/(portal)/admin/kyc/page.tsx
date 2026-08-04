@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ExternalLink, IdCard, Loader2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ExternalLink,
+  IdCard,
+  Loader2,
+  XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
-import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { TableActionsMenu } from "@/components/table-actions-menu";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -20,7 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 
 type KycStatus = "unverified" | "pending" | "approved" | "rejected";
 
@@ -98,29 +104,53 @@ export default function AdminKycPage() {
     }
   };
 
-  const actions = (request: KycRequest) =>
-    request.kycStatus !== "pending" ? (
-      <span className="text-sm text-muted-foreground">Review complete</span>
-    ) : (
-      <div className="flex flex-wrap gap-2">
-        <ConfirmActionDialog
-          triggerLabel="Approve"
-          triggerVariant="default"
-          confirmVariant="default"
-          title={`Approve ${request.fullName}'s ID?`}
-          description="This immediately allows the renter to request a bike booking. Confirm that the submitted document is readable and matches the profile."
-          confirmLabel="Approve ID"
-          onConfirm={() => decide(request, "approved")}
-        />
-        <ConfirmActionDialog
-          triggerLabel="Reject"
-          title={`Reject ${request.fullName}'s ID?`}
-          description="The renter will remain unable to book and will need to upload a clearer or valid document."
-          confirmLabel="Reject ID"
-          onConfirm={() => decide(request, "rejected")}
-        />
-      </div>
-    );
+  const actions = (request: KycRequest) => (
+    <TableActionsMenu
+      label={`Actions for ${request.fullName}'s verification`}
+      actions={[
+        {
+          label: "View private ID",
+          icon: <ExternalLink aria-hidden="true" />,
+          disabled: !request.idDocumentUrl,
+          onSelect: () => {
+            if (request.idDocumentUrl) {
+              window.open(
+                mediaUrl(request.idDocumentUrl),
+                "_blank",
+                "noopener,noreferrer",
+              );
+            }
+          },
+        },
+        {
+          label: "Approve ID",
+          icon: <CheckCircle2 aria-hidden="true" />,
+          disabled: request.kycStatus !== "pending",
+          separatorBefore: true,
+          confirmation: {
+            title: `Approve ${request.fullName}'s ID?`,
+            description:
+              "This immediately allows the renter to request a booking. Confirm that the document is readable and matches the profile.",
+            confirmLabel: "Approve ID",
+          },
+          onSelect: () => decide(request, "approved"),
+        },
+        {
+          label: "Reject ID",
+          icon: <XCircle aria-hidden="true" />,
+          disabled: request.kycStatus !== "pending",
+          destructive: true,
+          confirmation: {
+            title: `Reject ${request.fullName}'s ID?`,
+            description:
+              "The renter will remain unable to book and must upload a clearer or valid document.",
+            confirmLabel: "Reject ID",
+          },
+          onSelect: () => decide(request, "rejected"),
+        },
+      ]}
+    />
+  );
 
   return (
     <div className="space-y-6">
@@ -201,7 +231,7 @@ export default function AdminKycPage() {
                     </div>
                     {request.idDocumentUrl ? (
                       <a
-                        href={request.idDocumentUrl}
+                        href={mediaUrl(request.idDocumentUrl)}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-blue-700 underline-offset-4 hover:underline"
@@ -226,7 +256,7 @@ export default function AdminKycPage() {
                       <TableHead>Submitted</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Document</TableHead>
-                      <TableHead>Actions</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -253,7 +283,7 @@ export default function AdminKycPage() {
                         <TableCell>
                           {request.idDocumentUrl ? (
                             <a
-                              href={request.idDocumentUrl}
+                              href={mediaUrl(request.idDocumentUrl)}
                               target="_blank"
                               rel="noreferrer"
                               className="inline-flex items-center gap-1 text-blue-700 hover:underline"
@@ -264,7 +294,9 @@ export default function AdminKycPage() {
                             "—"
                           )}
                         </TableCell>
-                        <TableCell>{actions(request)}</TableCell>
+                        <TableCell className="text-right">
+                          {actions(request)}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

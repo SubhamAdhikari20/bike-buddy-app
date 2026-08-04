@@ -12,7 +12,7 @@ import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { api } from "@/lib/api";
+import { api, mediaUrl } from "@/lib/api";
 
 export type BikeImage = {
   url: string;
@@ -170,7 +170,7 @@ export function BikeImageManager({ images, onChange, disabled }: Props) {
                 {/* Plain img: listing photos can point at any host. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={image.url}
+                  src={mediaUrl(image.url)}
                   alt={image.alt || `Bike photo ${index + 1}`}
                   className="h-36 w-full rounded object-cover"
                 />

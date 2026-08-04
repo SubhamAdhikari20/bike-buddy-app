@@ -8,6 +8,7 @@ import {
   termsAndConditionsValidation,
   roleValidation,
 } from "./user.schema.ts";
+import { mediaUrlValidation } from "./media.schema.ts";
 
 export const loginSchema = z
   .object({
@@ -34,7 +35,7 @@ export const registerOwnerSchema = z
     phoneNumber: phoneNumberValidation,
     password: passwordValidation,
     bio: bioValidation,
-    profilePictureUrl: z.string().url().nullish(),
+    profilePictureUrl: mediaUrlValidation.nullish(),
   })
   .strict();
 
@@ -43,7 +44,7 @@ export const updateProfileSchema = z
     fullName: fullNameValidation.optional(),
     phoneNumber: phoneNumberValidation.nullish().optional(),
     bio: bioValidation.optional(),
-    profilePictureUrl: z.string().url().nullish().optional(),
+    profilePictureUrl: mediaUrlValidation.nullish().optional(),
   })
   .strict();
 
@@ -98,6 +99,6 @@ export const verifyOtpSchema = z
 
 export const submitKycSchema = z
   .object({
-    idDocumentUrl: z.string().url(),
+    idDocumentUrl: mediaUrlValidation,
   })
   .strict();

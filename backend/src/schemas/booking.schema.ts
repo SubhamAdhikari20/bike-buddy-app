@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mediaUrlValidation } from "./media.schema.ts";
 
 export const quoteBookingSchema = z
   .object({
@@ -62,7 +63,7 @@ export const checklistSchema = z
       )
       .length(checklistKeys.length),
     photos: z
-      .array(z.string().url())
+      .array(mediaUrlValidation)
       .min(1, "Add at least one handover photo")
       .max(5),
     acknowledged: z.literal(true),

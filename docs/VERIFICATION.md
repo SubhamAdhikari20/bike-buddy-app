@@ -55,6 +55,12 @@ flutter build apk --debug
    refresh, and a reconnect silently replays anything missed.
 10. Navigate the portal by keyboard at narrow and desktop widths in both
     themes.
+11. Re-seed, then verify the bike detail galleries show local images in the web
+    portal and Flutter carousel. Confirm profile avatars render and protected
+    KYC/evidence files return `403` or `404` to an unrelated account.
+12. Open each listing table's three-dot action menu by mouse and keyboard;
+    verify destructive/status-changing actions require confirmation and emit
+    an appropriate Sonner success or error message.
 
 Also confirm an unverified renter is directed to ID verification and the API
 rejects booking creation until KYC is approved.
@@ -75,3 +81,6 @@ Run `npm run demo:verify` while the backend is listening to prove owner-scoped
 bike create, read, update and delete through the real HTTP API. See
 [DEMO_VIDEO_RUNBOOK.md](DEMO_VIDEO_RUNBOOK.md) for the filming order and
 speaking script.
+
+Image sources and synthetic-fixture boundaries are listed in
+[DEMO_MEDIA_ATTRIBUTION.md](DEMO_MEDIA_ATTRIBUTION.md).

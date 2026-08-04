@@ -39,13 +39,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { api } from "@/lib/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api, mediaUrl } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type PortalRole = "admin" | "owner";
@@ -165,7 +160,8 @@ const bikeStatusClasses: Record<BikeDetails["status"], string> = {
 
 const bookingStatusClasses: Record<BookingRow["status"], string> = {
   pending: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  confirmed: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
+  confirmed:
+    "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
   completed: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200",
   cancelled: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-200",
   rejected: "bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200",
@@ -195,14 +191,14 @@ const formatDate = (value?: string | null, includeTime = false) => {
     day: "numeric",
     month: "short",
     year: "numeric",
-    ...(includeTime
-      ? ({ hour: "2-digit", minute: "2-digit" } as const)
-      : {}),
+    ...(includeTime ? ({ hour: "2-digit", minute: "2-digit" } as const) : {}),
   });
 };
 
 const errorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : "Something went wrong. Please try again.";
+  error instanceof Error
+    ? error.message
+    : "Something went wrong. Please try again.";
 
 const bookingReference = (id: string) => `#${id.slice(-6).toUpperCase()}`;
 
@@ -235,7 +231,13 @@ const fetchManagementDetails = async (
   };
 };
 
-function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
+function DetailItem({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="min-w-0 rounded-lg border bg-muted/20 p-3">
       <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -293,7 +295,7 @@ function BikeGallery({ bike }: { bike: BikeDetails }) {
         {/* Listing media can be hosted by the API or an approved demo image host. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={current.url}
+          src={mediaUrl(current.url)}
           alt={current.alt || `${bike.title}, photo ${selected + 1}`}
           className="aspect-[16/10] min-h-64 w-full object-cover"
         />
@@ -322,7 +324,11 @@ function BikeGallery({ bike }: { bike: BikeDetails }) {
         )}
       </div>
       {images.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1" role="list" aria-label="Bike photos">
+        <div
+          className="flex gap-2 overflow-x-auto pb-1"
+          role="list"
+          aria-label="Bike photos"
+        >
           {images.map((image, index) => (
             <div role="listitem" key={`${image.url}-${index}`}>
               <button
@@ -337,7 +343,7 @@ function BikeGallery({ bike }: { bike: BikeDetails }) {
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={image.url}
+                  src={mediaUrl(image.url)}
                   alt=""
                   className="h-20 w-28 object-cover"
                 />
@@ -353,7 +359,10 @@ function BikeGallery({ bike }: { bike: BikeDetails }) {
 function Rating({ value }: { value: number }) {
   const safeValue = Math.max(0, Math.min(5, Number(value) || 0));
   return (
-    <span className="inline-flex items-center gap-0.5" aria-label={`${safeValue} out of 5 stars`}>
+    <span
+      className="inline-flex items-center gap-0.5"
+      aria-label={`${safeValue} out of 5 stars`}
+    >
       {Array.from({ length: 5 }, (_, index) => (
         <Star
           key={index}
@@ -469,7 +478,9 @@ export function BikeManagementDetails({
         { status },
       );
       toast.success(
-        status === "reviewed" ? "Damage report acknowledged" : "Damage report resolved",
+        status === "reviewed"
+          ? "Damage report acknowledged"
+          : "Damage report resolved",
         {
           description:
             status === "reviewed"
@@ -557,8 +568,14 @@ export function BikeManagementDetails({
           <BikeGallery bike={bike} />
 
           <Tabs defaultValue="overview" className="min-w-0">
-            <div className="overflow-x-auto pb-1" aria-label="Bike detail sections">
-              <TabsList className="h-auto min-h-11 min-w-max" aria-label="Bike details">
+            <div
+              className="overflow-x-auto pb-1"
+              aria-label="Bike detail sections"
+            >
+              <TabsList
+                className="h-auto min-h-11 min-w-max"
+                aria-label="Bike details"
+              >
                 <TabsTrigger value="overview" className="min-h-10 px-3">
                   Overview
                 </TabsTrigger>
@@ -587,7 +604,8 @@ export function BikeManagementDetails({
                 </CardHeader>
                 <CardContent className="space-y-5">
                   <p className="leading-6 text-muted-foreground">
-                    {bike.description?.trim() || "No listing description has been added."}
+                    {bike.description?.trim() ||
+                      "No listing description has been added."}
                   </p>
                   <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <DetailItem label="Brand" value={bike.brand} />
@@ -599,11 +617,19 @@ export function BikeManagementDetails({
                       label="Transmission"
                       value={pretty(bike.transmission)}
                     />
-                    <DetailItem label="Category" value={pretty(bike.category)} />
-                    <DetailItem label="Condition" value={pretty(bike.condition)} />
+                    <DetailItem
+                      label="Category"
+                      value={pretty(bike.category)}
+                    />
+                    <DetailItem
+                      label="Condition"
+                      value={pretty(bike.condition)}
+                    />
                     <DetailItem
                       label="Helmet"
-                      value={bike.specs?.helmetIncluded ? "Included" : "Not included"}
+                      value={
+                        bike.specs?.helmetIncluded ? "Included" : "Not included"
+                      }
                     />
                     <DetailItem
                       label="Mileage"
@@ -637,11 +663,16 @@ export function BikeManagementDetails({
                 <Card>
                   <CardHeader>
                     <CardTitle>Pickup location</CardTitle>
-                    <CardDescription>Listing location, not renter location data.</CardDescription>
+                    <CardDescription>
+                      Listing location, not renter location data.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <MapPin className="mt-0.5 size-5 text-blue-700" aria-hidden="true" />
+                      <MapPin
+                        className="mt-0.5 size-5 text-blue-700"
+                        aria-hidden="true"
+                      />
                       <div>
                         <p className="font-medium">{bike.location.label}</p>
                         <p className="text-muted-foreground">
@@ -662,7 +693,9 @@ export function BikeManagementDetails({
                 <Card>
                   <CardHeader>
                     <CardTitle>Condition and inspection</CardTitle>
-                    <CardDescription>Latest recorded maintenance context.</CardDescription>
+                    <CardDescription>
+                      Latest recorded maintenance context.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <dl className="grid gap-3 sm:grid-cols-2">
@@ -680,7 +713,8 @@ export function BikeManagementDetails({
                         Inspection notes
                       </p>
                       <p className="mt-1 leading-6">
-                        {bike.inspectionNotes?.trim() || "No inspection note recorded."}
+                        {bike.inspectionNotes?.trim() ||
+                          "No inspection note recorded."}
                       </p>
                     </div>
                   </CardContent>
@@ -693,7 +727,8 @@ export function BikeManagementDetails({
                 <CardHeader>
                   <CardTitle>Booking history</CardTitle>
                   <CardDescription>
-                    Rental status and payment state. Renter personal details are hidden.
+                    Rental status and payment state. Renter personal details are
+                    hidden.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -706,23 +741,45 @@ export function BikeManagementDetails({
                     <>
                       <div className="space-y-3 md:hidden">
                         {bookings.map((booking) => (
-                          <article key={booking._id} className="space-y-3 rounded-lg border p-4">
+                          <article
+                            key={booking._id}
+                            className="space-y-3 rounded-lg border p-4"
+                          >
                             <div className="flex flex-wrap items-start justify-between gap-2">
                               <div>
                                 <p className="font-mono text-xs text-muted-foreground">
                                   {bookingReference(booking._id)}
                                 </p>
-                                <p className="mt-1 font-medium">Verified renter</p>
+                                <p className="mt-1 font-medium">
+                                  Verified renter
+                                </p>
                               </div>
-                              <Badge className={bookingStatusClasses[booking.status]}>
+                              <Badge
+                                className={bookingStatusClasses[booking.status]}
+                              >
                                 {pretty(booking.status)}
                               </Badge>
                             </div>
                             <dl className="grid grid-cols-2 gap-3 text-sm">
-                              <DetailItem label="Starts" value={formatDate(booking.startDate, true)} />
-                              <DetailItem label="Ends" value={formatDate(booking.endDate, true)} />
-                              <DetailItem label="Total" value={money(booking.totalAmount, booking.currency)} />
-                              <DetailItem label="Payment" value={pretty(booking.paymentStatus)} />
+                              <DetailItem
+                                label="Starts"
+                                value={formatDate(booking.startDate, true)}
+                              />
+                              <DetailItem
+                                label="Ends"
+                                value={formatDate(booking.endDate, true)}
+                              />
+                              <DetailItem
+                                label="Total"
+                                value={money(
+                                  booking.totalAmount,
+                                  booking.currency,
+                                )}
+                              />
+                              <DetailItem
+                                label="Payment"
+                                value={pretty(booking.paymentStatus)}
+                              />
                             </dl>
                           </article>
                         ))}
@@ -747,19 +804,30 @@ export function BikeManagementDetails({
                                 </TableCell>
                                 <TableCell>
                                   <span className="inline-flex items-center gap-1.5">
-                                    <ShieldCheck className="size-4 text-green-700" aria-hidden="true" />
+                                    <ShieldCheck
+                                      className="size-4 text-green-700"
+                                      aria-hidden="true"
+                                    />
                                     Verified renter
                                   </span>
                                 </TableCell>
                                 <TableCell>
-                                  <span className="block">{formatDate(booking.startDate, true)}</span>
+                                  <span className="block">
+                                    {formatDate(booking.startDate, true)}
+                                  </span>
                                   <span className="block text-xs text-muted-foreground">
                                     to {formatDate(booking.endDate, true)}
                                   </span>
                                 </TableCell>
-                                <TableCell>{money(booking.totalAmount, booking.currency)}</TableCell>
                                 <TableCell>
-                                  <Badge className={bookingStatusClasses[booking.status]}>
+                                  {money(booking.totalAmount, booking.currency)}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    className={
+                                      bookingStatusClasses[booking.status]
+                                    }
+                                  >
                                     {pretty(booking.status)}
                                   </Badge>
                                 </TableCell>
@@ -782,7 +850,8 @@ export function BikeManagementDetails({
                 <CardHeader>
                   <CardTitle>Public renter reviews</CardTitle>
                   <CardDescription>
-                    Feedback from completed rides. Reviewer identity is intentionally private.
+                    Feedback from completed rides. Reviewer identity is
+                    intentionally private.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -794,11 +863,17 @@ export function BikeManagementDetails({
                   ) : (
                     <div className="grid gap-4 lg:grid-cols-2">
                       {reviews.map((review) => (
-                        <article key={review._id} className="rounded-lg border p-4">
+                        <article
+                          key={review._id}
+                          className="rounded-lg border p-4"
+                        >
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <p className="flex items-center gap-1.5 font-medium">
-                                <ShieldCheck className="size-4 text-green-700" aria-hidden="true" />
+                                <ShieldCheck
+                                  className="size-4 text-green-700"
+                                  aria-hidden="true"
+                                />
                                 Verified renter
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
@@ -842,10 +917,14 @@ export function BikeManagementDetails({
                         const canAct =
                           (role === "owner" && report.status === "open") ||
                           (role === "admin" && report.status !== "resolved");
-                        const nextReportStatus = role === "owner" ? "reviewed" : "resolved";
+                        const nextReportStatus =
+                          role === "owner" ? "reviewed" : "resolved";
 
                         return (
-                          <article key={report._id} className="space-y-4 rounded-lg border p-4">
+                          <article
+                            key={report._id}
+                            className="space-y-4 rounded-lg border p-4"
+                          >
                             <div className="flex flex-wrap items-start justify-between gap-2">
                               <div>
                                 <p className="font-medium">
@@ -858,7 +937,9 @@ export function BikeManagementDetails({
                                     : ""}
                                 </p>
                               </div>
-                              <Badge className={damageStatusClasses[report.status]}>
+                              <Badge
+                                className={damageStatusClasses[report.status]}
+                              >
                                 {pretty(report.status)}
                               </Badge>
                             </div>
@@ -866,11 +947,14 @@ export function BikeManagementDetails({
                               {report.description}
                             </p>
                             {report.photos.length > 0 && (
-                              <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Damage evidence photos">
+                              <div
+                                className="flex gap-2 overflow-x-auto pb-1"
+                                aria-label="Damage evidence photos"
+                              >
                                 {report.photos.map((photo, index) => (
                                   <a
                                     key={`${photo}-${index}`}
-                                    href={photo}
+                                    href={mediaUrl(photo)}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="shrink-0 rounded-lg focus-visible:ring-2 focus-visible:ring-ring"
@@ -878,7 +962,7 @@ export function BikeManagementDetails({
                                   >
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
-                                      src={photo}
+                                      src={mediaUrl(photo)}
                                       alt={`Damage evidence ${index + 1}`}
                                       className="h-24 w-32 rounded-lg border object-cover"
                                     />
@@ -889,10 +973,14 @@ export function BikeManagementDetails({
                             {canAct && (
                               <ConfirmActionDialog
                                 triggerLabel={
-                                  role === "owner" ? "Acknowledge report" : "Resolve report"
+                                  role === "owner"
+                                    ? "Acknowledge report"
+                                    : "Resolve report"
                                 }
                                 triggerClassName="min-h-10"
-                                confirmVariant={role === "owner" ? "default" : "destructive"}
+                                confirmVariant={
+                                  role === "owner" ? "default" : "destructive"
+                                }
                                 title={
                                   role === "owner"
                                     ? "Acknowledge this damage report?"
@@ -903,8 +991,12 @@ export function BikeManagementDetails({
                                     ? "This confirms you reviewed the submitted evidence. An administrator remains responsible for resolving a dispute."
                                     : "This closes the report in the audit history. Review its evidence before continuing."
                                 }
-                                confirmLabel={role === "owner" ? "Acknowledge" : "Resolve"}
-                                onConfirm={() => updateDamageStatus(report, nextReportStatus)}
+                                confirmLabel={
+                                  role === "owner" ? "Acknowledge" : "Resolve"
+                                }
+                                onConfirm={() =>
+                                  updateDamageStatus(report, nextReportStatus)
+                                }
                               />
                             )}
                           </article>
@@ -918,17 +1010,38 @@ export function BikeManagementDetails({
           </Tabs>
         </div>
 
-        <aside className="space-y-4 xl:sticky xl:top-24" aria-label="Bike summary and actions">
+        <aside
+          className="space-y-4 xl:sticky xl:top-24"
+          aria-label="Bike summary and actions"
+        >
           <Card>
             <CardHeader>
               <CardTitle>Management summary</CardTitle>
-              <CardDescription>Live, role-safe listing indicators.</CardDescription>
+              <CardDescription>
+                Live, role-safe listing indicators.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Metric icon={CircleDollarSign} label="Daily rate" value={money(bike.pricePerDay)} />
-              <Metric icon={CalendarDays} label="Active bookings" value={metrics.activeBookings} />
-              <Metric icon={CheckCircle2} label="Completed bookings" value={metrics.completedBookings} />
-              <Metric icon={CircleDollarSign} label="Paid booking value" value={money(metrics.paidRevenue)} />
+              <Metric
+                icon={CircleDollarSign}
+                label="Daily rate"
+                value={money(bike.pricePerDay)}
+              />
+              <Metric
+                icon={CalendarDays}
+                label="Active bookings"
+                value={metrics.activeBookings}
+              />
+              <Metric
+                icon={CheckCircle2}
+                label="Completed bookings"
+                value={metrics.completedBookings}
+              />
+              <Metric
+                icon={CircleDollarSign}
+                label="Paid booking value"
+                value={money(metrics.paidRevenue)}
+              />
               <Metric
                 icon={Star}
                 label="Public rating"
@@ -938,7 +1051,11 @@ export function BikeManagementDetails({
                     : "No reviews"
                 }
               />
-              <Metric icon={Wrench} label="Open damage reports" value={metrics.openDamageReports} />
+              <Metric
+                icon={Wrench}
+                label="Open damage reports"
+                value={metrics.openDamageReports}
+              />
               {role === "admin" && ownerName && (
                 <Metric icon={Bike} label="Listing owner" value={ownerName} />
               )}
@@ -952,7 +1069,9 @@ export function BikeManagementDetails({
 
           <Card>
             <CardHeader>
-              <CardTitle>{role === "owner" ? "Listing actions" : "Safety controls"}</CardTitle>
+              <CardTitle>
+                {role === "owner" ? "Listing actions" : "Safety controls"}
+              </CardTitle>
               <CardDescription>
                 {role === "owner"
                   ? "Keep availability and listing information accurate."
@@ -963,7 +1082,10 @@ export function BikeManagementDetails({
               {role === "owner" && (
                 <Link
                   href={`/owner/bikes/${bike._id}/edit`}
-                  className={cn(buttonVariants({ variant: "outline" }), "min-h-10 w-full")}
+                  className={cn(
+                    buttonVariants({ variant: "outline" }),
+                    "min-h-10 w-full",
+                  )}
                 >
                   <Pencil aria-hidden="true" />
                   Edit listing
@@ -980,11 +1102,15 @@ export function BikeManagementDetails({
                       : "Make available"
                 }
                 triggerVariant={
-                  role === "admin" && bike.status !== "inactive" ? "destructive" : "outline"
+                  role === "admin" && bike.status !== "inactive"
+                    ? "destructive"
+                    : "outline"
                 }
                 triggerClassName="min-h-10 w-full"
                 confirmVariant={
-                  role === "admin" && bike.status !== "inactive" ? "destructive" : "default"
+                  role === "admin" && bike.status !== "inactive"
+                    ? "destructive"
+                    : "default"
                 }
                 title={
                   role === "admin"

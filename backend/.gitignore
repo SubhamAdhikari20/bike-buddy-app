@@ -13,15 +13,20 @@ uploads/*
 !uploads/bike/
 uploads/bike/*
 !uploads/bike/.gitkeep
+!uploads/bike/demo/
+!uploads/bike/demo/**
 !uploads/profile/
 uploads/profile/*
 !uploads/profile/.gitkeep
+!uploads/profile/demo-*.png
 !uploads/kyc/
 uploads/kyc/*
 !uploads/kyc/.gitkeep
+!uploads/kyc/demo-*.png
 !uploads/evidence/
 uploads/evidence/*
 !uploads/evidence/.gitkeep
+!uploads/evidence/demo-*.png
 public/uploads
 
 # Environment variables

@@ -21,8 +21,10 @@ import BookingModel from "../models/booking.model.ts";
 
 const uploadRoutes = Router();
 
-const validFilename =
-  /^\d{10,}-(?:[a-f\d]{12}|[a-f\d]{8}-[a-f\d]{4}-[1-5][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12})\.(?:jpg|png|webp)$/i;
+const validFilename = (filename: string) =>
+  /^\d{10,}-(?:[a-f\d]{12}|[a-f\d]{8}-[a-f\d]{4}-[1-5][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12})\.(?:jpg|png|webp)$/i.test(
+    filename,
+  ) || /^demo-[a-z0-9-]+\.png$/i.test(filename);
 
 const evidenceUrlPattern = (filename: string) =>
   new RegExp(
@@ -89,7 +91,7 @@ const finishUpload =
     try {
       await Promise.all(files.map(validateStoredImage));
       const uploaded = files.map((file) => ({
-        url: uploadUrl(BACKEND_URL, kind, file.filename),
+        url: uploadUrl(kind, file.filename),
         filename: file.filename,
         originalName: file.originalname,
       }));
@@ -146,7 +148,7 @@ uploadRoutes.get(
   async (req, res, next) => {
     try {
       const filename = String(req.params.filename);
-      if (!validFilename.test(filename)) {
+      if (!validFilename(filename)) {
         throw new AppError(404, "Verification image not found", "NOT_FOUND");
       }
 
@@ -184,7 +186,7 @@ uploadRoutes.get(
   async (req, res, next) => {
     try {
       const filename = String(req.params.filename);
-      if (!validFilename.test(filename)) {
+      if (!validFilename(filename)) {
         throw new AppError(404, "Evidence image not found", "NOT_FOUND");
       }
       if (!(await canReadEvidence(req.auth!, filename))) {

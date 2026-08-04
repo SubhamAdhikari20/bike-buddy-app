@@ -17,12 +17,18 @@ import ReviewModel from "../models/review.model.ts";
 import SupportTicketModel from "../models/support-ticket.model.ts";
 import DamageReportModel from "../models/damage-report.model.ts";
 import SosAlertModel from "../models/sos-alert.model.ts";
+import NotificationModel from "../models/notification.model.ts";
+import NotificationCounterModel from "../models/notification-counter.model.ts";
 import authService from "../services/auth.service.ts";
 import { hashPassword } from "../utils/password.ts";
 import { BOOKING_HOLD_MINUTES } from "../config/index.ts";
 
 const DEMO_PASSWORD = "Password@123";
 const DEMO_TAG_PREFIX = "bike-buddy-demo:";
+const demoAvatarPath = (key: string) => `/uploads/profile/demo-${key}.png`;
+const demoKycPath = (key: string) => `/api/v1/uploads/kyc/demo-${key}-id.png`;
+const demoEvidencePath = (name: string) =>
+  `/api/v1/uploads/evidence/demo-${name}.png`;
 
 type DemoAccount = {
   key: string;
@@ -176,7 +182,7 @@ const requireRole = (
   if (user.role !== expectedRole) {
     throw new Error(
       `${user.email} already exists with role "${user.role}", expected "${expectedRole}". ` +
-      "The seed stopped instead of overwriting a possibly real account.",
+        "The seed stopped instead of overwriting a possibly real account.",
     );
   }
   if (!user.isDemoAccount) {
@@ -233,12 +239,13 @@ const ensureRenterAccount = async (account: DemoAccount) => {
   const profileValues = {
     fullName: account.fullName,
     phoneNumber: account.phoneNumber,
+    profilePictureUrl: demoAvatarPath(account.key),
     password,
     bio: account.bio,
     terms: true,
     kycStatus: "approved" as const,
     kycSubmittedAt: new Date("2026-01-10T06:00:00.000Z"),
-    idDocumentUrl: `https://demo.bikebuddy.local/kyc/${account.email.split("@")[0]}.jpg`,
+    idDocumentUrl: demoKycPath(account.key),
   };
   if (existingProfile) {
     await RenterModel.updateOne(
@@ -252,7 +259,6 @@ const ensureRenterAccount = async (account: DemoAccount) => {
   } else {
     await RenterModel.create({
       baseUserId: baseUser._id.toString(),
-      profilePictureUrl: null,
       ...profileValues,
     });
   }
@@ -311,6 +317,7 @@ const ensureOwnerAccount = async (
   const profileValues = {
     fullName: account.fullName,
     phoneNumber: account.phoneNumber,
+    profilePictureUrl: demoAvatarPath(account.key),
     password,
     bio: account.bio,
     ownerNotes: ownerNotesByState[state],
@@ -330,7 +337,6 @@ const ensureOwnerAccount = async (
   } else {
     await OwnerModel.create({
       baseUserId: baseUser._id.toString(),
-      profilePictureUrl: null,
       ...profileValues,
     });
   }
@@ -364,6 +370,7 @@ const ensureAdminAccount = async () => {
   const profileValues = {
     fullName: adminAccount.fullName,
     phoneNumber: adminAccount.phoneNumber,
+    profilePictureUrl: demoAvatarPath("admin"),
     password,
   };
   const existingProfile = await AdminModel.findOne({
@@ -378,7 +385,6 @@ const ensureAdminAccount = async () => {
   } else {
     await AdminModel.create({
       baseUserId: baseUser._id.toString(),
-      profilePictureUrl: null,
       ...profileValues,
     });
   }
@@ -392,8 +398,8 @@ const ensureAdminAccount = async () => {
   return { baseUser, profile };
 };
 
-const img = (id: string, alt: string) => ({
-  url: `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1200&q=80`,
+const bikeImage = (filename: string, alt: string) => ({
+  url: `/uploads/bike/demo/${filename}`,
   alt,
 });
 
@@ -484,8 +490,9 @@ const bikeCatalogue: BikeSeed[] = [
       longitude: 85.3123,
     },
     images: [
-      img("photo-1558981403-c5f9899a28bc", "Bajaj Pulsar side view"),
-      img("photo-1568772585407-9361f9bf3a87", "Bajaj Pulsar front view"),
+      bikeImage("pulsar-220f-1.jpg", "Bajaj Pulsar 220F side view"),
+      bikeImage("pulsar-220f-2.jpg", "Bajaj Pulsar 220F fairing"),
+      bikeImage("pulsar-220f-3.jpg", "Red Bajaj Pulsar parked in Goa"),
     ],
     specs: { weightKg: 160, mileageKmPerL: 38, helmetIncluded: true },
     serviceDate: "2026-06-20",
@@ -524,7 +531,9 @@ const bikeCatalogue: BikeSeed[] = [
       longitude: 85.3077,
     },
     images: [
-      img("photo-1609630875171-b1321377ee65", "Royal Enfield Classic 350"),
+      bikeImage("classic-350-1.jpg", "Royal Enfield Classic 350"),
+      bikeImage("classic-350-2.jpg", "Classic 350 side view"),
+      bikeImage("classic-350-3.jpg", "Classic 350 headlight detail"),
     ],
     specs: { weightKg: 195, mileageKmPerL: 35, helmetIncluded: true },
     serviceDate: "2026-06-08",
@@ -562,7 +571,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.7043,
       longitude: 85.3119,
     },
-    images: [img("photo-1449426468159-d96dbf08f19f", "Honda commuter bike")],
+    images: [bikeImage("shine-125-1.jpg", "Honda Shine commuter motorcycle")],
     specs: { weightKg: 114, mileageKmPerL: 55, helmetIncluded: true },
     serviceDate: "2026-06-25",
     odometerKm: 9780,
@@ -574,10 +583,10 @@ const bikeCatalogue: BikeSeed[] = [
   },
   {
     owner: "ramesh",
-    slug: "crossfire-xt250",
-    title: "Crossfire Trail XT250",
-    brand: "Crossfire",
-    model: "Trail XT250",
+    slug: "crf250l",
+    title: "Honda CRF250L",
+    brand: "Honda",
+    model: "CRF250L",
     year: 2021,
     engineCc: 250,
     fuelType: "petrol",
@@ -585,7 +594,7 @@ const bikeCatalogue: BikeSeed[] = [
     condition: "good",
     category: "mountain",
     description:
-      "Trail-ready motorcycle with knobby tyres for Shivapuri and valley outskirts.",
+      "Trail-ready dual-sport motorcycle for Shivapuri and valley outskirts.",
     pricePerDay: 2200,
     pricePerHour: 300,
     securityDeposit: 4000,
@@ -600,7 +609,8 @@ const bikeCatalogue: BikeSeed[] = [
       longitude: 85.362,
     },
     images: [
-      img("photo-1558980664-10e7170b5df9", "Crossfire trail motorcycle"),
+      bikeImage("crf250l-1.jpg", "Honda CRF250L at the Tokyo Motor Show"),
+      bikeImage("crf250l-2.jpg", "Honda CRF250L beside the Mekong"),
     ],
     specs: { weightKg: 125, mileageKmPerL: 30, helmetIncluded: true },
     serviceDate: "2026-06-15",
@@ -613,12 +623,12 @@ const bikeCatalogue: BikeSeed[] = [
   },
   {
     owner: "ramesh",
-    slug: "rayzr-125",
-    title: "Yamaha RayZR 125",
+    slug: "nmax-155",
+    title: "Yamaha NMAX 155",
     brand: "Yamaha",
-    model: "RayZR 125",
+    model: "NMAX 155",
     year: 2024,
-    engineCc: 125,
+    engineCc: 155,
     fuelType: "petrol",
     transmission: "automatic",
     condition: "excellent",
@@ -638,7 +648,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6889,
       longitude: 85.3358,
     },
-    images: [img("photo-1591637333184-19aa84b3e01f", "Yamaha scooter")],
+    images: [bikeImage("nmax-155-1.jpg", "Yamaha NMAX scooter")],
     specs: { weightKg: 99, mileageKmPerL: 50, helmetIncluded: true },
     serviceDate: "2026-06-28",
     odometerKm: 4850,
@@ -651,9 +661,9 @@ const bikeCatalogue: BikeSeed[] = [
   {
     owner: "ramesh",
     slug: "fz-v3",
-    title: "Yamaha FZ-S V3",
+    title: "Yamaha FZ-S",
     brand: "Yamaha",
-    model: "FZ-S V3",
+    model: "FZ-S",
     year: 2023,
     engineCc: 149,
     fuelType: "petrol",
@@ -675,7 +685,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6934,
       longitude: 85.281,
     },
-    images: [img("photo-1615172282427-9a57ef2d142e", "Yamaha FZ street bike")],
+    images: [bikeImage("fz-v3-1.jpg", "Yamaha FZ-S street motorcycle")],
     specs: { weightKg: 135, mileageKmPerL: 45, helmetIncluded: true },
     serviceDate: "2026-07-02",
     odometerKm: 12180,
@@ -712,7 +722,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6784,
       longitude: 85.3494,
     },
-    images: [img("photo-1568772585407-9361f9bf3a87", "TVS Apache motorcycle")],
+    images: [bikeImage("apache-160-1.jpg", "TVS Apache RTR 160 4V")],
     specs: { weightKg: 137, mileageKmPerL: 44, helmetIncluded: true },
     serviceDate: "2026-06-11",
     odometerKm: 21340,
@@ -725,9 +735,9 @@ const bikeCatalogue: BikeSeed[] = [
   {
     owner: "ramesh",
     slug: "activa-6g",
-    title: "Honda Activa 6G",
+    title: "Honda Activa",
     brand: "Honda",
-    model: "Activa 6G",
+    model: "Activa",
     year: 2023,
     engineCc: 110,
     fuelType: "petrol",
@@ -749,7 +759,10 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.7172,
       longitude: 85.3466,
     },
-    images: [img("photo-1494976388531-d1058494cdd8", "Honda Activa scooter")],
+    images: [
+      bikeImage("activa-6g-1.jpg", "Honda Activa scooter side view"),
+      bikeImage("activa-6g-2.jpg", "Honda Activa scooter alternate view"),
+    ],
     specs: { weightKg: 106, mileageKmPerL: 52, helmetIncluded: true },
     serviceDate: "2026-07-05",
     odometerKm: 7620,
@@ -786,7 +799,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.7247,
       longitude: 85.3202,
     },
-    images: [img("photo-1609630875171-b1321377ee65", "Royal Enfield Hunter")],
+    images: [bikeImage("hunter-350-1.png", "Royal Enfield Hunter 350")],
     specs: { weightKg: 181, mileageKmPerL: 36, helmetIncluded: true },
     serviceDate: "2026-07-08",
     odometerKm: 5230,
@@ -823,7 +836,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6721,
       longitude: 85.4278,
     },
-    images: [img("photo-1558980664-10e7170b5df9", "Royal Enfield Himalayan")],
+    images: [bikeImage("himalayan-411-1.jpg", "Royal Enfield Himalayan")],
     specs: { weightKg: 199, mileageKmPerL: 30, helmetIncluded: true },
     serviceDate: "2026-06-30",
     odometerKm: 27890,
@@ -836,10 +849,10 @@ const bikeCatalogue: BikeSeed[] = [
   {
     owner: "bimal",
     slug: "splendor-plus",
-    title: "Hero Splendor Plus",
-    brand: "Hero",
-    model: "Splendor Plus",
-    year: 2022,
+    title: "Hero Honda Splendor",
+    brand: "Hero Honda",
+    model: "Splendor",
+    year: 2007,
     engineCc: 97,
     fuelType: "petrol",
     transmission: "manual",
@@ -860,7 +873,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6567,
       longitude: 85.4275,
     },
-    images: [img("photo-1449426468159-d96dbf08f19f", "Hero Splendor commuter")],
+    images: [bikeImage("splendor-plus-1.jpg", "Hero Honda Splendor commuter")],
     specs: { weightKg: 112, mileageKmPerL: 65, helmetIncluded: true },
     serviceDate: "2026-06-22",
     odometerKm: 34120,
@@ -872,10 +885,10 @@ const bikeCatalogue: BikeSeed[] = [
   },
   {
     owner: "bimal",
-    slug: "ather-450x",
-    title: "Ather 450X",
-    brand: "Ather",
-    model: "450X",
+    slug: "ola-s1",
+    title: "Ola S1",
+    brand: "Ola Electric",
+    model: "S1",
     year: 2024,
     engineCc: 60,
     fuelType: "electric",
@@ -897,7 +910,13 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6819,
       longitude: 85.3846,
     },
-    images: [img("photo-1571068316344-75bc76f77890", "Ather electric scooter")],
+    images: [
+      bikeImage(
+        "ola-s1-1.jpg",
+        "Ola electric scooters at the manufacturing unit",
+      ),
+      bikeImage("ola-s1-2.jpg", "Black Ola electric scooters"),
+    ],
     specs: { weightKg: 108, mileageKmPerL: null, helmetIncluded: true },
     serviceDate: "2026-07-10",
     odometerKm: 3140,
@@ -934,7 +953,11 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6714,
       longitude: 85.4409,
     },
-    images: [img("photo-1615172282427-9a57ef2d142e", "KTM Duke street bike")],
+    images: [
+      bikeImage("duke-200-1.jpg", "KTM Duke 200 side view"),
+      bikeImage("duke-200-2.jpg", "KTM Duke 200 front view"),
+      bikeImage("duke-200-3.jpg", "KTM Duke 200 alternate side view"),
+    ],
     specs: { weightKg: 159, mileageKmPerL: 35, helmetIncluded: true },
     serviceDate: "2026-07-01",
     odometerKm: 9450,
@@ -947,9 +970,9 @@ const bikeCatalogue: BikeSeed[] = [
   {
     owner: "bimal",
     slug: "pleasure-plus",
-    title: "Hero Pleasure Plus",
-    brand: "Hero",
-    model: "Pleasure Plus",
+    title: "Hero Honda Pleasure",
+    brand: "Hero Honda",
+    model: "Pleasure",
     year: 2022,
     engineCc: 110,
     fuelType: "petrol",
@@ -971,7 +994,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6759,
       longitude: 85.3707,
     },
-    images: [img("photo-1494976388531-d1058494cdd8", "Hero Pleasure scooter")],
+    images: [bikeImage("pleasure-plus-1.jpg", "Hero Honda Pleasure side view")],
     specs: { weightKg: 102, mileageKmPerL: 50, helmetIncluded: true },
     serviceDate: "2026-06-14",
     odometerKm: 15720,
@@ -1008,7 +1031,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6784,
       longitude: 85.3752,
     },
-    images: [img("photo-1568772585407-9361f9bf3a87", "Suzuki Gixxer")],
+    images: [bikeImage("gixxer-155-1.jpg", "Suzuki Gixxer 155")],
     specs: { weightKg: 140, mileageKmPerL: 45, helmetIncluded: true },
     serviceDate: "2026-07-06",
     odometerKm: 8930,
@@ -1045,7 +1068,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6633,
       longitude: 85.3789,
     },
-    images: [img("photo-1591637333184-19aa84b3e01f", "Suzuki Burgman scooter")],
+    images: [bikeImage("burgman-125-1.jpg", "Suzuki Burgman Street 125")],
     specs: { weightKg: 110, mileageKmPerL: 48, helmetIncluded: true },
     serviceDate: "2026-06-18",
     odometerKm: 13480,
@@ -1083,7 +1106,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6795,
       longitude: 85.4362,
     },
-    images: [img("photo-1558980664-10e7170b5df9", "Hero XPulse dual sport")],
+    images: [bikeImage("xpulse-200-1.jpg", "Hero XPulse 200 4V Pro")],
     specs: { weightKg: 154, mileageKmPerL: 40, helmetIncluded: true },
     serviceDate: "2026-06-27",
     odometerKm: 16240,
@@ -1120,7 +1143,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6789,
       longitude: 85.3161,
     },
-    images: [img("photo-1571068316344-75bc76f77890", "NIU electric scooter")],
+    images: [bikeImage("niu-nqi-1.jpg", "NIU NQi electric scooter")],
     specs: { weightKg: 99, mileageKmPerL: null, helmetIncluded: true },
     serviceDate: "2026-06-18",
     odometerKm: 6240,
@@ -1132,10 +1155,10 @@ const bikeCatalogue: BikeSeed[] = [
   },
   {
     owner: "sita",
-    slug: "vespa-sxl",
-    title: "Vespa SXL 150",
+    slug: "vespa-lx",
+    title: "Vespa LX",
     brand: "Vespa",
-    model: "SXL 150",
+    model: "LX",
     year: 2022,
     engineCc: 150,
     fuelType: "petrol",
@@ -1157,7 +1180,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6727,
       longitude: 85.3255,
     },
-    images: [img("photo-1494976388531-d1058494cdd8", "Vespa scooter")],
+    images: [bikeImage("vespa-lx-1.jpg", "Vespa LX scooter")],
     specs: { weightKg: 115, mileageKmPerL: 42, helmetIncluded: true },
     serviceDate: "2026-06-02",
     odometerKm: 11780,
@@ -1170,9 +1193,9 @@ const bikeCatalogue: BikeSeed[] = [
   {
     owner: "sita",
     slug: "jupiter-125",
-    title: "TVS Jupiter 125",
+    title: "TVS Jupiter",
     brand: "TVS",
-    model: "Jupiter 125",
+    model: "Jupiter",
     year: 2024,
     engineCc: 124,
     fuelType: "petrol",
@@ -1194,7 +1217,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6779,
       longitude: 85.3095,
     },
-    images: [img("photo-1591637333184-19aa84b3e01f", "TVS Jupiter scooter")],
+    images: [bikeImage("jupiter-125-1.jpg", "TVS Jupiter scooter")],
     specs: { weightKg: 105, mileageKmPerL: 51, helmetIncluded: true },
     serviceDate: "2026-07-12",
     odometerKm: 1180,
@@ -1207,9 +1230,9 @@ const bikeCatalogue: BikeSeed[] = [
   {
     owner: "anjali",
     slug: "unicorn-160",
-    title: "Honda Unicorn 160",
+    title: "Honda Unicorn",
     brand: "Honda",
-    model: "Unicorn 160",
+    model: "Unicorn",
     year: 2021,
     engineCc: 162,
     fuelType: "petrol",
@@ -1231,7 +1254,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.6969,
       longitude: 85.3562,
     },
-    images: [img("photo-1449426468159-d96dbf08f19f", "Honda Unicorn commuter")],
+    images: [bikeImage("unicorn-160-1.jpg", "Honda Unicorn commuter")],
     specs: { weightKg: 140, mileageKmPerL: 48, helmetIncluded: false },
     serviceDate: "2026-05-20",
     odometerKm: 41260,
@@ -1268,9 +1291,7 @@ const bikeCatalogue: BikeSeed[] = [
       latitude: 27.7076,
       longitude: 85.3477,
     },
-    images: [
-      img("photo-1449426468159-d96dbf08f19f", "Bajaj Discover commuter"),
-    ],
+    images: [bikeImage("discover-125-1.jpg", "Bajaj Discover commuter")],
     specs: { weightKg: 123, mileageKmPerL: 55, helmetIncluded: false },
     serviceDate: "2026-03-08",
     odometerKm: 58940,
@@ -1379,7 +1400,7 @@ const bookingCatalogue: BookingSeed[] = [
   },
   {
     key: "nishant-cancelled",
-    bike: "crossfire-xt250",
+    bike: "crf250l",
     renter: "nishant",
     startOffset: -8,
     endOffset: -7,
@@ -1399,7 +1420,7 @@ const bookingCatalogue: BookingSeed[] = [
   },
   {
     key: "binita-cash-completed",
-    bike: "rayzr-125",
+    bike: "nmax-155",
     renter: "binita",
     startOffset: -12,
     endOffset: -11,
@@ -1441,7 +1462,7 @@ const bookingCatalogue: BookingSeed[] = [
   },
   {
     key: "mohammad-failed",
-    bike: "rayzr-125",
+    bike: "nmax-155",
     renter: "mohammad",
     startOffset: 9,
     endOffset: 10,
@@ -1520,7 +1541,7 @@ const bookingCatalogue: BookingSeed[] = [
   },
   {
     key: "anita-electric",
-    bike: "ather-450x",
+    bike: "ola-s1",
     renter: "anita",
     startOffset: -5,
     endOffset: -4,
@@ -1733,7 +1754,7 @@ const bookingCatalogue: BookingSeed[] = [
   },
   {
     key: "anita-upcoming",
-    bike: "ather-450x",
+    bike: "ola-s1",
     renter: "anita",
     startOffset: 11,
     endOffset: 12,
@@ -1928,7 +1949,8 @@ const reviewCatalogue: ReviewSeed[] = [
   {
     booking: "mohammad-completed",
     rating: 4,
-    comment: "Total at checkout matched the receipt exactly. That is all I ask.",
+    comment:
+      "Total at checkout matched the receipt exactly. That is all I ask.",
   },
   {
     booking: "dipesh-completed",
@@ -2026,6 +2048,12 @@ const seed = async () => {
         { userId: { $in: demoUserIds } },
       ],
     } as never),
+    NotificationModel.deleteMany({
+      recipientId: { $in: demoAccountUserIds },
+    } as never),
+    NotificationCounterModel.deleteMany({
+      _id: { $in: demoAccountUserIds },
+    } as never),
   ]);
   await BookingModel.deleteMany({ _id: { $in: oldBookingIds } } as never);
   await BikeModel.deleteMany({ _id: { $in: oldDemoBikeIds } } as never);
@@ -2058,7 +2086,10 @@ const seed = async () => {
         conditionInfo: {
           serviceDate: serviced(bike.serviceDate),
           odometerKm: bike.odometerKm,
-          photos: [],
+          photos: bike.images.slice(0, 2).map(({ url }) => ({
+            url,
+            takenAt: serviced(bike.serviceDate),
+          })),
         },
         status: bike.status,
         verifiedBike: bike.verifiedBike,
@@ -2142,9 +2173,7 @@ const seed = async () => {
         preRideChecklist: booking.checklist
           ? {
               items: booking.checklist,
-              photos: [
-                `https://demo.bikebuddy.local/checklists/${booking.key}.jpg`,
-              ],
+              photos: [demoEvidencePath("pre-ride-checklist")],
               acknowledged: true,
               completedAt: atDayOffset(
                 booking.startOffset,
@@ -2156,7 +2185,10 @@ const seed = async () => {
     }),
   );
   const bookingByKey = new Map(
-    bookingCatalogue.map((booking, index) => [booking.key, bookingDocs[index]!]),
+    bookingCatalogue.map((booking, index) => [
+      booking.key,
+      bookingDocs[index]!,
+    ]),
   );
 
   await PaymentModel.insertMany(
@@ -2184,7 +2216,9 @@ const seed = async () => {
 
   await ReviewModel.insertMany(
     reviewCatalogue.map((review) => {
-      const booking = bookingCatalogue.find(({ key }) => key === review.booking);
+      const booking = bookingCatalogue.find(
+        ({ key }) => key === review.booking,
+      );
       if (!booking) {
         throw new Error(`Unknown booking "${review.booking}" for a review`);
       }
@@ -2266,7 +2300,7 @@ const seed = async () => {
       subject: "Rear tyre pressure warning",
       message:
         "The rear tyre feels low during my active demo ride. I have stopped safely.",
-      photos: ["https://demo.bikebuddy.local/support/dipesh-rear-tyre.jpg"],
+      photos: [demoEvidencePath("support-flat-tyre")],
       status: "open",
     },
     {
@@ -2277,7 +2311,7 @@ const seed = async () => {
       subject: "Chain noise on an active ride",
       message:
         "There is a loud chain noise. I have pulled over safely near Gatthaghar Chowk.",
-      photos: ["https://demo.bikebuddy.local/support/roshan-chain.jpg"],
+      photos: [demoEvidencePath("support-chain")],
       status: "in_review",
     },
     {
@@ -2392,7 +2426,7 @@ const seed = async () => {
       bookingId: bookingByKey.get("dipesh-active")!._id,
       bikeId: bikeBySlug.get("pulsar-220f")!._id,
       reportedBy: renterByKey.get("dipesh")!.baseUser._id,
-      photos: ["https://demo.bikebuddy.local/damage/pulsar-left-panel.jpg"],
+      photos: [demoEvidencePath("damage-left-panel")],
       description:
         "A small left-panel scratch was noticed during the handover check and photographed before riding.",
       status: "reviewed",
@@ -2401,7 +2435,7 @@ const seed = async () => {
       bookingId: bookingByKey.get("aashish-late-return")!._id,
       bikeId: bikeBySlug.get("activa-6g")!._id,
       reportedBy: renterByKey.get("aashish")!.baseUser._id,
-      photos: ["https://demo.bikebuddy.local/damage/activa-mirror.jpg"],
+      photos: [demoEvidencePath("damage-mirror")],
       description:
         "The left mirror was loose on return. Photographed at the pickup point before leaving.",
       status: "resolved",
@@ -2411,7 +2445,7 @@ const seed = async () => {
       bookingId: bookingByKey.get("saroj-completed")!._id,
       bikeId: bikeBySlug.get("gixxer-155")!._id,
       reportedBy: renterByKey.get("saroj")!.baseUser._id,
-      photos: ["https://demo.bikebuddy.local/damage/gixxer-footpeg.jpg"],
+      photos: [demoEvidencePath("damage-footpeg")],
       description:
         "Rear footpeg rubber is torn. It was already like this at pickup and is photographed.",
       status: "open",
@@ -2420,7 +2454,7 @@ const seed = async () => {
       bookingId: bookingByKey.get("sujan-completed-1")!._id,
       bikeId: bikeBySlug.get("splendor-plus")!._id,
       reportedBy: renterByKey.get("sujan")!.baseUser._id,
-      photos: ["https://demo.bikebuddy.local/damage/splendor-chain-guard.jpg"],
+      photos: [demoEvidencePath("damage-chain-guard")],
       description:
         "Chain guard rattles after three days of delivery riding on rough roads.",
       status: "reviewed",
@@ -2429,7 +2463,7 @@ const seed = async () => {
       bookingId: bookingByKey.get("dipesh-completed")!._id,
       bikeId: bikeBySlug.get("burgman-125")!._id,
       reportedBy: renterByKey.get("dipesh")!.baseUser._id,
-      photos: ["https://demo.bikebuddy.local/damage/burgman-seat.jpg"],
+      photos: [demoEvidencePath("damage-seat")],
       description:
         "Small tear on the seat cover noted at return, photographed with the owner present.",
       status: "resolved",
@@ -2472,6 +2506,132 @@ const seed = async () => {
     },
   ] as never);
 
+  const demoNotifications = [
+    {
+      recipientId: renterByKey.get("aashish")!.baseUser._id,
+      sequence: 1,
+      type: "booking.approved",
+      severity: "success",
+      title: "Booking approved",
+      message:
+        "Your Honda Activa pickup is confirmed. Review the handover details.",
+      action: {
+        resource: "booking",
+        id: bookingByKey.get("aashish-late-return")!._id,
+      },
+      dedupeKey: "demo:aashish:booking-approved",
+      readAt: null,
+      expiresAt: atDayOffset(90),
+    },
+    {
+      recipientId: renterByKey.get("aashish")!.baseUser._id,
+      sequence: 2,
+      type: "payment.succeeded",
+      severity: "success",
+      title: "Demo payment recorded",
+      message:
+        "The sandbox wallet payment is recorded. No real money was charged.",
+      action: {
+        resource: "booking",
+        id: bookingByKey.get("aashish-late-return")!._id,
+      },
+      dedupeKey: "demo:aashish:payment-succeeded",
+      readAt: atDayOffset(-1),
+      expiresAt: atDayOffset(90),
+    },
+    {
+      recipientId: renterByKey.get("maya")!.baseUser._id,
+      sequence: 1,
+      type: "support.updated",
+      severity: "info",
+      title: "Support is reviewing your question",
+      message: "Your pickup-location question is now being reviewed.",
+      action: {
+        resource: "booking",
+        id: bookingByKey.get("maya-confirmed")!._id,
+      },
+      dedupeKey: "demo:maya:support-updated",
+      readAt: null,
+      expiresAt: atDayOffset(90),
+    },
+    {
+      recipientId: ownerByKey.get("ramesh")!.baseUser._id,
+      sequence: 1,
+      type: "booking.created",
+      severity: "info",
+      title: "New booking request",
+      message:
+        "Binita requested a booking. Review the dates and rider details.",
+      action: {
+        resource: "booking",
+        id: bookingByKey.get("binita-pending-request")!._id,
+      },
+      dedupeKey: "demo:ramesh:booking-created",
+      readAt: null,
+      expiresAt: atDayOffset(90),
+    },
+    {
+      recipientId: ownerByKey.get("ramesh")!.baseUser._id,
+      sequence: 2,
+      type: "review.created",
+      severity: "success",
+      title: "A renter left a verified review",
+      message: "A completed ride received a new rating and written review.",
+      action: {
+        resource: "bike",
+        id: bikeBySlug.get("pulsar-220f")!._id,
+      },
+      dedupeKey: "demo:ramesh:review-created",
+      readAt: atDayOffset(-2),
+      expiresAt: atDayOffset(90),
+    },
+    {
+      recipientId: admin.baseUser._id,
+      sequence: 1,
+      type: "support.created",
+      severity: "warning",
+      title: "High-priority support ticket",
+      message: "A rider reported a tyre warning and stopped in a safe place.",
+      action: null,
+      dedupeKey: "demo:admin:support-created",
+      readAt: null,
+      expiresAt: atDayOffset(90),
+    },
+    {
+      recipientId: admin.baseUser._id,
+      sequence: 2,
+      type: "owner.approved",
+      severity: "success",
+      title: "Owner verification completed",
+      message: "Ramesh Shrestha is verified and can publish approved bikes.",
+      action: {
+        resource: "profile",
+        id: ownerByKey.get("ramesh")!.profile._id,
+      },
+      dedupeKey: "demo:admin:owner-approved",
+      readAt: atDayOffset(-3),
+      expiresAt: atDayOffset(90),
+    },
+  ] as const;
+
+  await NotificationModel.insertMany(demoNotifications as never);
+  const sequenceByRecipient = new Map<string, number>();
+  for (const notification of demoNotifications) {
+    sequenceByRecipient.set(
+      notification.recipientId.toString(),
+      notification.sequence,
+    );
+  }
+  await Promise.all(
+    [...sequenceByRecipient].map(([recipientId, lastSequence]) =>
+      NotificationCounterModel.updateOne(
+        { _id: recipientId } as never,
+        { $set: { lastSequence } },
+        { upsert: true },
+      ),
+    ),
+  );
+
   const bookingIds = bookingDocs.map(({ _id }) => _id.toString());
   const counts = {
     users: await UserModel.countDocuments({
@@ -2506,6 +2666,9 @@ const seed = async () => {
     } as never),
     sosAlerts: await SosAlertModel.countDocuments({
       userId: { $in: demoUserIds },
+    } as never),
+    notifications: await NotificationModel.countDocuments({
+      recipientId: { $in: demoAccountUserIds },
     } as never),
   };
 

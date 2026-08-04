@@ -3,13 +3,24 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BikeImageManager, type BikeImage } from "@/components/bike-image-manager";
+import {
+  BikeImageManager,
+  type BikeImage,
+} from "@/components/bike-image-manager";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { api } from "@/lib/api";
 
 type BikeDetails = {
@@ -45,7 +56,14 @@ type BikeDetails = {
   };
 };
 
-const CATEGORIES = ["commuter", "scooter", "cruiser", "sports", "electric", "mountain"];
+const CATEGORIES = [
+  "commuter",
+  "scooter",
+  "cruiser",
+  "sports",
+  "electric",
+  "mountain",
+];
 const CONDITIONS = ["excellent", "good", "fair", "needs_service"];
 const STATUSES = ["available", "unavailable", "maintenance", "inactive"];
 const CITIES = ["Kathmandu", "Lalitpur", "Bhaktapur"];
@@ -58,19 +76,28 @@ export default function EditBikePage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.get<BikeDetails>(`/bikes/${params.bikeId}`)
+    api
+      .get<BikeDetails>(`/bikes/${params.bikeId}`)
       .then((response) => setBike(response.data))
-      .catch((caught) => setError(caught instanceof Error ? caught.message : "Could not load this bike."));
+      .catch((caught) =>
+        setError(
+          caught instanceof Error
+            ? caught.message
+            : "Could not load this bike.",
+        ),
+      );
   }, [params.bikeId]);
 
   const set = (key: keyof BikeDetails, value: unknown) => {
-    setBike((current) => current ? { ...current, [key]: value } : current);
+    setBike((current) => (current ? { ...current, [key]: value } : current));
   };
 
   const setLocation = (key: keyof BikeDetails["location"], value: string) => {
-    setBike((current) => current
-      ? { ...current, location: { ...current.location, [key]: value } }
-      : current);
+    setBike((current) =>
+      current
+        ? { ...current, location: { ...current.location, [key]: value } }
+        : current,
+    );
   };
 
   const setImages = (images: BikeImage[]) => {
@@ -125,9 +152,13 @@ export default function EditBikePage() {
           helmetIncluded: bike.specs?.helmetIncluded ?? false,
         },
       });
+      toast.success("Bike details updated");
       router.push("/owner/bikes");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not update the bike.");
+      const message =
+        caught instanceof Error ? caught.message : "Could not update the bike.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -135,17 +166,19 @@ export default function EditBikePage() {
 
   const remove = async () => {
     if (!bike) return;
-    const confirmed = window.confirm(
-      `Delete "${bike.title}" permanently? Bikes with booking history must be made inactive instead.`,
-    );
-    if (!confirmed) return;
     setBusy(true);
     setError(null);
     try {
       await api.delete<BikeDetails>(`/bikes/${bike._id}`);
+      toast.success("Bike listing deleted");
       router.push("/owner/bikes");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Could not delete the bike.");
+      const message =
+        caught instanceof Error ? caught.message : "Could not delete the bike.";
+      setError(message);
+      toast.error(message);
+      throw caught;
+    } finally {
       setBusy(false);
     }
   };
@@ -153,116 +186,219 @@ export default function EditBikePage() {
   if (error && !bike) {
     return (
       <div className="space-y-4">
-        <p className="text-red-600" role="alert">{error}</p>
-        <Link href="/owner/bikes"><Button variant="outline">Back to bikes</Button></Link>
+        <p className="text-red-600" role="alert">
+          {error}
+        </p>
+        <Link href="/owner/bikes">
+          <Button variant="outline">Back to bikes</Button>
+        </Link>
       </div>
     );
   }
 
   if (!bike) {
-    return <p className="text-sm text-muted-foreground" role="status">Loading bike details...</p>;
+    return (
+      <p className="text-sm text-muted-foreground" role="status">
+        Loading bike details...
+      </p>
+    );
   }
 
-  const selectClass = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
+  const selectClass =
+    "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
 
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href="/owner/bikes" className="mb-2 inline-flex items-center gap-1 text-sm text-blue-700 hover:underline">
+          <Link
+            href="/owner/bikes"
+            className="mb-2 inline-flex items-center gap-1 text-sm text-blue-700 hover:underline"
+          >
             <ArrowLeft className="size-4" aria-hidden="true" />
             Back to my bikes
           </Link>
           <h1 className="text-2xl font-bold">Edit Bike</h1>
-          <p className="text-sm text-muted-foreground">Update the details renters use to make their decision.</p>
+          <p className="text-sm text-muted-foreground">
+            Update the details renters use to make their decision.
+          </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
+        <ConfirmActionDialog
+          triggerLabel="Delete listing"
+          title={`Delete ${bike.title}?`}
+          description="This permanently removes a listing with no booking history. If bookings exist, Bike Buddy will preserve the record and ask you to make it inactive instead."
+          confirmLabel="Delete bike"
+          triggerVariant="outline"
           disabled={busy}
-          className="border-red-300 text-red-700 hover:bg-red-50"
-          onClick={remove}
-        >
-          <Trash2 aria-hidden="true" />
-          Delete listing
-        </Button>
+          triggerClassName="border-red-300 text-red-700 hover:bg-red-50"
+          onConfirm={remove}
+        />
       </div>
 
-      {error && <p className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">{error}</p>}
+      {error && (
+        <p
+          className="rounded-md bg-red-50 p-3 text-sm text-red-700"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
 
       <form onSubmit={save} className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Bike details</CardTitle>
-            <CardDescription>Keep specifications and condition accurate.</CardDescription>
+            <CardDescription>
+              Keep specifications and condition accurate.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="title">Listing title</Label>
-              <Input id="title" required minLength={3} value={bike.title} onChange={(event) => set("title", event.target.value)} />
+              <Input
+                id="title"
+                required
+                minLength={3}
+                value={bike.title}
+                onChange={(event) => set("title", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="brand">Brand</Label>
-              <Input id="brand" required value={bike.brand} onChange={(event) => set("brand", event.target.value)} />
+              <Input
+                id="brand"
+                required
+                value={bike.brand}
+                onChange={(event) => set("brand", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="model">Model</Label>
-              <Input id="model" required value={bike.model} onChange={(event) => set("model", event.target.value)} />
+              <Input
+                id="model"
+                required
+                value={bike.model}
+                onChange={(event) => set("model", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="year">Year</Label>
-              <Input id="year" required type="number" min={1950} max={new Date().getFullYear() + 1} value={bike.year} onChange={(event) => set("year", event.target.value)} />
+              <Input
+                id="year"
+                required
+                type="number"
+                min={1950}
+                max={new Date().getFullYear() + 1}
+                value={bike.year}
+                onChange={(event) => set("year", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="engine">Engine (cc)</Label>
-              <Input id="engine" required type="number" min={50} max={2500} value={bike.engineCc} onChange={(event) => set("engineCc", event.target.value)} />
+              <Input
+                id="engine"
+                required
+                type="number"
+                min={50}
+                max={2500}
+                value={bike.engineCc}
+                onChange={(event) => set("engineCc", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="category">Category</Label>
-              <select id="category" className={selectClass} value={bike.category} onChange={(event) => set("category", event.target.value)}>
-                {CATEGORIES.map((value) => <option key={value}>{value}</option>)}
+              <select
+                id="category"
+                className={selectClass}
+                value={bike.category}
+                onChange={(event) => set("category", event.target.value)}
+              >
+                {CATEGORIES.map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="condition">Condition</Label>
-              <select id="condition" className={selectClass} value={bike.condition} onChange={(event) => set("condition", event.target.value)}>
-                {CONDITIONS.map((value) => <option key={value}>{value.replace("_", " ")}</option>)}
+              <select
+                id="condition"
+                className={selectClass}
+                value={bike.condition}
+                onChange={(event) => set("condition", event.target.value)}
+              >
+                {CONDITIONS.map((value) => (
+                  <option key={value}>{value.replace("_", " ")}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="fuel">Fuel</Label>
-              <select id="fuel" className={selectClass} value={bike.fuelType} onChange={(event) => set("fuelType", event.target.value)}>
-                {["petrol", "diesel", "electric", "hybrid"].map((value) => <option key={value}>{value}</option>)}
+              <select
+                id="fuel"
+                className={selectClass}
+                value={bike.fuelType}
+                onChange={(event) => set("fuelType", event.target.value)}
+              >
+                {["petrol", "diesel", "electric", "hybrid"].map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="transmission">Transmission</Label>
-              <select id="transmission" className={selectClass} value={bike.transmission} onChange={(event) => set("transmission", event.target.value)}>
+              <select
+                id="transmission"
+                className={selectClass}
+                value={bike.transmission}
+                onChange={(event) => set("transmission", event.target.value)}
+              >
                 <option value="manual">manual</option>
                 <option value="automatic">automatic</option>
               </select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="status">Listing status</Label>
-              <select id="status" className={selectClass} value={bike.status} onChange={(event) => set("status", event.target.value)}>
-                {STATUSES.map((value) => <option key={value}>{value}</option>)}
+              <select
+                id="status"
+                className={selectClass}
+                value={bike.status}
+                onChange={(event) => set("status", event.target.value)}
+              >
+                {STATUSES.map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
               </select>
             </div>
             <label className="flex items-center gap-2 self-end pb-2 text-sm">
               <input
                 type="checkbox"
                 checked={bike.specs?.helmetIncluded ?? false}
-                onChange={(event) => set("specs", { ...bike.specs, helmetIncluded: event.target.checked })}
+                onChange={(event) =>
+                  set("specs", {
+                    ...bike.specs,
+                    helmetIncluded: event.target.checked,
+                  })
+                }
               />
               Helmet included
             </label>
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea id="description" rows={4} maxLength={4000} value={bike.description ?? ""} onChange={(event) => set("description", event.target.value)} />
+              <Textarea
+                id="description"
+                rows={4}
+                maxLength={4000}
+                value={bike.description ?? ""}
+                onChange={(event) => set("description", event.target.value)}
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label>Photos</Label>
-              <BikeImageManager images={bike.images} onChange={setImages} disabled={busy} />
+              <BikeImageManager
+                images={bike.images}
+                onChange={setImages}
+                disabled={busy}
+              />
             </div>
           </CardContent>
         </Card>
@@ -270,52 +406,108 @@ export default function EditBikePage() {
         <Card>
           <CardHeader>
             <CardTitle>Price and pickup</CardTitle>
-            <CardDescription>These values appear in search, quotes and booking details.</CardDescription>
+            <CardDescription>
+              These values appear in search, quotes and booking details.
+            </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-1">
               <Label htmlFor="daily">Per day (NPR)</Label>
-              <Input id="daily" required type="number" min={1} value={bike.pricePerDay} onChange={(event) => set("pricePerDay", event.target.value)} />
+              <Input
+                id="daily"
+                required
+                type="number"
+                min={1}
+                value={bike.pricePerDay}
+                onChange={(event) => set("pricePerDay", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="hourly">Per hour (NPR)</Label>
-              <Input id="hourly" type="number" min={0} value={bike.pricePerHour ?? ""} onChange={(event) => set("pricePerHour", event.target.value)} />
+              <Input
+                id="hourly"
+                type="number"
+                min={0}
+                value={bike.pricePerHour ?? ""}
+                onChange={(event) => set("pricePerHour", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="deposit">Deposit (NPR)</Label>
-              <Input id="deposit" type="number" min={0} value={bike.securityDeposit ?? 0} onChange={(event) => set("securityDeposit", event.target.value)} />
+              <Input
+                id="deposit"
+                type="number"
+                min={0}
+                value={bike.securityDeposit ?? 0}
+                onChange={(event) => set("securityDeposit", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="point">Point name</Label>
-              <Input id="point" required value={bike.location.label} onChange={(event) => setLocation("label", event.target.value)} />
+              <Input
+                id="point"
+                required
+                value={bike.location.label}
+                onChange={(event) => setLocation("label", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="city">City</Label>
-              <select id="city" className={selectClass} value={bike.location.city} onChange={(event) => setLocation("city", event.target.value)}>
-                {CITIES.map((value) => <option key={value}>{value}</option>)}
+              <select
+                id="city"
+                className={selectClass}
+                value={bike.location.city}
+                onChange={(event) => setLocation("city", event.target.value)}
+              >
+                {CITIES.map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
               </select>
             </div>
             <div className="space-y-1">
               <Label htmlFor="area">Area</Label>
-              <Input id="area" value={bike.location.area ?? ""} onChange={(event) => setLocation("area", event.target.value)} />
+              <Input
+                id="area"
+                value={bike.location.area ?? ""}
+                onChange={(event) => setLocation("area", event.target.value)}
+              />
             </div>
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="address">Street address</Label>
-              <Input id="address" required value={bike.location.address} onChange={(event) => setLocation("address", event.target.value)} />
+              <Input
+                id="address"
+                required
+                value={bike.location.address}
+                onChange={(event) => setLocation("address", event.target.value)}
+              />
             </div>
             <div className="space-y-1">
               <Label htmlFor="landmark">Landmark</Label>
-              <Input id="landmark" value={bike.location.landmark ?? ""} onChange={(event) => setLocation("landmark", event.target.value)} />
+              <Input
+                id="landmark"
+                value={bike.location.landmark ?? ""}
+                onChange={(event) =>
+                  setLocation("landmark", event.target.value)
+                }
+              />
             </div>
           </CardContent>
         </Card>
 
         <div className="flex flex-wrap gap-3">
-          <Button type="submit" disabled={busy} className="bg-amber-500 text-slate-950 hover:bg-amber-400">
+          <Button
+            type="submit"
+            disabled={busy}
+            className="bg-amber-500 text-slate-950 hover:bg-amber-400"
+          >
             <Save aria-hidden="true" />
             {busy ? "Saving..." : "Save changes"}
           </Button>
-          <Link href="/owner/bikes"><Button type="button" variant="outline">Cancel</Button></Link>
+          <Link href="/owner/bikes">
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </Link>
         </div>
       </form>
     </div>

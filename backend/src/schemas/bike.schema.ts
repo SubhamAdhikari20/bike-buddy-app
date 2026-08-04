@@ -1,10 +1,9 @@
 import { z } from "zod";
+import { mediaUrlValidation } from "./media.schema.ts";
 
 export const bikeIdParamsSchema = z
   .object({
-    bikeId: z
-      .string()
-      .regex(/^[a-f\d]{24}$/i, "A valid bike ID is required"),
+    bikeId: z.string().regex(/^[a-f\d]{24}$/i, "A valid bike ID is required"),
   })
   .strict();
 
@@ -25,7 +24,7 @@ const locationSchema = z.object({
 });
 
 export const bikeImageSchema = z.object({
-  url: z.string().url(),
+  url: mediaUrlValidation,
   alt: z.string().min(1).max(120).optional(),
 });
 
@@ -69,7 +68,7 @@ export const createBikeSchema = z.object({
         .array(
           z
             .object({
-              url: z.string().url(),
+              url: mediaUrlValidation,
               takenAt: z.coerce.date().optional(),
             })
             .strict(),

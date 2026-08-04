@@ -74,6 +74,16 @@ export const localUploadPathFromUrl = (value?: string | null) => {
 export const deleteLocalUpload = async (value?: string | null) => {
   const target = localUploadPathFromUrl(value);
   if (!target) return false;
+  const relative = path
+    .relative(rootUploadDir, target)
+    .split(path.sep)
+    .filter(Boolean);
+  const filename = relative.at(-1) ?? "";
+  if (relative.includes("demo") || filename.startsWith("demo-")) {
+    // Versioned coursework fixtures are immutable. A profile update or demo
+    // CRUD exercise must never remove assets required by the next seed run.
+    return false;
+  }
   try {
     await fs.unlink(target);
     return true;
@@ -92,11 +102,7 @@ export const cleanupUploadedFiles = async (
   );
 };
 
-export const uploadUrl = (
-  backendUrl: string,
-  kind: UploadKind,
-  filename: string,
-) =>
+export const uploadUrl = (kind: UploadKind, filename: string) =>
   kind === "kyc" || kind === "evidence"
-    ? `${backendUrl}/api/v1/uploads/${kind}/${filename}`
-    : `${backendUrl}/uploads/${kind}/${filename}`;
+    ? `/api/v1/uploads/${kind}/${filename}`
+    : `/uploads/${kind}/${filename}`;

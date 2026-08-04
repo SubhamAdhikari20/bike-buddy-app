@@ -9,6 +9,7 @@ import SupportTicketModel from "../models/support-ticket.model.ts";
 import BookingModel from "../models/booking.model.ts";
 import { referencesDocument } from "../utils/mongo-reference.ts";
 import notificationEvents from "../services/notification-events.service.ts";
+import { mediaUrlValidation } from "../schemas/media.schema.ts";
 
 const objectIdSchema = z
   .string()
@@ -19,7 +20,7 @@ export const createTicketSchema = z
     type: z.enum(["breakdown", "complaint", "general"]).default("general"),
     subject: z.string().trim().min(3).max(200),
     message: z.string().trim().min(10).max(2000),
-    photos: z.array(z.string().url()).max(3).default([]),
+    photos: z.array(mediaUrlValidation).max(3).default([]),
     bookingId: objectIdSchema.nullish(),
   })
   .strict();

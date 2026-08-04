@@ -3,6 +3,19 @@ export const API_BASE =
 
 export const apiUrl = (path: string) => `${API_BASE}${path}`;
 
+export const mediaUrl = (value?: string | null) => {
+  if (!value) return value ?? "";
+  if (!value.startsWith("/uploads/") && !value.startsWith("/api/v1/uploads/")) {
+    return value;
+  }
+
+  try {
+    return new URL(value, new URL(API_BASE).origin).toString();
+  } catch {
+    return value;
+  }
+};
+
 export type Role = "admin" | "owner" | "renter";
 
 export type AuthSession = {

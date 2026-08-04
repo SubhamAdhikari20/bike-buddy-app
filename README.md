@@ -11,11 +11,11 @@ sprint backlog and interface prototypes.
 
 ## Repository
 
-| Folder | Purpose |
-|---|---|
-| `backend/` | Express, TypeScript and MongoDB REST API |
-| `frontend/mobile/` | Flutter renter app using Riverpod and go_router |
-| `frontend/web/` | Next.js admin/owner portal using shadcn `base-nova`, Base UI and Tailwind |
+| Folder             | Purpose                                                                   |
+| ------------------ | ------------------------------------------------------------------------- |
+| `backend/`         | Express, TypeScript and MongoDB REST API                                  |
+| `frontend/mobile/` | Flutter renter app using Riverpod and go_router                           |
+| `frontend/web/`    | Next.js admin/owner portal using shadcn `base-nova`, Base UI and Tailwind |
 
 ## Product capabilities
 
@@ -45,6 +45,10 @@ sprint backlog and interface prototypes.
   support workflow
 - Owner fleet dashboard, listing form, booking/cash reconciliation and damage
   acknowledgement
+- Local multi-image galleries with previous/next, thumbnail and full-screen
+  controls; portable upload paths work in both the portal and Flutter app
+- Consistent three-dot row action menus, contextual confirmation dialogs and a
+  profile popover for predictable management workflows
 - Live notification bell, severity-aware Sonner feedback and a responsive
   notification history for both portal roles
 - Responsive navigation, keyboard focus, skip link, reduced-motion support and
@@ -103,15 +107,25 @@ value whether MongoDB is running in Docker or natively.
 Owners upload bike photos through the portal. Multer stores them under
 `backend/uploads/`, split by purpose:
 
-| Folder | Holds |
-|---|---|
-| `uploads/bike/` | Listing photos uploaded by owners |
-| `uploads/profile/` | Profile pictures |
-| `uploads/kyc/` | Renter ID documents |
+| Folder              | Holds                                  |
+| ------------------- | -------------------------------------- |
+| `uploads/bike/`     | Listing photos uploaded by owners      |
+| `uploads/profile/`  | Profile pictures                       |
+| `uploads/kyc/`      | Renter ID documents                    |
+| `uploads/evidence/` | Checklist, support and damage evidence |
 
-Express serves the folder at `/uploads`, so a stored file is reachable at
-`http://localhost:5050/uploads/bike/<filename>`. Uploaded files are ignored by
-git; only the folder placeholders are tracked.
+MongoDB stores portable paths such as `/uploads/bike/<filename>` rather than a
+developer-specific host name. Public bike/profile files are served by Express;
+KYC and evidence paths use authenticated `/api/v1/uploads/...` routes with
+role/ownership checks. The web and Flutter clients resolve both forms against
+their configured API origin.
+
+Runtime uploads are ignored by Git. The exception is a curated demonstration
+set: licensed local motorcycle photos plus clearly stamped synthetic profile,
+KYC and evidence fixtures. See the
+[demo media attribution](docs/DEMO_MEDIA_ATTRIBUTION.md) for sources and
+licenses. Re-running or editing demo accounts cannot delete those versioned
+fixtures.
 
 If `GMAIL_USER` and `GMAIL_APP_PASSWORD` are left blank outside production,
 sign-in and password-reset codes are printed to the backend terminal instead of
@@ -122,7 +136,7 @@ The seed is repeatable and scoped to Bike Buddy demo accounts and their linked
 records. It marks accounts it creates, refuses to overwrite matching unmarked
 accounts, and removes only tagged demo bikes and their linked workflow data.
 It prepares 17 accounts, 22 bikes, 28 bookings, 21 payments, 12 reviews, 12
-support tickets, 5 damage reports and 4 SOS records.
+support tickets, 5 damage reports, 4 SOS records and 7 durable notifications.
 
 Seed password: `Password@123`
 
@@ -157,7 +171,9 @@ machine's LAN IP:
 flutter run --dart-define=API_BASE_URL=http://192.168.1.20:5050
 ```
 
-Supply Maps and Google OAuth platform configuration for those integrations.
+The demo map uses OpenStreetMap tiles and needs no API key. Google OAuth is
+renter-only and still requires the normal Android/web client configuration;
+email/password remains available for an offline coursework recording.
 
 ### 4. Web
 

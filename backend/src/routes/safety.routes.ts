@@ -11,6 +11,7 @@ import BookingModel from "../models/booking.model.ts";
 import { referencesDocument, toDocumentId } from "../utils/mongo-reference.ts";
 import damageReportService from "../services/damage-report.service.ts";
 import notificationEvents from "../services/notification-events.service.ts";
+import { mediaUrlValidation } from "../schemas/media.schema.ts";
 
 const objectIdSchema = z
   .string()
@@ -20,7 +21,7 @@ export const damageReportSchema = z
   .object({
     bookingId: objectIdSchema,
     photos: z
-      .array(z.string().url())
+      .array(mediaUrlValidation)
       .min(1, "Attach at least one photo")
       .max(5),
     description: z
