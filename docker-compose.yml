@@ -1,0 +1,19 @@
+# Local MongoDB only. The backend, web portal and mobile app are run
+# natively (npm run dev / flutter run) — see README.md.
+#
+#   docker compose up -d      start MongoDB in the background
+#   docker compose down       stop it (data is kept in the named volume)
+#   docker compose down -v    stop it and delete all demo data
+services:
+  mongo:
+    image: mongo:8
+    container_name: bike-buddy-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - bike-buddy-mongo-data:/data/db
+
+volumes:
+  bike-buddy-mongo-data:
+    name: bike-buddy-mongo-data
