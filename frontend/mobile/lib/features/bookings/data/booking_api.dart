@@ -119,6 +119,11 @@ class BookingApi {
     return PaymentIntent.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
+  Future<PaymentStatus> paymentStatus(String paymentId) async {
+    final res = await _client.get('/payments/$paymentId/status');
+    return PaymentStatus.fromJson((res['data'] as Map).cast<String, dynamic>());
+  }
+
   Future<Map<String, dynamic>> confirmDemoPayment({
     required String paymentId,
     required bool success,

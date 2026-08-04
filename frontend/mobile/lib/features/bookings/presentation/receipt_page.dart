@@ -44,7 +44,7 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
           .downloadReceiptPdf(widget.bookingId);
       final dir = await getApplicationDocumentsDirectory();
       final file = File(
-        '${dir.path}/bike-buddy-receipt-${widget.bookingId.substring(widget.bookingId.length - 8)}.pdf',
+        '${dir.path}/bike-buddy-receipt-${_shortBookingId(widget.bookingId).toLowerCase()}.pdf',
       );
       await file.writeAsBytes(bytes);
       if (mounted) {
@@ -85,6 +85,9 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
         data: (booking) {
           final breakdown = booking.priceBreakdown;
           final isDemo = booking.paymentMode == 'demo';
+          final isSandbox = booking.paymentMode == 'sandbox';
+          final isTestPayment = isDemo || isSandbox;
+          final awaitsOwnerApproval = booking.status == 'pending';
           return ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
             children: [
@@ -96,29 +99,36 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                       Container(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
-                          color: isDemo
+                          color: isTestPayment
                               ? AppColors.warning.withValues(alpha: 0.12)
                               : AppColors.mint,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isDemo ? Icons.science_outlined : Icons.check_circle,
+                          isTestPayment
+                              ? Icons.science_outlined
+                              : Icons.check_circle,
                           size: 48,
-                          color: isDemo ? AppColors.warning : AppColors.success,
+                          color: isTestPayment
+                              ? AppColors.warning
+                              : AppColors.success,
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
                       Text(
                         isDemo
-                            ? 'Demo booking confirmed'
-                            : 'Payment successful!',
+                            ? 'Demo payment recorded'
+                            : isSandbox
+                            ? 'Test payment verified'
+                            : 'Payment verified',
                         style: textTheme.titleLarge,
+                        textAlign: TextAlign.center,
                       ),
-                      if (isDemo)
+                      if (isTestPayment)
                         const Padding(
                           padding: EdgeInsets.only(top: AppSpacing.xs),
                           child: Text(
-                            'Coursework simulation — no money was charged.',
+                            'Sandbox/coursework test only - no real money was charged.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.warning,
@@ -126,8 +136,35 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                             ),
                           ),
                         ),
+                      if (awaitsOwnerApproval)
+                        Container(
+                          margin: const EdgeInsets.only(top: AppSpacing.md),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(
+                              AppRadius.medium,
+                            ),
+                          ),
+                          child: const Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.schedule_outlined,
+                                color: AppColors.primary,
+                              ),
+                              SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Your payment is verified and your booking request is awaiting owner approval. Track the decision in My Bookings.',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       Text(
-                        'Booking #${booking.id.substring(booking.id.length - 8).toUpperCase()}',
+                        'Booking #${_shortBookingId(booking.id)}',
                         style: textTheme.labelSmall,
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -171,8 +208,8 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                           ),
                         if (booking.extensionAmount > 0)
                           _row(
-                            isDemo
-                                ? 'Demo extension (not charged)'
+                            isTestPayment
+                                ? 'Test extension (not charged)'
                                 : 'Paid extension',
                             Formatters.npr(booking.extensionAmount),
                           ),
@@ -184,14 +221,16 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
                         const Divider(),
                       ],
                       _row(
-                        isDemo ? 'Demo total (not charged)' : 'Total paid',
+                        isTestPayment
+                            ? 'Test total (not charged)'
+                            : 'Total paid',
                         Formatters.npr(booking.totalAmount),
                         bold: true,
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       Text(
-                        isDemo
-                            ? 'Download the clearly labelled demo PDF for your coursework evidence.'
+                        isTestPayment
+                            ? 'Download the clearly labelled test PDF for your coursework evidence.'
                             : 'Download the PDF for your records. No hidden fees.',
                         style: textTheme.bodyMedium,
                         textAlign: TextAlign.center,
@@ -242,5 +281,10 @@ class _ReceiptPageState extends ConsumerState<ReceiptPage> {
         ],
       ),
     );
+  }
+
+  String _shortBookingId(String id) {
+    if (id.length <= 8) return id.toUpperCase();
+    return id.substring(id.length - 8).toUpperCase();
   }
 }

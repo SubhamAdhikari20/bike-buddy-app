@@ -66,7 +66,7 @@ class _BookingDetailsPageState extends ConsumerState<BookingDetailsPage> {
   Color _statusColor(String status) => switch (status) {
     'confirmed' || 'paid' || 'completed' => AppColors.success,
     'pending' || 'unpaid' => AppColors.warning,
-    'cancelled' || 'rejected' || 'failed' => AppColors.error,
+    'cancelled' || 'rejected' || 'failed' || 'expired' => AppColors.error,
     _ => AppColors.textMuted,
   };
 
@@ -309,12 +309,24 @@ class _BookingDetailsBody extends StatelessWidget {
             icon: const Icon(Icons.receipt_long_outlined),
             label: const Text('View receipt'),
           )
-        else if (booking.status == 'pending')
+        else if (booking.status == 'pending' && booking.paymentMethod != 'cash')
           ElevatedButton.icon(
             onPressed: () =>
                 context.push('/book/${booking.bikeId}?bookingId=${booking.id}'),
             icon: const Icon(Icons.account_balance_wallet_outlined),
             label: const Text('Continue payment'),
+          ),
+        if (booking.status == 'pending' &&
+            booking.paymentMethod == 'cash' &&
+            booking.paymentStatus == 'pending')
+          const Card(
+            child: ListTile(
+              leading: Icon(Icons.schedule_outlined, color: AppColors.primary),
+              title: Text('Awaiting owner approval'),
+              subtitle: Text(
+                'Cash is due at pickup after the owner accepts this request.',
+              ),
+            ),
           ),
         if (booking.isActive)
           Padding(

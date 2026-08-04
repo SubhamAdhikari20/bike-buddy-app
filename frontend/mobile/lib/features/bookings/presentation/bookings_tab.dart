@@ -410,9 +410,18 @@ class _BookingCard extends ConsumerWidget {
   (String, Color) get _statusChip => switch (booking.status) {
     'confirmed' when booking.isActive => ('In Progress', AppColors.success),
     'confirmed' => ('Confirmed', AppColors.primary),
-    'pending' => ('Waiting for payment', AppColors.warning),
+    'pending'
+        when booking.paymentStatus == 'paid' ||
+            booking.paymentMethod == 'cash' =>
+      ('Awaiting owner', AppColors.warning),
+    'pending' when booking.paymentStatus == 'pending' => (
+      'Payment pending',
+      AppColors.warning,
+    ),
+    'pending' => ('Payment required', AppColors.warning),
     'completed' => ('Completed', AppColors.teal),
     'cancelled' => ('Cancelled', AppColors.error),
+    'expired' => ('Expired', AppColors.error),
     _ => (booking.status, AppColors.textMuted),
   };
 

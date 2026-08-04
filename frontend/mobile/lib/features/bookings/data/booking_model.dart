@@ -201,6 +201,7 @@ class PaymentIntent {
   final String paymentId;
   final String transactionRef;
   final double amount;
+  final String currency;
   final String provider;
   final String mode;
   final String? paymentUrl;
@@ -211,6 +212,7 @@ class PaymentIntent {
     required this.paymentId,
     required this.transactionRef,
     required this.amount,
+    required this.currency,
     required this.provider,
     required this.mode,
     this.paymentUrl,
@@ -222,6 +224,7 @@ class PaymentIntent {
     paymentId: (json['paymentId'] ?? '').toString(),
     transactionRef: json['transactionRef'] as String? ?? '',
     amount: (json['amount'] as num?)?.toDouble() ?? 0,
+    currency: json['currency'] as String? ?? 'NPR',
     provider: json['provider'] as String? ?? '',
     mode: json['mode'] as String? ?? 'demo',
     paymentUrl: json['paymentUrl'] as String?,
@@ -229,4 +232,71 @@ class PaymentIntent {
         json['demoConfirmationRequired'] as bool? ?? false,
     notice: json['notice'] as String?,
   );
+
+  bool get isDemo => mode.toLowerCase() == 'demo';
+
+  bool get isSandbox => mode.toLowerCase() == 'sandbox';
+
+  Uri? get checkoutUri {
+    final uri = Uri.tryParse(paymentUrl ?? '');
+    if (uri == null || !uri.hasAuthority || uri.userInfo.isNotEmpty) {
+      return null;
+    }
+    if (uri.scheme == 'https') {
+      return uri;
+    }
+    final localTestHosts = {'localhost', '127.0.0.1', '10.0.2.2'};
+    if (uri.scheme != 'http' || !localTestHosts.contains(uri.host)) {
+      return null;
+    }
+    return uri;
+  }
+}
+
+class PaymentStatus {
+  final String paymentId;
+  final String bookingId;
+  final String provider;
+  final String mode;
+  final String status;
+  final bool paid;
+  final bool terminal;
+  final String message;
+
+  const PaymentStatus({
+    required this.paymentId,
+    required this.bookingId,
+    required this.provider,
+    required this.mode,
+    required this.status,
+    required this.paid,
+    required this.terminal,
+    required this.message,
+  });
+
+  factory PaymentStatus.fromJson(Map<String, dynamic> json) => PaymentStatus(
+    paymentId: (json['paymentId'] ?? '').toString(),
+    bookingId: (json['bookingId'] ?? '').toString(),
+    provider: json['provider'] as String? ?? '',
+    mode: json['mode'] as String? ?? '',
+    status: json['status'] as String? ?? 'pending',
+    paid: json['paid'] as bool? ?? false,
+    terminal: json['terminal'] as bool? ?? false,
+    message: json['message'] as String? ?? 'Payment is still pending.',
+  );
+
+  /// A browser redirect is never treated as proof of payment. Both the
+  /// server's paid flag and a successful terminal state must agree.
+  bool get isSucceeded {
+    final normalized = status.toLowerCase();
+    return paid &&
+        terminal &&
+        (normalized == 'succeeded' ||
+            normalized == 'paid' ||
+            normalized == 'completed');
+  }
+
+  bool get isCancelled => status.toLowerCase() == 'cancelled';
+
+  bool get isFailed => terminal && !isSucceeded && !isCancelled;
 }

@@ -17,6 +17,7 @@ import '../../bikes/data/bike_model.dart';
 import '../../bikes/presentation/providers/bikes_provider.dart';
 import '../data/booking_api.dart';
 import '../data/booking_model.dart';
+import 'payment_awaiting_sheet.dart';
 
 /// The 3-step booking flow (BK-01): 1) pick dates with a live fare,
 /// 2) review the full summary, 3) pay. A progress bar shows the step at
@@ -194,10 +195,25 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
               size: 40,
               color: AppColors.success,
             ),
-            title: Text('Reference: ${cash['reference']}'),
-            content: Text(
-              cash['instructions'] as String? ??
-                  'Bring the cash to the pickup point and show this reference.',
+            title: const Text('Cash request sent'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reference: ${cash['reference']}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  cash['instructions'] as String? ??
+                      'Bring the cash to the pickup point and show this reference.',
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                const Text(
+                  'Your booking request is awaiting owner approval. Track it in My Bookings.',
+                ),
+              ],
             ),
             actions: [
               ElevatedButton(
@@ -216,27 +232,35 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
           .initiatePayment(bookingId: _booking!.id, provider: _provider);
 
       if (!mounted) return;
-      if (!intent.demoConfirmationRequired || intent.mode != 'demo') {
-        throw const AppException(
-          'This build cannot accept live payments. Configure a verified provider first.',
+      if (intent.isDemo && intent.demoConfirmationRequired) {
+        await _completeLocalDemoPayment(intent);
+        return;
+      }
+
+      if (intent.isSandbox && intent.checkoutUri != null) {
+        final status = await showSandboxPaymentSheet(
+          context: context,
+          intent: intent,
+          checkStatus: () =>
+              ref.read(bookingApiProvider).paymentStatus(intent.paymentId),
         );
+        if (!mounted || status == null) return;
+
+        if (status.isSucceeded && status.bookingId == _booking!.id) {
+          await _finishSuccessfulPayment();
+        } else if (status.isSucceeded) {
+          throw const AppException(
+            'The verified payment did not match this booking. Contact support before trying again.',
+          );
+        } else if (status.terminal) {
+          _showPaymentFailure(message: status.message);
+        }
+        return;
       }
 
-      final success = await _showDemoGateway(intent);
-      if (success == null || !mounted) return;
-
-      final result = await ref
-          .read(bookingApiProvider)
-          .confirmDemoPayment(paymentId: intent.paymentId, success: success);
-
-      if (!mounted) return;
-      if (result['succeeded'] == true) {
-        await LocalStore.clearBookingDraft();
-        ref.invalidate(myBookingsProvider);
-        if (mounted) context.pushReplacement('/receipt/${_booking!.id}');
-      } else {
-        _showPaymentFailure();
-      }
+      throw const AppException(
+        'Payment is not configured safely. Use local demo mode or ask the administrator to enable a sandbox provider.',
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -253,6 +277,28 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _completeLocalDemoPayment(PaymentIntent intent) async {
+    final success = await _showDemoGateway(intent);
+    if (success == null || !mounted) return;
+
+    final result = await ref
+        .read(bookingApiProvider)
+        .confirmDemoPayment(paymentId: intent.paymentId, success: success);
+
+    if (!mounted) return;
+    if (result['succeeded'] == true) {
+      await _finishSuccessfulPayment();
+    } else {
+      _showPaymentFailure();
+    }
+  }
+
+  Future<void> _finishSuccessfulPayment() async {
+    await LocalStore.clearBookingDraft();
+    ref.invalidate(myBookingsProvider);
+    if (mounted) context.pushReplacement('/receipt/${_booking!.id}');
   }
 
   /// Explicit coursework simulation. It never collects wallet credentials or
@@ -346,7 +392,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
 
   // Clear failure handling: reason, proof of no charge, retry without
   // re-entering anything, and a support way out (PR-05, H6).
-  void _showPaymentFailure() {
+  void _showPaymentFailure({String? message}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -355,9 +401,10 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         ),
         icon: const Icon(Icons.error_outline, size: 40, color: AppColors.error),
         title: const Text('Payment failed'),
-        content: const Text(
-          'The payment did not go through and you were NOT charged. '
-          'Your booking and details are saved - just try again.',
+        content: Text(
+          message ??
+              'The payment did not go through and you were NOT charged. '
+                  'Your booking and details are saved - just try again.',
         ),
         actions: [
           TextButton(
@@ -416,7 +463,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'Step ${_step + 1} of 3 · ${['Choose dates', 'Review', 'Demo payment'][_step]}',
+                    'Step ${_step + 1} of 3 - ${['Choose dates', 'Review', 'Payment'][_step]}',
                     style: Theme.of(context).textTheme.labelSmall,
                   ),
                 ],
@@ -730,7 +777,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                 SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    'Demo payment mode: this coursework build does not contact a wallet or charge real money.',
+                    'Test payments only. Sandbox mode opens an eSewa or Khalti test checkout using provider test credentials; no real money is charged. Local demo mode stays inside Bike Buddy and never contacts a wallet.',
                     style: TextStyle(
                       color: AppColors.warning,
                       fontWeight: FontWeight.w600,
@@ -767,7 +814,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Choose demo provider', style: textTheme.titleLarge),
+            Text('Choose payment method', style: textTheme.titleLarge),
             const SecureBadge(),
           ],
         ),
@@ -800,7 +847,11 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                   Text(label),
                 ],
               ),
-              subtitle: const Text('Simulated provider — no wallet login'),
+              subtitle: Text(
+                value == 'cash'
+                    ? 'Pay at pickup with a booking reference'
+                    : 'Hosted sandbox/test checkout or local demo, based on server configuration',
+              ),
             ),
           ),
         const SizedBox(height: AppSpacing.lg),
@@ -816,9 +867,7 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
                     color: Colors.white,
                   ),
                 )
-              : Text(
-                  'Continue Demo · ${Formatters.npr(quote.breakdown.total)}',
-                ),
+              : Text('Continue - ${Formatters.npr(quote.breakdown.total)}'),
         ),
         TextButton(
           onPressed: _busy ? null : () => setState(() => _step = 1),

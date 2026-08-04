@@ -77,11 +77,15 @@ test("approved renters can create an available booking", async (context) => {
   const originalFindBike = bikeRepository.findById;
   const originalFindOverlap = bookingRepository.findOverlap;
   const originalCreate = bookingRepository.create;
+  const originalWithBikeLease = bookingRepository.withBikeLease;
+  const originalExpireHolds = bookingRepository.expireUnpaidHolds;
   context.after(() => {
     renterRepository.findById = originalFindRenter;
     bikeRepository.findById = originalFindBike;
     bookingRepository.findOverlap = originalFindOverlap;
     bookingRepository.create = originalCreate;
+    bookingRepository.withBikeLease = originalWithBikeLease;
+    bookingRepository.expireUnpaidHolds = originalExpireHolds;
   });
 
   renterRepository.findById = (() =>
@@ -101,6 +105,10 @@ test("approved renters can create an available booking", async (context) => {
     Promise.resolve(null)) as unknown as typeof bookingRepository.findOverlap;
   bookingRepository.create = ((payload: Record<string, unknown>) =>
     Promise.resolve(payload)) as unknown as typeof bookingRepository.create;
+  bookingRepository.withBikeLease = ((_bikeId: string, task: () => Promise<unknown>) =>
+    task()) as typeof bookingRepository.withBikeLease;
+  bookingRepository.expireUnpaidHolds = (() =>
+    Promise.resolve({ modifiedCount: 0 })) as unknown as typeof bookingRepository.expireUnpaidHolds;
 
   const booking = await bookingService.createBooking(
     {
@@ -114,4 +122,5 @@ test("approved renters can create an available booking", async (context) => {
   assert.equal(booking.renterId, "renter-profile");
   assert.equal(booking.ownerId, "owner-profile");
   assert.equal(booking.totalAmount, 2600);
+  assert.ok(booking.holdExpiresAt instanceof Date);
 });

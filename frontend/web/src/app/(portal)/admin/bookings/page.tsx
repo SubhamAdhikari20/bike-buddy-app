@@ -23,6 +23,7 @@ const statusBadge: Record<string, string> = {
     completed: "bg-blue-100 text-blue-700",
     cancelled: "bg-red-100 text-red-700",
     rejected: "bg-gray-200 text-gray-600",
+    expired: "bg-slate-200 text-slate-700",
 };
 
 export default function AdminBookingsPage() {

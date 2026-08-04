@@ -115,7 +115,7 @@ export const downloadReceipt: RequestHandler = async (req, res, next) => {
   try {
     const bookingId = String(req.params.bookingId);
     const booking: any = await bookingService.getBooking(req.auth!, bookingId);
-    const payment = await paymentRepository.findByBookingId(bookingId);
+    const payment = await paymentRepository.findSucceededByBookingId(bookingId);
     if (booking.paymentStatus !== "paid" || payment?.status !== "succeeded") {
       throw new AppError(
         409,

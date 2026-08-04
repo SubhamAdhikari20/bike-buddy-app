@@ -25,7 +25,14 @@ export const bookingListQuerySchema = z
       .regex(/^[a-f\d]{24}$/i, "A valid bike ID is required")
       .optional(),
     status: z
-      .enum(["pending", "confirmed", "cancelled", "completed", "rejected"])
+      .enum([
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "rejected",
+        "expired",
+      ])
       .optional(),
     paymentStatus: z
       .enum(["unpaid", "pending", "paid", "failed", "refunded"])

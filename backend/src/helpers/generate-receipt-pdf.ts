@@ -22,7 +22,7 @@ type ReceiptData = {
   lateFeeAmount?: number;
   paymentProvider?: string | null;
   paymentStatus: string;
-  paymentMode: "demo" | "live";
+  paymentMode: "demo" | "sandbox" | "live";
 };
 
 const npr = (amount: number) => `NPR ${amount.toLocaleString("en-US")}`;
@@ -36,7 +36,7 @@ const nptDate = (date: Date) => {
 /// (PR-04, RET-04 - proof of every transaction).
 export const streamReceiptPdf = (res: Response, data: ReceiptData) => {
   const doc = new PDFDocument({ size: "A5", margin: 40 });
-  const isDemo = data.paymentMode === "demo";
+  const isTestPayment = ["demo", "sandbox"].includes(data.paymentMode);
 
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader(
@@ -61,13 +61,13 @@ export const streamReceiptPdf = (res: Response, data: ReceiptData) => {
     .fillColor("#111928")
     .fontSize(14)
     .font("Helvetica-Bold")
-    .text(isDemo ? "Demo Booking Receipt" : "Payment Receipt");
-  if (isDemo) {
+    .text(isTestPayment ? "Test Booking Receipt" : "Payment Receipt");
+  if (isTestPayment) {
     doc
       .fillColor("#B45309")
       .fontSize(9)
       .font("Helvetica-Bold")
-      .text("COURSEWORK SIMULATION - NO MONEY WAS CHARGED");
+      .text("COURSEWORK TEST PAYMENT - NO REAL MONEY WAS CHARGED");
   }
   doc.fontSize(9).font("Helvetica").fillColor("#6B7280");
   doc.text(`Receipt #: ${data.receiptNumber}`);
@@ -110,7 +110,7 @@ export const streamReceiptPdf = (res: Response, data: ReceiptData) => {
   }
   if ((data.breakdown.extensionAmount ?? 0) > 0) {
     line(
-      isDemo ? "Demo extension (not charged)" : "Paid extension",
+      isTestPayment ? "Test extension (no real charge)" : "Paid extension",
       npr(data.breakdown.extensionAmount ?? 0),
     );
   }
@@ -128,7 +128,7 @@ export const streamReceiptPdf = (res: Response, data: ReceiptData) => {
     .stroke();
   doc.moveDown(0.4);
   line(
-    isDemo ? "Demo total (not charged)" : "Total paid",
+    isTestPayment ? "Test total (no real charge)" : "Total paid",
     npr(data.breakdown.total),
     true,
   );

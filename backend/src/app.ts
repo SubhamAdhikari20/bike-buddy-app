@@ -33,7 +33,17 @@ const limiter = rateLimit({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev")); // Logging middleware
+// Query strings can contain payment callback payloads or short-lived checkout
+// bearer tokens. Log only the path so credentials/provider data never reach logs.
+morgan.token("safe-path", (req) => {
+  const request = req as Request;
+  return (request.originalUrl || request.url).split("?", 1)[0];
+});
+app.use(
+  morgan(
+    ":method :safe-path :status :res[content-length] - :response-time ms",
+  ),
+);
 app.use(cookieParser());
 
 // Custom security middleware (compatible with Express v5)

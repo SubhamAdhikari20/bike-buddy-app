@@ -109,9 +109,11 @@ test("management summary blocks an owner from another owner's bike", async (cont
 test("booking list keeps the bike filter inside the caller's role scope", async (context) => {
   const originalList = bookingRepository.listForBikeManagement;
   const originalCount = bookingRepository.count;
+  const originalExpireHolds = bookingRepository.expireUnpaidHolds;
   context.after(() => {
     bookingRepository.listForBikeManagement = originalList;
     bookingRepository.count = originalCount;
+    bookingRepository.expireUnpaidHolds = originalExpireHolds;
   });
 
   let capturedFilter: Record<string, unknown> = {};
@@ -123,6 +125,8 @@ test("booking list keeps the bike filter inside the caller's role scope", async 
   }) as unknown as typeof bookingRepository.listForBikeManagement;
   bookingRepository.count = (() =>
     Promise.resolve(0)) as unknown as typeof bookingRepository.count;
+  bookingRepository.expireUnpaidHolds = (() =>
+    Promise.resolve({ modifiedCount: 0 })) as unknown as typeof bookingRepository.expireUnpaidHolds;
 
   await bookingService.listBookings(
     { userId: "owner-user", role: "owner", profileId: ownerId },

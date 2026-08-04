@@ -8,12 +8,27 @@ import {
 } from "../schemas/payment.schema.ts";
 import {
   confirmDemoPayment,
+  esewaCallback,
+  esewaFailureCallback,
   getPayment,
+  getPaymentStatus,
   initiatePayment,
+  khaltiCallback,
+  openEsewaCheckout,
   updatePaymentStatus,
 } from "../controllers/payment.controller.ts";
 
 const paymentRoutes = Router();
+
+// Provider returns are public by necessity, but they only trigger server-side
+// signature/status verification and never trust a redirect as proof of payment.
+paymentRoutes.get("/checkout/esewa/:paymentId", openEsewaCheckout);
+paymentRoutes.get("/callback/khalti", khaltiCallback);
+paymentRoutes.get(
+  "/callback/esewa/:paymentRef/failure",
+  esewaFailureCallback,
+);
+paymentRoutes.get("/callback/esewa/:paymentRef", esewaCallback);
 
 paymentRoutes.use(authenticate);
 paymentRoutes.post(
@@ -26,6 +41,7 @@ paymentRoutes.post(
   validate(demoPaymentConfirmationSchema),
   confirmDemoPayment,
 );
+paymentRoutes.get("/:paymentId/status", getPaymentStatus);
 paymentRoutes.get("/:paymentId", getPayment);
 paymentRoutes.patch(
   "/:paymentId/status",

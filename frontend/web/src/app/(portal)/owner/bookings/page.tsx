@@ -25,6 +25,7 @@ const statusBadge: Record<string, string> = {
     pending: "bg-amber-100 text-amber-700",
     completed: "bg-blue-100 text-blue-700",
     cancelled: "bg-red-100 text-red-700",
+    expired: "bg-slate-200 text-slate-700",
 };
 
 export default function OwnerBookingsPage() {
@@ -116,7 +117,8 @@ export default function OwnerBookingsPage() {
                                         )}
                                     </TableCell>
                                     <TableCell className="space-x-2 text-right">
-                                        {booking.paymentMethod === "cash" &&
+                                        {booking.status === "confirmed" &&
+                                            booking.paymentMethod === "cash" &&
                                             booking.paymentStatus === "pending" && (
                                             <Button
                                                 size="sm"
@@ -126,7 +128,11 @@ export default function OwnerBookingsPage() {
                                                 Record cash received
                                             </Button>
                                         )}
-                                        {booking.status === "pending" && (
+                                        {booking.status === "pending" &&
+                                            ((booking.paymentMethod === "wallet" &&
+                                                booking.paymentStatus === "paid") ||
+                                                (booking.paymentMethod === "cash" &&
+                                                    booking.paymentStatus === "pending")) && (
                                             <Button
                                                 size="sm"
                                                 className="bg-green-600 text-white hover:bg-green-700"

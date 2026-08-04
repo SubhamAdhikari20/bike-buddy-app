@@ -64,12 +64,105 @@ const configuredPaymentMode = process.env.PAYMENT_MODE?.trim().toLowerCase();
 if (
   configuredPaymentMode &&
   configuredPaymentMode !== "demo" &&
+  configuredPaymentMode !== "sandbox" &&
   configuredPaymentMode !== "live"
 ) {
-  throw new Error("PAYMENT_MODE must be either demo or live");
+  throw new Error("PAYMENT_MODE must be demo, sandbox or live");
 }
-export const PAYMENT_MODE: "demo" | "live" =
-  configuredPaymentMode === "live" ? "live" : "demo";
+export type PaymentMode = "demo" | "sandbox" | "live";
+export const PAYMENT_MODE: PaymentMode =
+  configuredPaymentMode === "sandbox" || configuredPaymentMode === "live"
+    ? configuredPaymentMode
+    : "demo";
+
+const parseUrl = (name: string, value: string | undefined) => {
+  const candidate = value?.trim();
+  if (!candidate) return "";
+
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error(`${name} must be a valid absolute URL`);
+  }
+
+  const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
+  if (parsed.protocol !== "https:" && !localHostnames.has(parsed.hostname)) {
+    throw new Error(`${name} must use HTTPS outside local development`);
+  }
+  return parsed.toString().replace(/\/$/, "");
+};
+
+const parseOrigin = (name: string, value: string | undefined) => {
+  const result = parseUrl(name, value);
+  if (!result) return "";
+  const parsed = new URL(result);
+  if (
+    parsed.username ||
+    parsed.password ||
+    parsed.pathname !== "/" ||
+    parsed.search ||
+    parsed.hash
+  ) {
+    throw new Error(`${name} must contain only an origin, without credentials, path, query or hash`);
+  }
+  return parsed.origin;
+};
+
+/** Explicit public callback origin used by provider sandboxes (never Host). */
+export const PAYMENT_PUBLIC_BASE_URL = parseOrigin(
+  "PAYMENT_PUBLIC_BASE_URL",
+  process.env.PAYMENT_PUBLIC_BASE_URL,
+);
+export const PAYMENT_WEBSITE_URL = parseOrigin(
+  "PAYMENT_WEBSITE_URL",
+  process.env.PAYMENT_WEBSITE_URL,
+);
+export const KHALTI_SANDBOX_SECRET_KEY =
+  process.env.KHALTI_SANDBOX_SECRET_KEY?.trim() || "";
+export const ESEWA_SANDBOX_SECRET_KEY =
+  process.env.ESEWA_SANDBOX_SECRET_KEY?.trim() || "";
+export const PAYMENT_CHECKOUT_SIGNING_SECRET =
+  process.env.PAYMENT_CHECKOUT_SIGNING_SECRET?.trim() || "";
+
+const configuredProviderTimeout = Number(
+  process.env.PAYMENT_PROVIDER_TIMEOUT_MS ?? "8000",
+);
+if (
+  !Number.isInteger(configuredProviderTimeout) ||
+  configuredProviderTimeout < 1000 ||
+  configuredProviderTimeout > 15000
+) {
+  throw new Error(
+    "PAYMENT_PROVIDER_TIMEOUT_MS must be an integer from 1000 to 15000",
+  );
+}
+export const PAYMENT_PROVIDER_TIMEOUT_MS = configuredProviderTimeout;
+
+const configuredLookupInterval = Number(
+  process.env.PAYMENT_LOOKUP_INTERVAL_MS ?? "15000",
+);
+if (
+  !Number.isInteger(configuredLookupInterval) ||
+  configuredLookupInterval < 5000 ||
+  configuredLookupInterval > 60000
+) {
+  throw new Error(
+    "PAYMENT_LOOKUP_INTERVAL_MS must be an integer from 5000 to 60000",
+  );
+}
+export const PAYMENT_LOOKUP_INTERVAL_MS = configuredLookupInterval;
+const configuredBookingHoldMinutes = Number(
+  process.env.BOOKING_HOLD_MINUTES ?? "30",
+);
+if (
+  !Number.isInteger(configuredBookingHoldMinutes) ||
+  configuredBookingHoldMinutes < 5 ||
+  configuredBookingHoldMinutes > 60
+) {
+  throw new Error("BOOKING_HOLD_MINUTES must be an integer from 5 to 60");
+}
+export const BOOKING_HOLD_MINUTES = configuredBookingHoldMinutes;
 export const GOOGLE_CLIENT_IDS: string[] = (process.env.GOOGLE_CLIENT_IDS || "")
   .split(",")
   .map((clientId) => clientId.trim())

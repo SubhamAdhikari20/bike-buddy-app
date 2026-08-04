@@ -40,7 +40,14 @@ const bookingSchema: Schema<IBooking> = new Schema(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "confirmed", "cancelled", "completed", "rejected"],
+      enum: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "rejected",
+        "expired",
+      ],
       default: "pending",
       index: true,
     },
@@ -53,7 +60,7 @@ const bookingSchema: Schema<IBooking> = new Schema(
     },
     paymentMode: {
       type: String,
-      enum: ["demo", "live"],
+      enum: ["demo", "sandbox", "live"],
       default: null,
     },
     paymentMethod: {
@@ -70,6 +77,8 @@ const bookingSchema: Schema<IBooking> = new Schema(
     totalAmount: { type: Number, required: true },
     currency: { type: String, required: true, default: "NPR" },
     cancellationReason: { type: String, default: null },
+    holdExpiresAt: { type: Date, default: null, index: true },
+    holdExpiredAt: { type: Date, default: null },
     // Itemised breakdown shown before payment; locked at booking time so
     // the checkout total can never silently change (PR-01, PR-07).
     priceBreakdown: {

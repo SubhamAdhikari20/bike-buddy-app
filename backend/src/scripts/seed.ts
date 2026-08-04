@@ -19,6 +19,7 @@ import DamageReportModel from "../models/damage-report.model.ts";
 import SosAlertModel from "../models/sos-alert.model.ts";
 import authService from "../services/auth.service.ts";
 import { hashPassword } from "../utils/password.ts";
+import { BOOKING_HOLD_MINUTES } from "../config/index.ts";
 
 const DEMO_PASSWORD = "Password@123";
 const DEMO_TAG_PREFIX = "bike-buddy-demo:";
@@ -1290,7 +1291,13 @@ type BookingSeed = {
   startHour?: number;
   endHour?: number;
   rentalDays: number;
-  status: "pending" | "confirmed" | "cancelled" | "completed" | "rejected";
+  status:
+    | "pending"
+    | "confirmed"
+    | "cancelled"
+    | "completed"
+    | "rejected"
+    | "expired";
   paymentStatus: "unpaid" | "pending" | "paid" | "failed" | "refunded";
   paymentMethod?: "wallet" | "cash";
   notes: string;
@@ -2080,12 +2087,26 @@ const seed = async () => {
         bike.serviceFee,
         bike.securityDeposit,
       );
+      const startDate = atDayOffset(
+        booking.startOffset,
+        booking.startHour ?? 4,
+      );
+      const endDate = atDayOffset(booking.endOffset, booking.endHour ?? 4);
+      const holdExpiresAt =
+        booking.status === "pending" && booking.paymentStatus !== "paid"
+          ? new Date(
+              Math.min(
+                Date.now() + BOOKING_HOLD_MINUTES * 60_000,
+                startDate.getTime(),
+              ),
+            )
+          : null;
       return {
         bikeId: bikeDoc._id,
         renterId: renter.profile._id,
         ownerId: owner.profile._id,
-        startDate: atDayOffset(booking.startOffset, booking.startHour ?? 4),
-        endDate: atDayOffset(booking.endOffset, booking.endHour ?? 4),
+        startDate,
+        endDate,
         pickupLocation: bike.location.label,
         dropoffLocation: bike.location.label,
         notes: booking.notes,
@@ -2106,6 +2127,8 @@ const seed = async () => {
           (booking.lateFeeAmount ?? 0),
         currency: "NPR",
         cancellationReason: booking.cancellationReason ?? null,
+        holdExpiresAt,
+        holdExpiredAt: booking.status === "expired" ? new Date() : null,
         priceBreakdown: breakdown,
         priceLockedAt: atDayOffset(booking.startOffset - 2),
         returnedAt:
@@ -2149,6 +2172,7 @@ const seed = async () => {
           provider: payment.provider,
           mode: "demo",
           amount: bookingDoc.totalAmount,
+          amountMinor: Math.round(Number(bookingDoc.totalAmount) * 100),
           currency: "NPR",
           status: payment.status,
           transactionRef: payment.ref,
