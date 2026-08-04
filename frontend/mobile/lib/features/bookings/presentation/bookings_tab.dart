@@ -545,7 +545,7 @@ class _BookingCard extends ConsumerWidget {
                           '/book/${booking.bikeId}?bookingId=${booking.id}',
                         );
                       } else {
-                        context.push('/receipt/${booking.id}');
+                        context.push('/booking/${booking.id}');
                       }
                     },
                     child: Text(
@@ -555,7 +555,7 @@ class _BookingCard extends ConsumerWidget {
                                 ? 'Cash due at pickup'
                                 : 'Manage Ride'
                           : booking.paymentStatus == 'paid'
-                          ? 'View Receipt'
+                          ? 'View Details'
                           : booking.paymentMethod == 'cash' &&
                                 booking.paymentStatus == 'pending'
                           ? 'Cash due at pickup'

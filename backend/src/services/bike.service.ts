@@ -6,6 +6,8 @@ import { bookingRepository } from "../repositories/booking.repository.ts";
 import type { AuthRole } from "../interfaces/auth.interface.ts";
 import { toDocumentId } from "../utils/mongo-reference.ts";
 import { deleteLocalUpload } from "../utils/local-media.ts";
+import { reviewRepository } from "../repositories/review.repository.ts";
+import { damageReportRepository } from "../repositories/damage-report.repository.ts";
 
 type AuthContext = {
   userId: string;
@@ -265,6 +267,33 @@ const bikeService = {
       ...bike.toObject(),
       isBestValue: bike._id.toString() === cheapest._id.toString(),
     }));
+  },
+
+  async getManagementSummary(auth: AuthContext, bikeId: string) {
+    const bike = await bikeRepository.findById(bikeId);
+    if (!bike) {
+      throw new AppError(404, "Bike not found", "NOT_FOUND");
+    }
+
+    await ensureOwnerAccess(auth, toDocumentId(bike.ownerId) ?? "");
+
+    const [bookingMetrics, reviewStats, openDamageReports] = await Promise.all([
+      bookingRepository.getBikeManagementMetrics(bikeId),
+      reviewRepository.aggregateStatsByBikeId(bikeId),
+      damageReportRepository.countOpenByBikeId(bikeId),
+    ]);
+
+    return {
+      bike,
+      metrics: {
+        activeBookings: Number(bookingMetrics.activeBookings ?? 0),
+        completedBookings: Number(bookingMetrics.completedBookings ?? 0),
+        paidRevenue: Number(bookingMetrics.paidRevenue ?? 0),
+        publicReviewCount: Number(reviewStats.ratingCount ?? 0),
+        averageRating: Number(reviewStats.averageRating ?? 0),
+        openDamageReports: Number(openDamageReports),
+      },
+    };
   },
 
   async getBike(bikeId: string, auth?: AuthContext) {

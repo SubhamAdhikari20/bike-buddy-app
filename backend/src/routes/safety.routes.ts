@@ -12,6 +12,7 @@ import {
   referencesDocument,
   toDocumentId,
 } from "../utils/mongo-reference.ts";
+import damageReportService from "../services/damage-report.service.ts";
 
 const objectIdSchema = z
   .string()
@@ -35,6 +36,18 @@ export const damageReportSchema = z
 export const damageStatusSchema = z
   .object({
     status: z.enum(["reviewed", "resolved"]),
+  })
+  .strict();
+
+export const damageReportListQuerySchema = z
+  .object({
+    bikeId: z
+      .string()
+      .regex(/^[a-f\d]{24}$/i, "A valid bike ID is required")
+      .optional(),
+    status: z.enum(["open", "reviewed", "resolved"]).optional(),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
   })
   .strict();
 
@@ -153,24 +166,23 @@ safetyRoutes.get("/damage-reports/mine", async (req, res, next) => {
 safetyRoutes.get(
   "/damage-reports",
   authorize("admin", "owner"),
+  validate(damageReportListQuerySchema, "query"),
   async (req, res, next) => {
     try {
-      let filter: Record<string, unknown> = {};
-      if (req.auth!.role === "owner") {
-        if (!req.auth!.profileId) {
-          throw new AppError(403, "Owner profile is missing", "FORBIDDEN");
-        }
-        const ownerBookingIds = await BookingModel.distinct("_id", {
-          ownerId: req.auth!.profileId,
-        });
-        filter = { bookingId: { $in: ownerBookingIds } };
-      }
-      const reports = await DamageReportModel.find(filter)
-        .sort({ createdAt: -1 })
-        .limit(100);
+      const result = await damageReportService.listForManagement(
+        req.auth!,
+        req.query as Record<string, unknown>,
+      );
       res
         .status(200)
-        .json(new ApiResponse(200, "Damage reports", reports));
+        .json(
+          new ApiResponse(
+            200,
+            "Damage reports",
+            result.items,
+            result.pagination,
+          ),
+        );
     } catch (error) {
       next(error);
     }

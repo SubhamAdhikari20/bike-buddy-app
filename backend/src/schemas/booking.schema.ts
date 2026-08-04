@@ -20,6 +20,10 @@ export const bookingListQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(10),
+    bikeId: z
+      .string()
+      .regex(/^[a-f\d]{24}$/i, "A valid bike ID is required")
+      .optional(),
     status: z
       .enum(["pending", "confirmed", "cancelled", "completed", "rejected"])
       .optional(),

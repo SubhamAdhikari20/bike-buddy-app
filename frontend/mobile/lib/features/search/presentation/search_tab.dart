@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
@@ -9,6 +10,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/services/local_store.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/open_street_map_layers.dart';
 import '../../bikes/data/bike_model.dart';
 import '../../bikes/presentation/providers/bikes_provider.dart';
 import '../../bikes/presentation/widgets/filter_sheet.dart';
@@ -476,50 +478,148 @@ class _ResultsList extends StatelessWidget {
   }
 }
 
-class _ResultsMap extends StatelessWidget {
+class _ResultsMap extends StatefulWidget {
   final List<Bike> bikes;
 
   const _ResultsMap({required this.bikes});
 
   @override
+  State<_ResultsMap> createState() => _ResultsMapState();
+}
+
+class _ResultsMapState extends State<_ResultsMap> {
+  Bike? _selected;
+
+  @override
+  void didUpdateWidget(covariant _ResultsMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_selected != null &&
+        !widget.bikes.any((bike) => bike.id == _selected!.id)) {
+      _selected = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final withCoords = bikes
+    final withCoords = widget.bikes
         .where(
           (b) => b.location.latitude != null && b.location.longitude != null,
         )
         .toList();
 
+    final initialCenter = withCoords.isEmpty
+        ? const LatLng(AppConstants.defaultLat, AppConstants.defaultLng)
+        : LatLng(
+            withCoords.first.location.latitude!,
+            withCoords.first.location.longitude!,
+          );
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppRadius.large),
-      child: GoogleMap(
-        initialCameraPosition: CameraPosition(
-          target: withCoords.isEmpty
-              ? const LatLng(AppConstants.defaultLat, AppConstants.defaultLng)
-              : LatLng(
-                  withCoords.first.location.latitude!,
-                  withCoords.first.location.longitude!,
-                ),
-          zoom: 13,
-        ),
-        markers: withCoords
-            .map(
-              (bike) => Marker(
-                markerId: MarkerId(bike.id),
-                position: LatLng(
-                  bike.location.latitude!,
-                  bike.location.longitude!,
-                ),
-                infoWindow: InfoWindow(
-                  title: bike.title,
-                  snippet:
-                      'Rs. ${bike.pricePerDay.toStringAsFixed(0)}/day · tap for details',
-                  onTap: () => context.push('/bike/${bike.id}'),
+      child: Stack(
+        children: [
+          FlutterMap(
+            options: MapOptions(
+              initialCenter: initialCenter,
+              initialZoom: 13,
+              minZoom: 3,
+              maxZoom: 19,
+              onTap: (_, _) => setState(() => _selected = null),
+            ),
+            children: [
+              const OpenStreetMapTileLayer(),
+              MarkerLayer(
+                markers: withCoords
+                    .map(
+                      (bike) => Marker(
+                        key: ValueKey('search-bike-marker-${bike.id}'),
+                        point: LatLng(
+                          bike.location.latitude!,
+                          bike.location.longitude!,
+                        ),
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.topCenter,
+                        child: Semantics(
+                          button: true,
+                          label: '${bike.title}, show pickup summary',
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => setState(() => _selected = bike),
+                            child: Icon(
+                              Icons.location_pin,
+                              size: _selected?.id == bike.id ? 48 : 42,
+                              color: bike.isAvailable
+                                  ? AppColors.action
+                                  : Colors.deepPurple,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black38,
+                                  offset: Offset(0, 2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const OpenStreetMapAttribution(),
+            ],
+          ),
+          if (_selected != null)
+            Positioned(
+              left: AppSpacing.sm,
+              right: AppSpacing.sm,
+              bottom: 30,
+              child: Semantics(
+                button: true,
+                label: 'View ${_selected!.title} details',
+                child: Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => context.push('/bike/${_selected!.id}'),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.two_wheeler,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _selected!.title,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${_selected!.location.label} • '
+                                  'Rs. ${_selected!.pricePerDay.toStringAsFixed(0)}/day',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-            )
-            .toSet(),
-        zoomControlsEnabled: false,
-        myLocationButtonEnabled: false,
+            ),
+        ],
       ),
     );
   }

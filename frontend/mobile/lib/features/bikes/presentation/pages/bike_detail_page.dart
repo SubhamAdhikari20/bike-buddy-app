@@ -11,6 +11,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_theme.dart';
 import '../../../../core/services/local_store.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/open_street_map.dart';
 import '../../../../core/widgets/error_view.dart';
 import '../../../../core/widgets/loading_view.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -48,8 +49,9 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
     final lat = bike.location.latitude;
     final lng = bike.location.longitude;
     if (lat == null || lng == null) return;
-    final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=walking',
+    final uri = OpenStreetMapConfig.destinationUri(
+      latitude: lat,
+      longitude: lng,
     );
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
@@ -507,7 +509,7 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                       OutlinedButton.icon(
                         onPressed: () => _openDirections(bike),
                         icon: const Icon(Icons.navigation_outlined, size: 18),
-                        label: const Text('Get Directions'),
+                        label: const Text('Open Directions in OSM'),
                       ),
                     ],
                   ),

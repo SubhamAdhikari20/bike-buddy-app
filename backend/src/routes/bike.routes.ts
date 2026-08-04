@@ -6,6 +6,7 @@ import {
 } from "../middlewares/auth.ts";
 import validate from "../middlewares/validate.ts";
 import {
+  bikeIdParamsSchema,
   bikeListQuerySchema,
   createBikeSchema,
   updateBikeSchema,
@@ -15,6 +16,7 @@ import {
   createBike,
   deleteBike,
   getBike,
+  getBikeManagementSummary,
   listBikes,
   updateBike,
 } from "../controllers/bike.controller.ts";
@@ -28,6 +30,13 @@ bikeRoutes.get(
   listBikes,
 );
 bikeRoutes.get("/compare", compareBikes);
+bikeRoutes.get(
+  "/:bikeId/management-summary",
+  authenticate,
+  authorize("owner", "admin"),
+  validate(bikeIdParamsSchema, "params"),
+  getBikeManagementSummary,
+);
 bikeRoutes.get("/:bikeId", optionalAuthenticate, getBike);
 bikeRoutes.post(
   "/",

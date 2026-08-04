@@ -71,6 +71,18 @@ class BookingApi {
     return Booking.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
+  Future<List<BookingDamageReport>> myDamageReports() async {
+    final res = await _client.get('/safety/damage-reports/mine');
+    final items = res['data'] as List? ?? const [];
+    return items
+        .map(
+          (item) => BookingDamageReport.fromJson(
+            (item as Map).cast<String, dynamic>(),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<Map<String, dynamic>> cancel(String bookingId, String reason) async {
     final res = await _client.patch(
       '/bookings/$bookingId/cancel',

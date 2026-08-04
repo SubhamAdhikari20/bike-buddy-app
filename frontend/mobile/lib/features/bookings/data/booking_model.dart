@@ -45,6 +45,11 @@ class Booking {
   final DateTime? priceLockedAt;
   final DateTime? createdAt;
   final bool checklistDone;
+  final int checklistItemCount;
+  final int checklistPhotoCount;
+  final bool checklistAcknowledged;
+  final DateTime? checklistCompletedAt;
+  final String? cancellationReason;
   final DateTime? returnedAt;
   final int lateMinutes;
   final double lateFeeAmount;
@@ -69,6 +74,11 @@ class Booking {
     this.priceLockedAt,
     this.createdAt,
     this.checklistDone = false,
+    this.checklistItemCount = 0,
+    this.checklistPhotoCount = 0,
+    this.checklistAcknowledged = false,
+    this.checklistCompletedAt,
+    this.cancellationReason,
     this.returnedAt,
     this.lateMinutes = 0,
     this.lateFeeAmount = 0,
@@ -95,6 +105,8 @@ class Booking {
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     final bikeField = json['bikeId'];
+    final checklist = (json['preRideChecklist'] as Map?)
+        ?.cast<String, dynamic>();
     return Booking(
       id: (json['_id'] ?? '').toString(),
       bikeId: bikeField is Map
@@ -125,7 +137,14 @@ class Booking {
           : null,
       priceLockedAt: DateTime.tryParse(json['priceLockedAt'] as String? ?? ''),
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
-      checklistDone: (json['preRideChecklist'] as Map?)?['completedAt'] != null,
+      checklistDone: checklist?['completedAt'] != null,
+      checklistItemCount: (checklist?['items'] as List?)?.length ?? 0,
+      checklistPhotoCount: (checklist?['photos'] as List?)?.length ?? 0,
+      checklistAcknowledged: checklist?['acknowledged'] as bool? ?? false,
+      checklistCompletedAt: DateTime.tryParse(
+        checklist?['completedAt'] as String? ?? '',
+      ),
+      cancellationReason: json['cancellationReason'] as String?,
       returnedAt: DateTime.tryParse(json['returnedAt'] as String? ?? ''),
       lateMinutes: (json['lateMinutes'] as num?)?.toInt() ?? 0,
       lateFeeAmount: (json['lateFeeAmount'] as num?)?.toDouble() ?? 0,
@@ -133,6 +152,37 @@ class Booking {
       extensionAmount: (json['extensionAmount'] as num?)?.toDouble() ?? 0,
     );
   }
+}
+
+class BookingDamageReport {
+  final String id;
+  final String bookingId;
+  final String description;
+  final String status;
+  final int photoCount;
+  final DateTime? createdAt;
+  final DateTime? resolvedAt;
+
+  const BookingDamageReport({
+    required this.id,
+    required this.bookingId,
+    required this.description,
+    required this.status,
+    required this.photoCount,
+    this.createdAt,
+    this.resolvedAt,
+  });
+
+  factory BookingDamageReport.fromJson(Map<String, dynamic> json) =>
+      BookingDamageReport(
+        id: (json['_id'] ?? '').toString(),
+        bookingId: (json['bookingId'] ?? '').toString(),
+        description: json['description'] as String? ?? '',
+        status: json['status'] as String? ?? 'open',
+        photoCount: (json['photos'] as List?)?.length ?? 0,
+        createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+        resolvedAt: DateTime.tryParse(json['resolvedAt'] as String? ?? ''),
+      );
 }
 
 class FareQuote {

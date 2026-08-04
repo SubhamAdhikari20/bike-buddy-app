@@ -49,6 +49,28 @@ export const getBike: RequestHandler = async (req, res, next) => {
   }
 };
 
+export const getBikeManagementSummary: RequestHandler = async (
+  req,
+  res,
+  next,
+) => {
+  try {
+    const bikeId = String(req.params.bikeId);
+    const result = await bikeService.getManagementSummary(req.auth!, bikeId);
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          "Bike management summary fetched successfully",
+          result,
+        ),
+      );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const compareBikes: RequestHandler = async (req, res, next) => {
   try {
     const ids = String(req.query.ids ?? "")

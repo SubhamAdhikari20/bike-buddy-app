@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+export const bikeIdParamsSchema = z
+  .object({
+    bikeId: z
+      .string()
+      .regex(/^[a-f\d]{24}$/i, "A valid bike ID is required"),
+  })
+  .strict();
+
 const queryBooleanSchema = z.preprocess((value) => {
   if (value === "true") return true;
   if (value === "false") return false;

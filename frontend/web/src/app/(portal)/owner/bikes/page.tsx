@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useSession } from "@/components/auth/session-provider";
@@ -149,13 +149,21 @@ export default function OwnerBikesPage() {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex flex-wrap justify-end gap-2">
-                                        <Link href={`/owner/bikes/${bike._id}/edit`}>
-                                            <Button size="sm" variant="outline" aria-label={`Edit ${bike.title}`}>
-                                                <Pencil aria-hidden="true" />
-                                                Edit
-                                            </Button>
-                                        </Link>
-                                        {bike.status === "available" ? (
+                                            <Link
+                                                href={`/owner/bikes/${bike._id}`}
+                                                className={buttonVariants({ size: "sm", variant: "outline" })}
+                                                aria-label={`View details for ${bike.title}`}
+                                            >
+                                                <Eye aria-hidden="true" />
+                                                View details
+                                            </Link>
+                                            <Link href={`/owner/bikes/${bike._id}/edit`}>
+                                                <Button size="sm" variant="outline" aria-label={`Edit ${bike.title}`}>
+                                                    <Pencil aria-hidden="true" />
+                                                    Edit
+                                                </Button>
+                                            </Link>
+                                            {bike.status === "available" ? (
                                             <Button
                                                 size="sm"
                                                 variant="outline"
@@ -173,18 +181,18 @@ export default function OwnerBikesPage() {
                                             >
                                                 Make available
                                             </Button>
-                                        )}
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            disabled={busyId === bike._id}
-                                            className="border-red-300 text-red-700 hover:bg-red-50"
-                                            onClick={() => removeBike(bike)}
-                                            aria-label={`Delete ${bike.title}`}
-                                        >
-                                            <Trash2 aria-hidden="true" />
-                                            Delete
-                                        </Button>
+                                            )}
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                disabled={busyId === bike._id}
+                                                className="border-red-300 text-red-700 hover:bg-red-50"
+                                                onClick={() => removeBike(bike)}
+                                                aria-label={`Delete ${bike.title}`}
+                                            >
+                                                <Trash2 aria-hidden="true" />
+                                                Delete
+                                            </Button>
                                         </div>
                                     </TableCell>
                                 </TableRow>

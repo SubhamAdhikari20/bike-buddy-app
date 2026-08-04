@@ -9,6 +9,7 @@ import '../../features/auth/presentation/pages/otp_login_page.dart';
 import '../../features/bikes/presentation/pages/bike_detail_page.dart';
 import '../../features/bikes/presentation/pages/compare_page.dart';
 import '../../features/bookings/presentation/booking_flow_page.dart';
+import '../../features/bookings/presentation/booking_details_page.dart';
 import '../../features/bookings/presentation/receipt_page.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/rides/presentation/active_ride_page.dart';
@@ -71,6 +72,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           bikeId: state.pathParameters['bikeId']!,
           initialBookingId: state.uri.queryParameters['bookingId'],
         ),
+      ),
+      GoRoute(
+        path: '/booking/:bookingId',
+        builder: (context, state) =>
+            BookingDetailsPage(bookingId: state.pathParameters['bookingId']!),
       ),
       GoRoute(
         path: '/receipt/:bookingId',

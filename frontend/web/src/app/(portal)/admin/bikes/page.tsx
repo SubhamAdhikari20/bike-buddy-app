@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
@@ -87,8 +89,17 @@ export default function AdminBikesPage() {
                                             {bike.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell className="space-x-2 text-right">
-                                        {bike.status !== "inactive" ? (
+                                    <TableCell className="text-right">
+                                        <div className="flex flex-wrap justify-end gap-2">
+                                            <Link
+                                                href={`/admin/bikes/${bike._id}`}
+                                                className={buttonVariants({ size: "sm", variant: "outline" })}
+                                                aria-label={`View details for ${bike.title}`}
+                                            >
+                                                <Eye aria-hidden="true" />
+                                                View details
+                                            </Link>
+                                            {bike.status !== "inactive" ? (
                                             <Button
                                                 size="sm"
                                                 variant="outline"
@@ -105,7 +116,8 @@ export default function AdminBikesPage() {
                                             >
                                                 Reactivate
                                             </Button>
-                                        )}
+                                            )}
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -37,6 +37,8 @@ const damageReportSchema: Schema<IDamageReport> = new Schema({
     timestamps: true,
 });
 
+damageReportSchema.index({ bikeId: 1, status: 1, createdAt: -1 });
+
 const DamageReportModel = (mongoose.models.damage_reports as mongoose.Model<IDamageReport>) ?? mongoose.model<IDamageReport>("damage_reports", damageReportSchema);
 
 export default DamageReportModel;

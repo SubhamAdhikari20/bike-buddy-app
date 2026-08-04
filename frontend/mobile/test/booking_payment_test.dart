@@ -39,6 +39,48 @@ void main() {
     expect(booking.cashReceivedAt, isNull);
   });
 
+  test('booking detail model preserves checklist and cancellation context', () {
+    final booking = Booking.fromJson({
+      '_id': 'booking-cancelled',
+      'bikeId': 'bike-1',
+      'startDate': '2030-01-01T10:00:00.000Z',
+      'endDate': '2030-01-02T10:00:00.000Z',
+      'pickupLocation': 'Thamel',
+      'status': 'cancelled',
+      'paymentStatus': 'unpaid',
+      'totalAmount': 4200,
+      'cancellationReason': 'Plans changed',
+      'preRideChecklist': {
+        'items': [
+          {'key': 'brakes', 'ok': true},
+        ],
+        'photos': ['private-evidence-url'],
+        'acknowledged': true,
+        'completedAt': '2030-01-01T09:45:00.000Z',
+      },
+    });
+
+    expect(booking.cancellationReason, 'Plans changed');
+    expect(booking.checklistDone, isTrue);
+    expect(booking.checklistItemCount, 1);
+    expect(booking.checklistPhotoCount, 1);
+    expect(booking.checklistAcknowledged, isTrue);
+  });
+
+  test('damage report summary does not expose evidence URLs', () {
+    final report = BookingDamageReport.fromJson({
+      '_id': 'damage-1',
+      'bookingId': 'booking-1',
+      'description': 'Scratch near the left panel',
+      'status': 'reviewed',
+      'photos': ['private-one', 'private-two'],
+    });
+
+    expect(report.bookingId, 'booking-1');
+    expect(report.photoCount, 2);
+    expect(report.status, 'reviewed');
+  });
+
   testWidgets('checkout badge explains that demo mode never charges money', (
     tester,
   ) async {

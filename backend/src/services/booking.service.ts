@@ -353,13 +353,17 @@ const bookingService = {
     const skip = (page - 1) * limit;
     const filter: Record<string, unknown> = {};
 
+    if (query.bikeId) filter.bikeId = query.bikeId;
     if (query.status) filter.status = query.status;
     if (query.paymentStatus) filter.paymentStatus = query.paymentStatus;
     if (auth.role === "renter") filter.renterId = auth.profileId;
     if (auth.role === "owner") filter.ownerId = auth.profileId;
 
+    const listMethod = query.bikeId
+      ? bookingRepository.listForBikeManagement
+      : bookingRepository.list;
     const [items, total] = await Promise.all([
-      bookingRepository.list(filter, { createdAt: -1 }, skip, limit),
+      listMethod(filter, { createdAt: -1 }, skip, limit),
       bookingRepository.count(filter),
     ]);
 
