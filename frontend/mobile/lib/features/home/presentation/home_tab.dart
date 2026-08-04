@@ -255,7 +255,13 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                           ],
                         ),
                       ),
+                      // Primary buttons are full width by theme, which needs a
+                      // bounded parent. Inside this Row the button must size
+                      // to its own content instead.
                       ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, AppTheme.minTouchTarget),
+                        ),
                         onPressed: () => context.push('/map'),
                         icon: const Icon(Icons.map_outlined, size: 20),
                         label: const Text('Explore on Map'),
