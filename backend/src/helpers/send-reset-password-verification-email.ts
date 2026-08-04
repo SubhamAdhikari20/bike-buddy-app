@@ -1,5 +1,9 @@
 import nodemailer from "nodemailer";
 import type { ApiResponseType } from "../types/api-response.type.ts";
+import {
+  canUseConsoleDelivery,
+  deliverCodeToConsole,
+} from "./console-code-delivery.ts";
 
 const escapeHtml = (value: string) =>
   value.replace(
@@ -24,6 +28,10 @@ export const sendResetPasswordVerificationEmail = async (
       success: true,
       message: "Skipped sending email during test environment.",
     };
+  }
+
+  if (canUseConsoleDelivery()) {
+    return deliverCodeToConsole("password-reset", fullName, email, code, 15);
   }
 
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
