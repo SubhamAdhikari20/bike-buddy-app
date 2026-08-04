@@ -7,6 +7,30 @@ void main() {
     expect(ApiEndpoints.serverUrl.endsWith('/'), isFalse);
     expect(ApiEndpoints.baseUrl, '${ApiEndpoints.serverUrl}/api/v1');
     expect(ApiEndpoints.mediaServerUrl, ApiEndpoints.serverUrl);
+    expect(ApiEndpoints.healthUrl, '${ApiEndpoints.serverUrl}/health');
+  });
+
+  test('copied API origins normalize without crashing app startup', () {
+    expect(
+      ApiEndpoints.normalizeServerOrigin(' http://192.168.1.73:5050/ '),
+      'http://192.168.1.73:5050',
+    );
+    expect(
+      ApiEndpoints.normalizeServerOrigin('http://192.168.1.73:5050/api/v1'),
+      'http://192.168.1.73:5050',
+    );
+    expect(
+      ApiEndpoints.normalizeServerOrigin('http://localhost:5050/other'),
+      isNull,
+    );
+    expect(
+      ApiEndpoints.normalizeServerOrigin('http://user:password@localhost:5050'),
+      isNull,
+    );
+    expect(
+      ApiEndpoints.normalizeServerOrigin('http://localhost:99999'),
+      isNull,
+    );
   });
 
   test('dynamic endpoint builders encode untrusted path segments', () {

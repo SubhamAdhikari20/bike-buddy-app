@@ -25,9 +25,15 @@ const app: Application = express();
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  handler: (_req, res) => {
+    res.status(429).json({
+      success: false,
+      message: "Too many requests. Please try again later.",
+      code: "RATE_LIMITED",
+    });
+  },
 });
 
 // Middleware
@@ -132,16 +138,19 @@ for (const kind of ["bike", "profile"] as const) {
   );
 }
 
-// Public image loading must not consume the API request budget. A six-photo
-// carousel plus avatars can otherwise exhaust the general limiter while a
-// user is only browsing media.
-app.use(limiter);
-
+// Health probes must remain available even when an API client has exhausted
+// its request budget. This also gives mobile developers a reliable way to
+// distinguish backend reachability from authentication or API errors.
 app.get("/health", (_req: Request, res: Response) => {
   res
     .status(200)
     .json({ success: true, message: "Bike Buddy backend is healthy" });
 });
+
+// Public image loading must not consume the API request budget. A six-photo
+// carousel plus avatars can otherwise exhaust the general limiter while a
+// user is only browsing media.
+app.use(limiter);
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1", apiRoutes);

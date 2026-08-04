@@ -24,13 +24,17 @@ dependencies:
 
   # Storage
   shared_preferences: ^2.3.4
-  flutter_secure_storage: ^9.2.2
+  # Current Android implementation recovers from invalid restored keys and
+  # supports the Win32 version required by the current geolocator package.
+  flutter_secure_storage: ^10.3.1
   google_sign_in: ^7.2.0
 
   # Maps and location
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
-  geolocator: ^13.0.2
+  # Current Android implementation avoids older service/plugin behaviour on
+  # recent Android emulator images (including API 36+).
+  geolocator: ^14.0.3
   permission_handler: ^11.3.1
 
   # Media

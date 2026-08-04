@@ -25,7 +25,7 @@ String resolveMediaUrl(String url) {
         .toString();
   }
 
-  const loopbackHosts = {'localhost', '127.0.0.1', '::1'};
+  const loopbackHosts = {'localhost', '127.0.0.1', '::1', '10.0.2.2'};
   if (!loopbackHosts.contains(parsed.host)) return url;
 
   if (apiBase.scheme == parsed.scheme &&

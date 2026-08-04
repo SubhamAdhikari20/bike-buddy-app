@@ -10,7 +10,10 @@ import '../constants/app_constants.dart';
 class LocalStore {
   LocalStore._();
 
-  static late SharedPreferences _prefs;
+  static SharedPreferences? _prefs;
+  static final Map<String, Object> _memory = {};
+  static final Set<String> _removedKeys = {};
+  static int _initializationGeneration = 0;
 
   static const _kOnboardingSeen = 'onboarding_seen';
   static const _kRecentSearches = 'recent_searches';
@@ -19,20 +22,69 @@ class LocalStore {
   static const _kNotificationSequences = 'notification_sequences';
 
   static Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+    final generation = ++_initializationGeneration;
+    final preferences = await SharedPreferences.getInstance();
+    if (generation != _initializationGeneration) return;
+    _prefs = preferences;
+    _memory.clear();
+    _removedKeys.clear();
+  }
+
+  /// Invalidates any still-running platform initialization and switches every
+  /// preference operation to a safe in-memory implementation.
+  static void useInMemoryFallback() {
+    _initializationGeneration += 1;
+    _prefs = null;
+  }
+
+  static Object? _value(String key) {
+    if (_memory.containsKey(key)) return _memory[key];
+    if (_removedKeys.contains(key)) return null;
+    return _prefs?.get(key);
+  }
+
+  static Future<void> _write(
+    String key,
+    Object value,
+    Future<bool> Function(SharedPreferences preferences) persist,
+  ) async {
+    _memory[key] = value;
+    _removedKeys.remove(key);
+    final preferences = _prefs;
+    if (preferences == null) return;
+    try {
+      await persist(preferences);
+    } catch (_) {
+      // The in-memory value remains authoritative for this process.
+    }
+  }
+
+  static Future<void> _remove(String key) async {
+    _memory.remove(key);
+    _removedKeys.add(key);
+    final preferences = _prefs;
+    if (preferences == null) return;
+    try {
+      await preferences.remove(key);
+    } catch (_) {
+      // The in-memory tombstone prevents a failed delete from resurfacing.
+    }
   }
 
   // --- Onboarding (UI-02) ---
 
-  static bool get onboardingSeen => _prefs.getBool(_kOnboardingSeen) ?? false;
+  static bool get onboardingSeen => _value(_kOnboardingSeen) as bool? ?? false;
 
-  static Future<void> setOnboardingSeen(bool value) =>
-      _prefs.setBool(_kOnboardingSeen, value);
+  static Future<void> setOnboardingSeen(bool value) => _write(
+    _kOnboardingSeen,
+    value,
+    (prefs) => prefs.setBool(_kOnboardingSeen, value),
+  );
 
   // --- Recent searches (UI-07) ---
 
   static List<String> get recentSearches =>
-      _prefs.getStringList(_kRecentSearches) ?? const [];
+      List<String>.from(_value(_kRecentSearches) as List<String>? ?? const []);
 
   static Future<void> addRecentSearch(String term) async {
     final trimmed = term.trim();
@@ -40,22 +92,32 @@ class LocalStore {
     final searches = [...recentSearches];
     searches.removeWhere((s) => s.toLowerCase() == trimmed.toLowerCase());
     searches.insert(0, trimmed);
-    await _prefs.setStringList(_kRecentSearches, searches.take(8).toList());
+    final updated = searches.take(8).toList(growable: false);
+    await _write(
+      _kRecentSearches,
+      updated,
+      (prefs) => prefs.setStringList(_kRecentSearches, updated),
+    );
   }
 
-  static Future<void> clearRecentSearches() => _prefs.remove(_kRecentSearches);
+  static Future<void> clearRecentSearches() => _remove(_kRecentSearches);
 
   // --- Booking draft for crash recovery (UI-06) ---
 
   static Future<void> saveBookingDraft(Map<String, dynamic> draft) async {
     draft['savedAt'] = DateTime.now().toIso8601String();
-    await _prefs.setString(_kBookingDraft, jsonEncode(draft));
+    final encoded = jsonEncode(draft);
+    await _write(
+      _kBookingDraft,
+      encoded,
+      (prefs) => prefs.setString(_kBookingDraft, encoded),
+    );
   }
 
   /// Returns the saved draft, or null when none exists or it is older
   /// than [AppConstants.bookingDraftMinutes].
   static Map<String, dynamic>? get bookingDraft {
-    final raw = _prefs.getString(_kBookingDraft);
+    final raw = _value(_kBookingDraft) as String?;
     if (raw == null) return null;
     try {
       final draft = jsonDecode(raw) as Map<String, dynamic>;
@@ -63,24 +125,24 @@ class LocalStore {
       if (savedAt == null ||
           DateTime.now().difference(savedAt).inMinutes >
               AppConstants.bookingDraftMinutes) {
-        _prefs.remove(_kBookingDraft);
+        _remove(_kBookingDraft);
         return null;
       }
       return draft;
     } catch (_) {
-      _prefs.remove(_kBookingDraft);
+      _remove(_kBookingDraft);
       return null;
     }
   }
 
-  static Future<void> clearBookingDraft() => _prefs.remove(_kBookingDraft);
+  static Future<void> clearBookingDraft() => _remove(_kBookingDraft);
 
   // --- Appearance (UI-05): system, light or dark ---
 
-  static String get themeMode => _prefs.getString(_kThemeMode) ?? 'system';
+  static String get themeMode => _value(_kThemeMode) as String? ?? 'system';
 
   static Future<void> setThemeMode(String mode) =>
-      _prefs.setString(_kThemeMode, mode);
+      _write(_kThemeMode, mode, (prefs) => prefs.setString(_kThemeMode, mode));
 
   // --- Foreground notification stream resume cursor ---
 
@@ -88,7 +150,7 @@ class LocalStore {
   /// per-account prevents a shared device from applying one renter's cursor
   /// to another renter's notification stream.
   static int? notificationLastSequence(String userId) {
-    final raw = _prefs.getString(_kNotificationSequences);
+    final raw = _value(_kNotificationSequences) as String?;
     if (raw == null) return null;
     try {
       final values = (jsonDecode(raw) as Map).cast<String, dynamic>();
@@ -105,7 +167,7 @@ class LocalStore {
     if (userId.isEmpty || sequence <= 0) return;
 
     final values = <String, dynamic>{};
-    final raw = _prefs.getString(_kNotificationSequences);
+    final raw = _value(_kNotificationSequences) as String?;
     if (raw != null) {
       try {
         values.addAll((jsonDecode(raw) as Map).cast<String, dynamic>());
@@ -117,6 +179,11 @@ class LocalStore {
     final previous = (values[userId] as num?)?.toInt() ?? 0;
     if (sequence <= previous) return;
     values[userId] = sequence;
-    await _prefs.setString(_kNotificationSequences, jsonEncode(values));
+    final encoded = jsonEncode(values);
+    await _write(
+      _kNotificationSequences,
+      encoded,
+      (prefs) => prefs.setString(_kNotificationSequences, encoded),
+    );
   }
 }

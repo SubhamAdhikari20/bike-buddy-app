@@ -13,49 +13,64 @@ web portal; Google sign-in is intentionally available only to renters.
 3. Add the platform configuration files required by Google:
    `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist`.
    Do not commit files that contain environment-specific credentials.
-4. Run the backend, then choose the address that matches the target device.
-   The named VS Code launch configurations under `.vscode/launch.json` set
-   this automatically.
-
-   For a physical Android phone connected by USB, use the recommended
-   `Bike Buddy: physical Android (USB)` configuration. Its pre-launch task
-   maps the backend port with ADB and uses the device's loopback address, so
-   no changing Wi-Fi IP is committed to the project. The equivalent commands
-   are:
+4. Run the backend, then launch with the repository helper. Do not edit
+   `api_endpoints.dart` and do not add or toggle an `isPhysicalDevice` boolean.
+   From the repository root:
 
    ```powershell
-   $adbPath = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
-   & $adbPath reverse tcp:5050 tcp:5050
-   flutter run --dart-define=API_BASE_URL=http://127.0.0.1:5050
+   # Start one emulator first.
+   .\scripts\run-mobile-android.ps1 -Mode emulator
+
+   # Or connect one trusted USB-debugging phone.
+   .\scripts\run-mobile-android.ps1 -Mode physical-usb
    ```
 
-   For an Android emulator, use `Bike Buddy: Android emulator` or run:
+   The helper verifies the host backend health endpoint before Flutter starts.
+   Emulator mode selects exactly one `emulator-*` serial and compiles
+   `http://10.0.2.2:5050` into the app. Physical USB mode selects exactly one
+   non-emulator serial, installs `adb -s <serial> reverse tcp:5050 tcp:5050`,
+   verifies that rule, and compiles `http://127.0.0.1:5050`. With more than one
+   target, pass `-DeviceId <serial>` so the script never guesses.
+
+   VS Code exposes the same debug configurations and run tasks whether the
+   repository root or this mobile folder is open. Select the physical phone in
+   Flutter's status-bar device picker before using the physical USB F5 config.
+
+   For a physical Android phone over Wi-Fi, get the computer's current address
+   at launch time:
 
    ```powershell
-   flutter pub get
-   flutter run `
-     --dart-define=API_BASE_URL=http://10.0.2.2:5050 `
-     --dart-define=GOOGLE_SERVER_CLIENT_ID=YOUR_WEB_CLIENT_ID `
-     --dart-define=GOOGLE_PLATFORM_CLIENT_ID=YOUR_PLATFORM_CLIENT_ID
+   Get-NetIPConfiguration |
+     Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } |
+     ForEach-Object { $_.IPv4Address.IPAddress }
+
+   flutter run -d <phone-serial> `
+     --dart-define=API_BASE_URL=http://<current-ip>:5050
    ```
 
-   A phone connected over Wi-Fi instead of USB must use the computer's
-   reachable LAN address, for example
-   `--dart-define=API_BASE_URL=http://192.168.1.20:5050`. The phone and
-   computer must be on the same network and the firewall must allow port
-   5050. The **Bike Buddy: physical phone (LAN / HTTPS)** launch configuration
-   prompts for this origin, so no Dart source needs editing. Stop and relaunch
-   after changing it; hot reload cannot change compile-time values.
+   Never store the current DHCP address as a source-code constant. The phone
+   and computer must share a network, and Windows Firewall must allow the Node
+   backend on that profile. `API_BASE_URL` contains only the origin, never
+   `/api/v1`. Stop and relaunch when it changes; hot reload cannot replace a
+   compile-time Dart define.
 
 `GOOGLE_SERVER_CLIENT_ID` must also be present in the backend
 `GOOGLE_CLIENT_IDS` allow-list. `GOOGLE_PLATFORM_CLIENT_ID` is optional when the
 platform configuration already supplies it.
 
 The Android emulator reaches the host machine through `10.0.2.2`; that address
-does not work on a physical phone. Release builds disable cleartext HTTP, so
-set `API_BASE_URL` to an HTTPS endpoint for a release build. Use HTTPS for a
-physical iPhone as well, because iOS App Transport Security can reject a local
-plain-HTTP address.
+does not work on a physical phone. Plain HTTP is enabled only for Android local
+debugging. Release builds require an HTTPS `API_BASE_URL`. iOS has a scoped
+local-network usage description and `NSAllowsLocalNetworking` for development,
+but a physical iPhone and all production builds should use a reachable HTTPS
+backend; the setting does not permit arbitrary insecure Internet traffic.
+
+Prefer a stable Android 15/API 35 or Android 16/API 36 Google APIs x86_64 AVD.
+Avoid preview/canary API 37 and specialised 16 KB/AI image variants while
+diagnosing so they do not add unrelated emulator variables. If System UI and
+`adb shell` also freeze, cold-boot or recreate the AVD; that is a system-level
+stall. An application crash will have an `E/flutter` or `FATAL EXCEPTION`
+entry in logcat.
 
 ## API endpoint management
 
@@ -63,7 +78,7 @@ plain-HTTP address.
 origin, `/api/v1` base, timeouts, uploads, notification stream, and every
 feature endpoint. Feature API classes use those constants/builders instead of
 repeating path strings. `API_BASE_URL` must contain only the server origin
-(for example `http://192.168.1.20:5050`), not `/api/v1`; invalid values fail
+(for example `http://<current-ip>:5050`), not `/api/v1`; invalid values fail
 early with an actionable configuration error.
 
 ## Authentication behaviour

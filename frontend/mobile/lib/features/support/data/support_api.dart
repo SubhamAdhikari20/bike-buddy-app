@@ -51,7 +51,7 @@ class SupportApi {
   SupportApi(this._client);
 
   Future<List<({String q, String a})>> faq() async {
-    final res = await _client.get(ApiEndpoints.faq);
+    final res = await _client.get(ApiEndpoints.faq, authenticated: false);
     final items = (res['data'] as List? ?? const []);
     return items
         .map(

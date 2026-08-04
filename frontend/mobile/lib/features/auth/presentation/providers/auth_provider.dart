@@ -19,8 +19,29 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
   Future<SessionUser?> build() async {
     // Trusted device: restore the saved session so the user lands on
     // home already signed in (AUTH-04).
-    final token = await SessionService.token;
+    String? token;
+    Map<String, dynamic>? cachedSession;
+    try {
+      token = await SessionService.token;
+      cachedSession = await SessionService.user;
+    } catch (_) {
+      await SessionService.clear();
+      return null;
+    }
     if (token == null) return null;
+
+    SessionUser? cachedUser;
+    if (cachedSession != null) {
+      try {
+        cachedUser = SessionUser.fromSession(cachedSession);
+        if (!cachedUser.isRenter) {
+          await SessionService.clear();
+          return null;
+        }
+      } catch (_) {
+        cachedUser = null;
+      }
+    }
 
     try {
       final currentSession = await _api.me();
@@ -31,9 +52,19 @@ class AuthNotifier extends AsyncNotifier<SessionUser?> {
       }
       await SessionService.saveSession(token: token, user: user.toJson());
       return user;
+    } on AppException catch (error) {
+      if (error.isAuthError) {
+        await SessionService.clear();
+        return null;
+      }
+      // A timeout or unreachable development backend must not destroy a
+      // previously validated local session. Protected calls will be retried
+      // normally once connectivity returns.
+      return cachedUser;
     } catch (_) {
-      await SessionService.clear();
-      return null;
+      // Unexpected response/transport failures are not proof that the token
+      // is invalid, so retain the cached renter and saved credentials.
+      return cachedUser;
     }
   }
 

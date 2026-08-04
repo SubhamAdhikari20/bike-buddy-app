@@ -23,7 +23,10 @@ class ReviewApi {
   ReviewApi(this._client);
 
   Future<List<Review>> listByBike(String bikeId) async {
-    final res = await _client.get(ApiEndpoints.reviewsForBike(bikeId));
+    final res = await _client.get(
+      ApiEndpoints.reviewsForBike(bikeId),
+      authenticated: false,
+    );
     final items = (res['data'] as List? ?? const []);
     return items
         .map((item) => Review.fromJson((item as Map).cast<String, dynamic>()))

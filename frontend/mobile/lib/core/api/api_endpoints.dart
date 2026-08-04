@@ -8,17 +8,18 @@ import 'package:flutter/foundation.dart';
 /// - Physical Android over USB: run `adb reverse tcp:5050 tcp:5050` and pass
 ///   `--dart-define=API_BASE_URL=http://127.0.0.1:5050`.
 /// - Physical Android/iPhone over Wi-Fi: pass the computer's reachable LAN
-///   address, for example `--dart-define=API_BASE_URL=http://192.168.1.20:5050`.
+///   address reported by the launch helper; never commit a changing LAN IP.
 ///
 /// A compile-time value is intentional: a phone cannot reliably discover
-/// which computer on its network is running the coursework backend.
+/// which computer on its network is running the coursework backend. Do not
+/// add a source-code `isPhysicalDevice` switch; use the checked-in launch
+/// profiles so device-specific addresses never become stale application code.
 class ApiEndpoints {
   ApiEndpoints._();
 
   static const String androidEmulatorServerUrl = 'http://10.0.2.2:5050';
   static const String usbPhysicalDeviceServerUrl = 'http://127.0.0.1:5050';
   static const String localServerUrl = 'http://localhost:5050';
-  static const String physicalDeviceLanExample = 'http://192.168.1.20:5050';
   static const String apiPrefix = '/api/v1';
 
   static const String _configuredServerUrl = String.fromEnvironment(
@@ -32,32 +33,63 @@ class ApiEndpoints {
     return localServerUrl;
   }
 
-  static String get serverUrl {
-    final configured = _configuredServerUrl.trim();
-    final selected = configured.isEmpty ? defaultServerUrl : configured;
+  /// Returns a normalized server origin, accepting an optional trailing
+  /// `/api/v1` to be forgiving of values copied from older projects.
+  ///
+  /// Invalid values return `null` instead of throwing during widget/provider
+  /// construction. [configurationError] then lets the API client present an
+  /// actionable error in the UI rather than making the app appear to crash.
+  @visibleForTesting
+  static String? normalizeServerOrigin(String value) {
+    final selected = value.trim();
+    if (selected.isEmpty) return null;
+
     final uri = Uri.tryParse(selected);
-    final hasUnexpectedPath =
-        uri != null && uri.path.isNotEmpty && uri.path != '/';
-    if (uri == null ||
-        !uri.hasAuthority ||
-        (uri.scheme != 'http' && uri.scheme != 'https') ||
-        uri.userInfo.isNotEmpty ||
-        hasUnexpectedPath ||
-        uri.hasQuery ||
-        uri.hasFragment) {
-      throw StateError(
-        'API_BASE_URL must be an http(s) server origin without /api/v1, '
-        'credentials, query, or fragment. Received: $selected',
-      );
+    if (uri == null) return null;
+
+    try {
+      // Accessing host/port validates malformed bracketed hosts; Dart URI
+      // parsing otherwise permits TCP ports outside the usable range.
+      final host = uri.host;
+      final port = uri.hasPort ? uri.port : null;
+      if (!uri.hasAuthority ||
+          host.isEmpty ||
+          (port != null && (port < 1 || port > 65535)) ||
+          (uri.scheme != 'http' && uri.scheme != 'https') ||
+          uri.userInfo.isNotEmpty ||
+          uri.hasQuery ||
+          uri.hasFragment) {
+        return null;
+      }
+    } on FormatException {
+      return null;
     }
+
+    final normalizedPath = uri.path.replaceFirst(RegExp(r'/+$'), '');
+    if (normalizedPath.isNotEmpty && normalizedPath != apiPrefix) return null;
+
     return uri
         .replace(path: '', query: null, fragment: null)
         .toString()
         .replaceFirst(RegExp(r'/+$'), '');
   }
 
+  static String? get configurationError {
+    final configured = _configuredServerUrl.trim();
+    if (configured.isEmpty || normalizeServerOrigin(configured) != null) {
+      return null;
+    }
+    return 'API_BASE_URL is invalid. Use an http(s) server origin. A trailing '
+        '/api/v1 is accepted, but credentials, other paths, queries and '
+        'fragments are not. Check the selected launch profile and relaunch.';
+  }
+
+  static String get serverUrl =>
+      normalizeServerOrigin(_configuredServerUrl) ?? defaultServerUrl;
+
   static String get baseUrl => '$serverUrl$apiPrefix';
   static String get mediaServerUrl => serverUrl;
+  static String get healthUrl => '$serverUrl/health';
 
   static const Duration connectionTimeout = Duration(seconds: 10);
   static const Duration receiveTimeout = Duration(seconds: 15);

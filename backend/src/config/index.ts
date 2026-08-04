@@ -1,5 +1,6 @@
 // src/config/index.ts
 import dotenv from "dotenv";
+import { parseListenHost } from "../utils/server-access.ts";
 
 dotenv.config();
 
@@ -8,6 +9,7 @@ export const IS_PRODUCTION = NODE_ENV === "production";
 export const PORT: number = process.env.PORT
   ? parseInt(process.env.PORT)
   : 5050;
+export const HOST: string = parseListenHost(process.env.HOST);
 export const MONGODB_URI: string =
   process.env.MONGODB_URI || "mongodb://localhost:27017/default_db";
 export const MONGODB_DNS_SERVERS: string[] = (

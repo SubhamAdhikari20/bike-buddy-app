@@ -32,6 +32,13 @@
 	<string>Bike Buddy lets you choose profile, ID, and rental evidence photos from your library.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Bike Buddy uses your location to show nearby available motorbikes.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Bike Buddy connects to a development API running on your computer while both devices are on your local network.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

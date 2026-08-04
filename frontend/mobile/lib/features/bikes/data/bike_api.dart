@@ -31,6 +31,7 @@ class BikeApi {
   }) async {
     final res = await _client.get(
       ApiEndpoints.bikes,
+      authenticated: false,
       query: {
         'page': page,
         'limit': limit,
@@ -56,7 +57,10 @@ class BikeApi {
   }
 
   Future<Bike> getBike(String bikeId) async {
-    final res = await _client.get(ApiEndpoints.bike(bikeId));
+    final res = await _client.get(
+      ApiEndpoints.bike(bikeId),
+      authenticated: false,
+    );
     return Bike.fromJson((res['data'] as Map).cast<String, dynamic>());
   }
 
@@ -64,6 +68,7 @@ class BikeApi {
   Future<List<Bike>> compareBikes(List<String> ids) async {
     final res = await _client.get(
       ApiEndpoints.compareBikes,
+      authenticated: false,
       query: {'ids': ids.join(',')},
     );
     final items = (res['data'] as List? ?? const []);

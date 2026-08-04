@@ -30,6 +30,20 @@ void main() {
     expect(Uri.parse(resolved).path, '/uploads/bike/photo.png');
   });
 
+  test(
+    'legacy Android-emulator image hosts follow the selected device host',
+    () {
+      final apiBase = Uri.parse(ApiEndpoints.mediaServerUrl);
+      final resolved = Uri.parse(
+        resolveMediaUrl('http://10.0.2.2:5050/uploads/bike/legacy.png'),
+      );
+
+      expect(resolved.host, apiBase.host);
+      expect(resolved.port, apiBase.port);
+      expect(resolved.path, '/uploads/bike/legacy.png');
+    },
+  );
+
   test('remote images and empty values are left alone', () {
     const remote = 'https://images.unsplash.com/photo-123?w=1200';
     expect(resolveMediaUrl(remote), remote);

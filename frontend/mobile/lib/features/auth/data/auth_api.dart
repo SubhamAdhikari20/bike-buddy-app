@@ -15,6 +15,7 @@ class AuthApi {
   Future<Map<String, dynamic>> login(String email, String password) async {
     final res = await _client.post(
       ApiEndpoints.login,
+      authenticated: false,
       data: {'email': email, 'password': password},
     );
     return (res['data'] as Map).cast<String, dynamic>();
@@ -29,6 +30,7 @@ class AuthApi {
   }) async {
     final res = await _client.post(
       ApiEndpoints.registerRenter,
+      authenticated: false,
       data: {
         'fullName': fullName,
         'email': email,
@@ -44,6 +46,7 @@ class AuthApi {
   Future<Map<String, dynamic>> googleRenter(String idToken) async {
     final res = await _client.post(
       ApiEndpoints.googleRenter,
+      authenticated: false,
       data: {'idToken': idToken, 'terms': true},
     );
     return (res['data'] as Map).cast<String, dynamic>();
@@ -52,6 +55,7 @@ class AuthApi {
   Future<Map<String, dynamic>> forgotPassword(String email) async {
     final res = await _client.post(
       ApiEndpoints.forgotPassword,
+      authenticated: false,
       data: {'email': email},
     );
     return (res['data'] as Map).cast<String, dynamic>();
@@ -64,6 +68,7 @@ class AuthApi {
   }) async {
     await _client.post(
       ApiEndpoints.resetPassword,
+      authenticated: false,
       data: {'email': email, 'code': code, 'password': password},
     );
   }
@@ -71,6 +76,7 @@ class AuthApi {
   Future<Map<String, dynamic>> sendOtp(String email) async {
     final res = await _client.post(
       ApiEndpoints.sendOtp,
+      authenticated: false,
       data: {'email': email},
     );
     return (res['data'] as Map).cast<String, dynamic>();
@@ -79,6 +85,7 @@ class AuthApi {
   Future<Map<String, dynamic>> verifyOtp(String email, String code) async {
     final res = await _client.post(
       ApiEndpoints.verifyOtp,
+      authenticated: false,
       data: {'email': email, 'code': code},
     );
     return (res['data'] as Map).cast<String, dynamic>();

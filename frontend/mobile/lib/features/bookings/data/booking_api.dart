@@ -26,6 +26,7 @@ class BookingApi {
   }) async {
     final res = await _client.post(
       ApiEndpoints.bookingQuote,
+      authenticated: false,
       data: {
         'bikeId': bikeId,
         'startDate': start.toIso8601String(),
@@ -36,7 +37,10 @@ class BookingApi {
   }
 
   Future<Map<String, dynamic>> availability(String bikeId) async {
-    final res = await _client.get(ApiEndpoints.bookingAvailability(bikeId));
+    final res = await _client.get(
+      ApiEndpoints.bookingAvailability(bikeId),
+      authenticated: false,
+    );
     return (res['data'] as Map).cast<String, dynamic>();
   }
 

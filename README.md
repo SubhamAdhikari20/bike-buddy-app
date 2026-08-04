@@ -103,6 +103,12 @@ npm run dev
 Set `MONGODB_URI=mongodb://127.0.0.1:27017/bike-buddy` in `.env` — the same
 value whether MongoDB is running in Docker or natively.
 `PAYMENT_MODE=demo` is the safe coursework default and never moves money.
+Keep `HOST=0.0.0.0` for local mobile development so the API accepts requests
+from Android emulators and phones on the same network. On startup, the backend
+prints the localhost, Android-emulator and detected LAN values that can be used
+as `API_BASE_URL`; it never prints credentials. If a phone cannot open
+`<printed-LAN-origin>/health`, confirm that both devices share Wi-Fi and that
+the operating-system firewall allows Node.js on private networks.
 
 Owners upload bike photos through the portal. Multer stores them under
 `backend/uploads/`, split by purpose:
@@ -159,17 +165,61 @@ fleet is left unchanged.
 ```bash
 cd frontend/mobile
 flutter pub get
-flutter run
 ```
 
-The API base URL is chosen per platform when none is supplied: an Android
-emulator uses `http://10.0.2.2:5050` and Windows, web, iOS simulator, macOS and
-Linux builds use `http://localhost:5050`. A physical phone needs the host
-machine's LAN IP:
+Do not edit `api_endpoints.dart` or toggle an `isPhysicalDevice` boolean when
+switching devices. From the repository root, use the launcher that matches the
+target. It checks `http://127.0.0.1:5050/health`, selects exactly one matching
+Android target, and supplies the correct compile-time API origin:
 
-```bash
-flutter run --dart-define=API_BASE_URL=http://192.168.1.20:5050
+```powershell
+# Start an Android emulator first, then:
+.\scripts\run-mobile-android.ps1 -Mode emulator
+
+# Connect one Android phone with USB debugging enabled, then:
+.\scripts\run-mobile-android.ps1 -Mode physical-usb
 ```
+
+The USB command creates a serial-specific ADB reverse and sends the app to
+`http://127.0.0.1:5050`. The emulator command sends it to Android's host alias,
+`http://10.0.2.2:5050`. If multiple matching devices are connected, pass
+`-DeviceId <serial>` from `adb devices`; the script refuses to guess.
+
+The same named debug configurations and run tasks are available when VS Code
+is opened at either the repository root or `frontend/mobile`. For the physical
+USB debug configuration, select the phone in Flutter's VS Code device picker
+before pressing F5. The pre-launch task verifies the backend and installs the
+ADB reverse for the one connected physical device.
+
+For Android debugging over Wi-Fi, discover the computer's current address each
+time instead of committing it as project configuration:
+
+```powershell
+Get-NetIPConfiguration |
+  Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } |
+  ForEach-Object { $_.IPv4Address.IPAddress }
+
+cd frontend/mobile
+flutter run -d <phone-serial> --dart-define=API_BASE_URL=http://<current-ip>:5050
+```
+
+The phone and computer must be on the same network and Windows Firewall must
+allow Node.js on that network profile. `API_BASE_URL` is an origin only; never
+append `/api/v1`. Stop and relaunch after changing it because Dart defines are
+compiled into the app.
+
+Local plain HTTP is development-only. Android debug builds allow it for the
+emulator/ADB workflow, while Android release builds require HTTPS. iOS includes
+only the scoped local-network development entitlement and permission message;
+use a reachable HTTPS backend for a physical iPhone and for every production
+build.
+
+Use a stable Android 15/API 35 or Android 16/API 36 Google APIs x86_64 image for
+coursework testing. Avoid preview/canary API 37 and specialised 16 KB/AI image
+variants while diagnosing so they do not add unrelated emulator variables.
+Cold-boot or recreate the AVD if the whole emulator, ADB shell, or System UI
+stalls; that is a system-level stall. A Bike Buddy Dart crash will instead
+appear as `E/flutter` or `FATAL EXCEPTION` in logcat.
 
 The demo map uses OpenStreetMap tiles and needs no API key. Google OAuth is
 renter-only and still requires the normal Android/web client configuration;

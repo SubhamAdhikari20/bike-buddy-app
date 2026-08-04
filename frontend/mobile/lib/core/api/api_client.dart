@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,9 +10,11 @@ import 'api_endpoints.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
-/// Thin Dio wrapper. Attaches the bearer token when present and converts
-/// every failure into a plain-language [AppException].
+/// Thin Dio wrapper. Attaches the bearer token only to authenticated requests
+/// and converts every failure into a plain-language [AppException].
 class ApiClient {
+  static const _authenticatedKey = 'bikeBuddyAuthenticatedRequest';
+
   late final Dio dio;
 
   ApiClient() {
@@ -26,11 +30,39 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await SessionService.token;
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          if (options.extra[_authenticatedKey] != false) {
+            final token = await SessionService.token;
+            if (token != null) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+          }
+          if (kDebugMode) {
+            // Do not log query strings, request bodies, headers, or tokens.
+            debugPrint(
+              '[Bike Buddy API] ${options.method} '
+              '${options.baseUrl}${options.path}',
+            );
           }
           handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (kDebugMode) {
+            debugPrint(
+              '[Bike Buddy API] ${response.statusCode} '
+              '${response.requestOptions.method} '
+              '${response.requestOptions.path}',
+            );
+          }
+          handler.next(response);
+        },
+        onError: (error, handler) {
+          if (kDebugMode) {
+            debugPrint(
+              '[Bike Buddy API] ${error.response?.statusCode ?? error.type.name} '
+              '${error.requestOptions.method} ${error.requestOptions.path}',
+            );
+          }
+          handler.next(error);
         },
       ),
     );
@@ -39,30 +71,83 @@ class ApiClient {
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? query,
-  }) => _run(() => dio.get(path, queryParameters: query));
+    bool authenticated = true,
+  }) => _run(
+    () =>
+        dio.get(path, queryParameters: query, options: _options(authenticated)),
+    retryConnectionFailure: true,
+  );
 
-  Future<Map<String, dynamic>> post(String path, {Object? data}) =>
-      _run(() => dio.post(path, data: data));
+  Future<Map<String, dynamic>> post(
+    String path, {
+    Object? data,
+    bool authenticated = true,
+  }) =>
+      _run(() => dio.post(path, data: data, options: _options(authenticated)));
 
-  Future<Map<String, dynamic>> patch(String path, {Object? data}) =>
-      _run(() => dio.patch(path, data: data));
+  Future<Map<String, dynamic>> patch(
+    String path, {
+    Object? data,
+    bool authenticated = true,
+  }) =>
+      _run(() => dio.patch(path, data: data, options: _options(authenticated)));
 
-  Future<Map<String, dynamic>> delete(String path) =>
-      _run(() => dio.delete(path));
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    bool authenticated = true,
+  }) => _run(() => dio.delete(path, options: _options(authenticated)));
 
-  Future<Map<String, dynamic>> upload(String path, FormData formData) =>
-      _run(() => dio.post(path, data: formData));
+  Future<Map<String, dynamic>> upload(
+    String path,
+    FormData formData, {
+    bool authenticated = true,
+  }) => _run(
+    () => dio.post(path, data: formData, options: _options(authenticated)),
+  );
+
+  Options _options(bool authenticated) =>
+      Options(extra: {_authenticatedKey: authenticated});
 
   Future<Map<String, dynamic>> _run(
-    Future<Response<dynamic>> Function() request,
-  ) async {
-    try {
-      final response = await request();
-      return (response.data as Map).cast<String, dynamic>();
-    } on DioException catch (e) {
-      throw _toAppException(e);
+    Future<Response<dynamic>> Function() request, {
+    bool retryConnectionFailure = false,
+  }) async {
+    final configurationError = ApiEndpoints.configurationError;
+    if (configurationError != null) {
+      throw AppException(configurationError, code: 'INVALID_API_BASE_URL');
     }
+
+    final attempts = retryConnectionFailure ? 2 : 1;
+    for (var attempt = 0; attempt < attempts; attempt++) {
+      try {
+        final response = await request();
+        final data = response.data;
+        if (data is! Map) {
+          throw const AppException(
+            'Bike Buddy received an invalid response from the server.',
+            code: 'INVALID_SERVER_RESPONSE',
+          );
+        }
+        return data.cast<String, dynamic>();
+      } on DioException catch (error) {
+        if (attempt + 1 < attempts && _isTransientConnectionFailure(error)) {
+          await Future<void>.delayed(const Duration(milliseconds: 350));
+          continue;
+        }
+        throw _toAppException(error);
+      }
+    }
+    throw const AppException('Bike Buddy could not complete the request.');
   }
+
+  bool _isTransientConnectionFailure(DioException error) =>
+      switch (error.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout ||
+        DioExceptionType.connectionError => true,
+        _ => false,
+      };
 
   AppException _toAppException(DioException e) {
     final status = e.response?.statusCode;
