@@ -48,26 +48,39 @@ sprint backlog and interface prototypes.
 
 ## Getting started
 
-Bike Buddy runs directly on Node, Flutter and a local MongoDB. Docker is not
-required.
+Only the database runs in a container. The backend, web portal and mobile app
+are started normally with `npm run dev` and `flutter run`.
 
-### 1. MongoDB (local)
+### 1. MongoDB
 
-Install MongoDB Community Server, then start it. If the Windows service is
-installed and you have administrator rights:
+With Docker Desktop running, from the repository root:
 
-```powershell
-Start-Service MongoDB
+```bash
+docker compose up -d
 ```
 
-Otherwise run the server yourself against a folder you own:
+That starts a single `bike-buddy-mongo` container on `127.0.0.1:27017` and
+keeps its data in the named volume `bike-buddy-mongo-data`, so demo data
+survives a restart. Useful commands:
+
+```bash
+docker compose ps        # check it is up
+docker compose logs -f   # follow the database log
+docker compose down      # stop it, keep the data
+docker compose down -v   # stop it and delete the data
+```
+
+No Docker? Install MongoDB Community Server and either run
+`Start-Service MongoDB` as administrator, or start it yourself against a folder
+you own:
 
 ```powershell
 mkdir C:\Users\<you>\mongodb-data\bike-buddy
 & "C:\Program Files\MongoDB\Server\8.3\bin\mongod.exe" --dbpath C:\Users\<you>\mongodb-data\bike-buddy
 ```
 
-Leave that window open. The database is created on first write.
+Either way the connection string is the same and the database is created on
+first write.
 
 ### 2. Backend
 
@@ -79,8 +92,22 @@ npm run seed
 npm run dev
 ```
 
-Set `MONGODB_URI=mongodb://127.0.0.1:27017/bike-buddy` in `.env`.
+Set `MONGODB_URI=mongodb://127.0.0.1:27017/bike-buddy` in `.env` — the same
+value whether MongoDB is running in Docker or natively.
 `PAYMENT_MODE=demo` is the safe coursework default and never moves money.
+
+Owners upload bike photos through the portal. Multer stores them under
+`backend/uploads/`, split by purpose:
+
+| Folder | Holds |
+|---|---|
+| `uploads/bike/` | Listing photos uploaded by owners |
+| `uploads/profile/` | Profile pictures |
+| `uploads/kyc/` | Renter ID documents |
+
+Express serves the folder at `/uploads`, so a stored file is reachable at
+`http://localhost:5050/uploads/bike/<filename>`. Uploaded files are ignored by
+git; only the folder placeholders are tracked.
 
 If `GMAIL_USER` and `GMAIL_APP_PASSWORD` are left blank outside production,
 sign-in and password-reset codes are printed to the backend terminal instead of
