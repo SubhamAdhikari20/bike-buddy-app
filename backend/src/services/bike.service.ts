@@ -231,12 +231,17 @@ const bikeService = {
     const lat = typeof query.lat === "number" ? query.lat : undefined;
     const lng = typeof query.lng === "number" ? query.lng : undefined;
 
-    // Nearby search: only available bikes by default, sorted by distance (MAP-05)
+    // Public discovery only ever shows available listings, so a bike belonging
+    // to a pending or rejected owner can never appear in renter search results.
+    // Owner and administrator views ask for the wider set explicitly with
+    // includeUnavailable, and an explicit status filter is always respected.
+    if (!query.status && !query.includeUnavailable) {
+      filter.status = "available";
+    }
+
+    // Nearby search: sorted by distance from the supplied point (MAP-05)
     if (lat !== undefined && lng !== undefined) {
       const radiusKm = Number(query.radiusKm ?? 5);
-      if (!query.status && !query.includeUnavailable) {
-        filter.status = "available";
-      }
       filter["location.latitude"] = { $ne: null };
       filter["location.longitude"] = { $ne: null };
 
