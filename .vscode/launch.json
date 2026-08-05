@@ -21,6 +21,13 @@
       "preLaunchTask": "Bike Buddy: prepare physical Android (USB)"
     },
     {
+      "name": "Bike Buddy: physical Android (Wi-Fi; uses ApiEndpoints.physicalDeviceHost)",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder}/frontend/mobile",
+      "program": "${workspaceFolder}/frontend/mobile/lib/main.dart"
+    },
+    {
       "name": "Bike Buddy: desktop or web",
       "request": "launch",
       "type": "dart",

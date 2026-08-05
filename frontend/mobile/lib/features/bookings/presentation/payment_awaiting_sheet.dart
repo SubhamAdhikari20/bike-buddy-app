@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../core/error/app_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../data/booking_model.dart';
+import 'wallet_checkout_page.dart';
 
 typedef PaymentStatusChecker = Future<PaymentStatus> Function();
-typedef PaymentPageLauncher = Future<bool> Function();
+typedef PaymentPageLauncher = Future<WalletCheckoutOutcome?> Function();
 
 Future<PaymentStatus?> showSandboxPaymentSheet({
   required BuildContext context,
@@ -64,8 +64,18 @@ class _PaymentAwaitingSheetState extends State<PaymentAwaitingSheet>
   PaymentStatus? _status;
   bool _checking = false;
   bool _opening = false;
+
+  /// True while the provider page sits on top of this sheet. Polling must not
+  /// run then: a success would call [Navigator.pop] and close the checkout
+  /// view instead of the sheet, stranding the payer on a paid-but-open screen.
+  bool _checkoutOpen = false;
   int _automaticChecks = 0;
   String? _localMessage;
+
+  /// What the provider page did on the way out. Kept separate from
+  /// [_localMessage], which each status check resets, so the note survives the
+  /// verification that immediately follows it.
+  String? _checkoutNote;
 
   bool get _isTerminal => _status?.terminal ?? false;
 
@@ -100,40 +110,72 @@ class _PaymentAwaitingSheetState extends State<PaymentAwaitingSheet>
     super.dispose();
   }
 
+  /// Opens the provider's hosted test page inside the app.
+  ///
+  /// The returned outcome only decides what to tell the payer while the
+  /// authoritative check runs. Whatever the provider redirect claimed, the
+  /// booking still moves only on the server-verified status below.
   Future<void> _openPaymentPage() async {
     final checkoutUri = widget.intent.checkoutUri;
     if (checkoutUri == null || _opening) return;
 
     setState(() {
       _opening = true;
+      _checkoutOpen = true;
       _localMessage = null;
+      _checkoutNote = null;
     });
     try {
-      final opened =
+      final outcome =
           await (widget.openPaymentPage?.call() ??
-              launchUrl(checkoutUri, mode: LaunchMode.externalApplication));
+              Navigator.of(context).push<WalletCheckoutOutcome>(
+                MaterialPageRoute(
+                  fullscreenDialog: true,
+                  builder: (_) => WalletCheckoutPage(
+                    checkoutUri: checkoutUri,
+                    provider: widget.intent.provider,
+                    amountLabel: _amountLabel(widget.intent),
+                    transactionRef: widget.intent.transactionRef,
+                  ),
+                ),
+              ));
       if (!mounted) return;
       setState(() {
-        _localMessage = opened
-            ? 'Test checkout opened. Return here after finishing it.'
-            : 'Could not open the payment page. Check your browser settings and try again.';
+        _checkoutOpen = false;
+        _checkoutNote = switch (outcome) {
+          WalletCheckoutOutcome.returned =>
+            'Returned from the test checkout. Confirming with Bike Buddy...',
+          WalletCheckoutOutcome.cancelled =>
+            'The test checkout was cancelled. You were not charged.',
+          WalletCheckoutOutcome.dismissed =>
+            'Checkout closed before it finished. Open it again to pay.',
+          null => 'Checkout closed. Open it again to pay.',
+        };
       });
-      if (opened) {
-        unawaited(_checkPayment(automatic: true));
-      }
+      // Re-check in every case: a payer can complete the wallet flow and still
+      // dismiss the view before the provider finishes redirecting. This one is
+      // deliberately not an automatic poll, so it still runs after a long
+      // checkout has used up the automatic budget.
+      unawaited(_checkPayment(automatic: false));
     } catch (_) {
       if (!mounted) return;
       setState(() {
+        _checkoutOpen = false;
         _localMessage =
-            'Could not open the payment page. Check your browser settings and try again.';
+            'Could not open the payment page. Check your connection and try again.';
       });
     } finally {
-      if (mounted) setState(() => _opening = false);
+      if (mounted) {
+        setState(() {
+          _opening = false;
+          _checkoutOpen = false;
+        });
+      }
     }
   }
 
   Future<void> _checkPayment({required bool automatic}) async {
-    if (_checking || _isTerminal) return;
+    if (_checking || _isTerminal || _checkoutOpen) return;
     if (automatic && _pollingLimitReached) return;
 
     if (automatic) _automaticChecks += 1;
@@ -314,6 +356,14 @@ class _PaymentAwaitingSheetState extends State<PaymentAwaitingSheet>
                       ),
                     ),
                   ),
+                  if (_checkoutNote != null) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      _checkoutNote!,
+                      key: const Key('sandbox-checkout-note'),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
                   if (_localMessage != null) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Text(

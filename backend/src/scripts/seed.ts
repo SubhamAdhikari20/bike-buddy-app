@@ -2181,6 +2181,9 @@ const seed = async () => {
               ),
             }
           : { items: [], photos: [], acknowledged: false, completedAt: null },
+        rideStartedAt: booking.checklist
+          ? atDayOffset(booking.startOffset, booking.startHour ?? 4)
+          : null,
       };
     }),
   );

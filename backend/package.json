@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "npm run build && node dist/server.js",
     "dev": "nodemon --watch src -e ts --exec \"ts-node -r tsconfig-paths/register src/server.ts\"",
-    "test": "tsx --test \"test/**/*.test.ts\"",
+    "test": "tsx --import ./test/setup-env.ts --test \"test/**/*.test.ts\"",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint:fix": "npm run lint -- --fix",
     "seed": "tsx src/scripts/seed.ts",

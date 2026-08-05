@@ -251,9 +251,71 @@ test("eSewa status lookup verifies transaction, product, amount and COMPLETE", a
     transactionRef: "BB-ORDER-3",
     amountMinor: 250000,
     timeoutMs: 5000,
+    attemptExpired: false,
   });
   assert.equal(result.state, "succeeded");
   assert.equal(result.providerTransactionId, "ESEWA-REFERENCE");
+});
+
+test("eSewa NOT_FOUND stays pending until the checkout window closes", async () => {
+  // eSewa only learns a transaction_uuid exists once the payer submits the
+  // form, so NOT_FOUND is the normal answer between issuing a checkout and the
+  // payer finishing it. Treating it as failure closed the payment (and marked
+  // the booking failed) on the very first status poll.
+  const notFound = () =>
+    createPaymentGateway(
+      mockHttp({
+        status: 200,
+        body: {
+          product_code: "EPAYTEST",
+          transaction_uuid: "BB-ORDER-9",
+          total_amount: 2500,
+          status: "NOT_FOUND",
+          ref_id: null,
+        },
+      }),
+    );
+
+  const waiting = await notFound().lookupEsewa({
+    transactionRef: "BB-ORDER-9",
+    amountMinor: 250000,
+    timeoutMs: 5000,
+    attemptExpired: false,
+  });
+  assert.equal(waiting.state, "pending");
+  assert.equal(waiting.providerStatus, "NOT_FOUND");
+  assert.equal(waiting.reconciliationRequired, undefined);
+
+  const abandoned = await notFound().lookupEsewa({
+    transactionRef: "BB-ORDER-9",
+    amountMinor: 250000,
+    timeoutMs: 5000,
+    attemptExpired: true,
+  });
+  assert.equal(abandoned.state, "failed");
+  assert.match(abandoned.message, /expired/i);
+});
+
+test("eSewa CANCELED fails immediately regardless of the window", async () => {
+  const gateway = createPaymentGateway(
+    mockHttp({
+      status: 200,
+      body: {
+        product_code: "EPAYTEST",
+        transaction_uuid: "BB-ORDER-10",
+        total_amount: 2500,
+        status: "CANCELED",
+        ref_id: null,
+      },
+    }),
+  );
+  const result = await gateway.lookupEsewa({
+    transactionRef: "BB-ORDER-10",
+    amountMinor: 250000,
+    timeoutMs: 5000,
+    attemptExpired: false,
+  });
+  assert.equal(result.state, "failed");
 });
 
 test("short-lived checkout tokens detect tampering and expiry", () => {

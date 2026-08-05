@@ -318,10 +318,17 @@ export const createPaymentGateway = (
     };
   },
 
+  /**
+   * [input.attemptExpired] separates "the payer has not reached eSewa yet"
+   * from "the payer never will". eSewa answers NOT_FOUND for both, because it
+   * only learns a transaction_uuid exists once the payer submits the form, so
+   * treating NOT_FOUND as a failure would fail every checkout before it starts.
+   */
   async lookupEsewa(input: {
     transactionRef: string;
     amountMinor: number;
     timeoutMs: number;
+    attemptExpired: boolean;
   }): Promise<ProviderVerification> {
     const statusUrl = new URL(ESEWA_SANDBOX_STATUS);
     statusUrl.searchParams.set("product_code", ESEWA_SANDBOX_PRODUCT_CODE);
@@ -374,7 +381,27 @@ export const createPaymentGateway = (
         message: "eSewa reports this UAT payment as fully refunded.",
       };
     }
-    if (["NOT_FOUND", "CANCELED"].includes(status)) {
+    if (status === "NOT_FOUND") {
+      // eSewa has no record of the reference. Before the window closes that
+      // only means the payer has not submitted the checkout form yet.
+      if (!input.attemptExpired) {
+        return {
+          state: "pending",
+          providerStatus: status,
+          providerTransactionId: referenceId,
+          message:
+            "eSewa has not recorded this test payment yet. Complete the checkout in the eSewa window.",
+        };
+      }
+      return {
+        state: "failed",
+        providerStatus: status,
+        providerTransactionId: referenceId,
+        message:
+          "The eSewa test checkout expired before it was completed. No money was charged.",
+      };
+    }
+    if (status === "CANCELED") {
       return {
         state: "failed",
         providerStatus: status,

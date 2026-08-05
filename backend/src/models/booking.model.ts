@@ -105,6 +105,10 @@ const bookingSchema: Schema<IBooking> = new Schema(
       acknowledged: { type: Boolean, default: false },
       completedAt: { type: Date, default: null },
     },
+    // A confirmed booking becomes an actual ride only after the renter and
+    // owner complete the handover evidence. Keeping this separate from the
+    // scheduled start/end dates lets overdue, unreturned rides remain active.
+    rideStartedAt: { type: Date, default: null, index: true },
     returnedAt: { type: Date, default: null },
     lateMinutes: { type: Number, default: 0, min: 0 },
     lateFeeAmount: { type: Number, default: 0, min: 0 },

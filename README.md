@@ -103,6 +103,10 @@ npm run dev
 Set `MONGODB_URI=mongodb://127.0.0.1:27017/bike-buddy` in `.env` — the same
 value whether MongoDB is running in Docker or natively.
 `PAYMENT_MODE=demo` is the safe coursework default and never moves money.
+`PAYMENT_MODE=sandbox` runs the genuine eSewa UAT and Khalti sandbox checkouts —
+still test-only, still no money — and needs `PAYMENT_PUBLIC_BASE_URL` plus
+`PAYMENT_ALLOW_LOCAL_CALLBACK=true` when the backend is on this computer's LAN.
+See [docs/PAYMENT_SANDBOX.md](docs/PAYMENT_SANDBOX.md) for the full setup.
 Keep `HOST=0.0.0.0` for local mobile development so the API accepts requests
 from Android emulators and phones on the same network. On startup, the backend
 prints the localhost, Android-emulator and detected LAN values that can be used
@@ -167,10 +171,9 @@ cd frontend/mobile
 flutter pub get
 ```
 
-Do not edit `api_endpoints.dart` or toggle an `isPhysicalDevice` boolean when
-switching devices. From the repository root, use the launcher that matches the
-target. It checks `http://127.0.0.1:5050/health`, selects exactly one matching
-Android target, and supplies the correct compile-time API origin:
+From the repository root, use the launcher that matches the target. It health
+checks the backend, selects exactly one matching Android target, and supplies
+the correct compile-time API origin:
 
 ```powershell
 # Start an Android emulator first, then:
@@ -178,35 +181,59 @@ Android target, and supplies the correct compile-time API origin:
 
 # Connect one Android phone with USB debugging enabled, then:
 .\scripts\run-mobile-android.ps1 -Mode physical-usb
+
+# Or, with the phone on the same Wi-Fi as this computer:
+.\scripts\run-mobile-android.ps1 -Mode physical-wifi
 ```
 
 The USB command creates a serial-specific ADB reverse and sends the app to
 `http://127.0.0.1:5050`. The emulator command sends it to Android's host alias,
-`http://10.0.2.2:5050`. If multiple matching devices are connected, pass
-`-DeviceId <serial>` from `adb devices`; the script refuses to guess.
+`http://10.0.2.2:5050`. The Wi-Fi command detects this computer's LAN address
+from the interface that owns the default route — virtual WSL, VMware and
+VirtualBox adapters are skipped because a phone cannot reach them — then
+verifies the backend answers on that address before launching. Pass
+`-LanAddress <ip>` to override the detection. If multiple matching devices are
+connected, pass `-DeviceId <serial>` from `adb devices`; the script refuses to
+guess.
 
 The same named debug configurations and run tasks are available when VS Code
 is opened at either the repository root or `frontend/mobile`. For the physical
 USB debug configuration, select the phone in Flutter's VS Code device picker
 before pressing F5. The pre-launch task verifies the backend and installs the
-ADB reverse for the one connected physical device.
+ADB reverse for the one connected physical device. Wi-Fi has no pre-launch
+task, because a launch profile cannot receive a detected address — run the
+"Bike Buddy: run physical Android (Wi-Fi)" task instead, or use the launch
+profile that relies on the checked-in host constant described below.
 
-For Android debugging over Wi-Fi, discover the computer's current address each
-time instead of committing it as project configuration:
+### Host selection when no launcher is used
+
+A plain `flutter run -d <phone-serial>` passes no `--dart-define`, so the app
+falls back to the constants at the top of `lib/core/api/api_endpoints.dart`:
+
+```dart
+static const bool isPhysicalDevice = true;
+static const String physicalDeviceHost = '192.168.1.73';
+```
+
+With `isPhysicalDevice` set, Android and iOS builds default to
+`http://<physicalDeviceHost>:5050`. That address also works from an emulator,
+so one build runs on either target. Update `physicalDeviceHost` when this
+computer's Wi-Fi address changes; the backend prints the current value on
+startup. Set `isPhysicalDevice` to `false` to go back to the emulator alias
+`http://10.0.2.2:5050`.
+
+`--dart-define=API_BASE_URL` always overrides both, so the launcher scripts and
+debug profiles never depend on the constant being current:
 
 ```powershell
-Get-NetIPConfiguration |
-  Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } |
-  ForEach-Object { $_.IPv4Address.IPAddress }
-
 cd frontend/mobile
 flutter run -d <phone-serial> --dart-define=API_BASE_URL=http://<current-ip>:5050
 ```
 
 The phone and computer must be on the same network and Windows Firewall must
 allow Node.js on that network profile. `API_BASE_URL` is an origin only; never
-append `/api/v1`. Stop and relaunch after changing it because Dart defines are
-compiled into the app.
+append `/api/v1`. Stop and relaunch after changing it or the constants, because
+Dart defines and `const` values are compiled into the app.
 
 Local plain HTTP is development-only. Android debug builds allow it for the
 emulator/ADB workflow, while Android release builds require HTTPS. iOS includes

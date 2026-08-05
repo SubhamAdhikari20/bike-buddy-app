@@ -77,6 +77,40 @@ export const PAYMENT_MODE: PaymentMode =
     ? configuredPaymentMode
     : "demo";
 
+const isLoopbackHostname = (hostname: string) =>
+  hostname === "localhost" ||
+  hostname === "127.0.0.1" ||
+  hostname === "::1" ||
+  hostname === "[::1]";
+
+/** RFC 1918 ranges plus link-local, as seen in a `URL.hostname`. */
+export const isPrivateLanHostname = (hostname: string) => {
+  const host = hostname.toLowerCase();
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+  const match = /^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(host);
+  if (match) {
+    const second = Number(match[1]);
+    return second >= 16 && second <= 31;
+  }
+  return host.endsWith(".local") || host === "host.docker.internal";
+};
+
+/**
+ * Opt-in for coursework development only. eSewa and Khalti reach their return
+ * URL by redirecting the payer's own browser, never by calling it from their
+ * servers, so a phone on the same Wi-Fi can complete a sandbox checkout against
+ * a backend on this computer. Verification still runs server-to-server against
+ * the provider, so a redirect alone never grants booking access. Production
+ * ignores this flag entirely.
+ */
+export const PAYMENT_ALLOW_LOCAL_CALLBACK =
+  !IS_PRODUCTION &&
+  /^(1|true|yes|on)$/i.test(
+    process.env.PAYMENT_ALLOW_LOCAL_CALLBACK?.trim() ?? "",
+  );
+
 const parseUrl = (name: string, value: string | undefined) => {
   const candidate = value?.trim();
   if (!candidate) return "";
@@ -88,9 +122,13 @@ const parseUrl = (name: string, value: string | undefined) => {
     throw new Error(`${name} must be a valid absolute URL`);
   }
 
-  const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
-  if (parsed.protocol !== "https:" && !localHostnames.has(parsed.hostname)) {
-    throw new Error(`${name} must use HTTPS outside local development`);
+  const plaintextAllowed =
+    isLoopbackHostname(parsed.hostname) ||
+    (PAYMENT_ALLOW_LOCAL_CALLBACK && isPrivateLanHostname(parsed.hostname));
+  if (parsed.protocol !== "https:" && !plaintextAllowed) {
+    throw new Error(
+      `${name} must use HTTPS outside local development. Set PAYMENT_ALLOW_LOCAL_CALLBACK=true to allow a private LAN address while developing.`,
+    );
   }
   return parsed.toString().replace(/\/$/, "");
 };

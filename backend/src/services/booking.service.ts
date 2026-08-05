@@ -979,14 +979,26 @@ const bookingService = {
       );
     }
 
-    return bookingRepository.updateById(bookingId, {
-      preRideChecklist: {
+    const startedAt = new Date();
+    const updated = await bookingRepository.startEligibleRide(
+      bookingId,
+      startedAt,
+      {
         items: payload.items,
         photos: payload.photos ?? [],
         acknowledged: payload.acknowledged,
-        completedAt: new Date(),
+        completedAt: startedAt,
       },
-    });
+    );
+    if (!updated) {
+      throw new AppError(
+        409,
+        "The booking changed before the ride could be started. Refresh and try again.",
+        "BOOKING_STATE_CHANGED",
+      );
+    }
+
+    return updated;
   },
 
   async returnPreview(

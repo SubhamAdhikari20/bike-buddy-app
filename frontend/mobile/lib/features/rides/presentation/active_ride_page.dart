@@ -227,6 +227,15 @@ class _ActiveRidePageState extends ConsumerState<ActiveRidePage> {
                     subtitle: Text(booking.pickupLocation),
                   ),
                 ),
+              if (booking.rideStartedAt != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                  child: Text(
+                    'Ride started at ${DateFormat('EEE, d MMM h:mm a').format(booking.rideStartedAt!)}',
+                    style: textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               const SizedBox(height: AppSpacing.md),
 
               if (!booking.checklistDone)

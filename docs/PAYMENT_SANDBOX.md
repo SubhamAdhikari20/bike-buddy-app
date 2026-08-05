@@ -1,16 +1,17 @@
 # Payment sandbox guide
 
 Bike Buddy supports coursework-safe wallet testing through provider-hosted
-eSewa UAT and Khalti sandbox checkout pages. The Flutter app does not embed a
-wallet SDK or WebView. It opens the checkout in the device's external browser,
-then asks the authenticated Bike Buddy backend for the verified result.
+eSewa UAT and Khalti sandbox checkout pages. The Flutter app embeds **no wallet
+SDK**. It renders the provider's own hosted test page in a plain WebView and
+then asks the authenticated Bike Buddy backend for the verified result; wallet
+login, MPIN and OTP are only ever typed into the provider's page.
 
 This is a test integration only. Do not use real wallet credentials or describe
 the flow as a live payment.
 
 Official references:
 
-- [eSewa ePay integration and status check](https://developer.esewa.com.np/pages/Epay)
+- [eSewa ePay v2 integration and status check](https://developer.esewa.com.np/pages/Epay-V2)
 - [eSewa test credentials](https://developer.esewa.com.np/pages/Test-credentials)
 - [Khalti Web Checkout, sandbox access and lookup](https://docs.khalti.com/khalti-epayment/)
 
@@ -42,11 +43,13 @@ readiness and merchant review outside this coursework project.
    - eSewa requires an HTML form POST. Bike Buddy returns a one-use,
      server-signed bridge URL that expires after five minutes; opening it
      renders an auto-submitting form for the official eSewa UAT endpoint.
-5. Flutter opens the returned URL with the system browser. Wallet login, MPIN
-   and OTP are entered only on the provider-hosted test page. Bike Buddy neither
-   asks for nor stores those credentials.
+5. Flutter opens the returned URL in an in-app WebView
+   (`wallet_checkout_page.dart`). Wallet login, MPIN and OTP are entered only on
+   the provider-hosted test page. Bike Buddy neither asks for nor stores those
+   credentials, and reads nothing out of the page.
 6. A provider redirect is treated only as a signal to verify. It is never proof
-   that payment succeeded.
+   that payment succeeded. The WebView watches for the Bike Buddy return URL
+   purely to know when to close and re-check; the verdict comes from step 7.
 7. The backend validates the provider identity, transaction reference and exact
    amount. Only a verified successful provider status changes the payment to
    `succeeded` and the booking payment status to `paid`.
@@ -71,8 +74,9 @@ Git. The payment variables are:
 | Variable                          | Purpose                                                                                                                                                         |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PAYMENT_MODE`                    | `demo`, `sandbox` or fail-closed `live`.                                                                                                                        |
-| `PAYMENT_PUBLIC_BASE_URL`         | Public HTTPS origin that reaches the backend, such as `https://random-name.example-tunnel.dev`. Supply an origin only: no path, query, fragment or credentials. |
-| `PAYMENT_WEBSITE_URL`             | Public website origin sent to Khalti. For a local coursework test it may be the same stable HTTPS tunnel origin.                                                |
+| `PAYMENT_PUBLIC_BASE_URL`         | Origin the payer's browser returns to. A private LAN origin for local demos, otherwise a public HTTPS origin. Origin only: no path, query, fragment or credentials. |
+| `PAYMENT_ALLOW_LOCAL_CALLBACK`    | Development-only switch permitting loopback/private-LAN callback origins. Ignored when `NODE_ENV=production`.                                                   |
+| `PAYMENT_WEBSITE_URL`             | Website origin sent to Khalti. For a local coursework test it may be the same LAN origin.                                                                       |
 | `KHALTI_SANDBOX_SECRET_KEY`       | Sandbox merchant secret used only by the backend for Khalti initiate/lookup calls.                                                                              |
 | `ESEWA_SANDBOX_SECRET_KEY`        | eSewa UAT merchant secret used only by the backend for request and callback signatures.                                                                         |
 | `PAYMENT_CHECKOUT_SIGNING_SECRET` | Independent random secret of at least 32 characters for Bike Buddy's short-lived eSewa bridge links. Do not reuse a provider or JWT secret.                     |
@@ -90,26 +94,51 @@ Paste its output only into `PAYMENT_CHECKOUT_SIGNING_SECRET` in the untracked
 backend `.env`. Provider secrets must never appear in Flutter `--dart-define`
 values, web environment files, screenshots, logs, commits or demo narration.
 
-### Why the HTTPS tunnel is required
+### Choosing a callback origin
 
-`localhost`, `127.0.0.1` and Android emulator host aliases are local to the
-machine or device using them. The provider-hosted browser flow cannot reliably
-return to a loopback address on the development computer. Start a public HTTPS
-tunnel to `http://localhost:5050`, keep the same tunnel URL for the entire
-transaction, and set its origin as `PAYMENT_PUBLIC_BASE_URL` before starting the
-backend.
+Neither provider calls the return URL from its own servers: eSewa and Khalti
+both finish by **redirecting the payer's browser** to it. The return URL
+therefore only has to be reachable by the device doing the paying. Verification
+is a separate, outbound, server-to-server call the backend makes to the
+provider, so an unreachable callback can never turn an unpaid booking into a
+paid one — it only costs the automatic "you're back" signal.
 
-The tunnel exposes a callback surface. Use a temporary URL, expose only the Bike
-Buddy backend, do not expose MongoDB, and stop the tunnel after testing.
+That gives two supported setups:
+
+| Setup                     | `PAYMENT_PUBLIC_BASE_URL`             | Notes                                                                     |
+| ------------------------- | ------------------------------------- | ------------------------------------------------------------------------- |
+| Local coursework demo     | `http://<this-computer-LAN-ip>:5050`  | Requires `PAYMENT_ALLOW_LOCAL_CALLBACK=true`. Phone must share the Wi-Fi. |
+| Deployment / public tunnel| `https://<public-host>`               | No flag needed. Use for anything internet-facing.                         |
+
+`PAYMENT_ALLOW_LOCAL_CALLBACK` is refused whenever `NODE_ENV=production`, so the
+development shortcut cannot follow the app into a deployment. `0.0.0.0` is
+rejected in both setups because no browser can open it.
+
+Use the LAN address the backend prints on startup, and keep it identical to the
+Flutter `API_BASE_URL`; a mismatch means the WebView will not recognise the
+return URL and the payer has to press **Check payment status** manually.
+
+If you do use a tunnel, it exposes a callback surface: use a temporary URL,
+expose only the Bike Buddy backend, do not expose MongoDB, and stop it after
+testing.
 
 ## Start a sandbox session
 
 1. Start MongoDB using the repository's normal setup.
-2. Start a public HTTPS tunnel that forwards to backend port `5050`.
-3. Put the stable tunnel origin and the required provider secret in
-   `backend/.env`. Set `PAYMENT_MODE=sandbox` and create a fresh
-   `PAYMENT_CHECKOUT_SIGNING_SECRET`.
-4. Start the backend after the environment is saved:
+2. Put this computer's LAN origin and the provider secrets in `backend/.env`:
+
+   ```ini
+   PAYMENT_MODE=sandbox
+   PAYMENT_PUBLIC_BASE_URL=http://192.168.1.73:5050
+   PAYMENT_WEBSITE_URL=http://192.168.1.73:5050
+   PAYMENT_ALLOW_LOCAL_CALLBACK=true
+   ESEWA_SANDBOX_SECRET_KEY=<eSewa UAT merchant secret>
+   KHALTI_SANDBOX_SECRET_KEY=<Khalti sandbox secret key>
+   PAYMENT_CHECKOUT_SIGNING_SECRET=<fresh 32+ character random value>
+   ```
+
+3. Start the backend after the environment is saved. It prints the LAN
+   addresses it can be reached on; use the same one in both places.
 
    ```powershell
    cd backend
@@ -117,21 +146,27 @@ Buddy backend, do not expose MongoDB, and stop the tunnel after testing.
    npm run dev
    ```
 
-5. Start Flutter with an API address the device can reach. An Android emulator
-   normally uses Bike Buddy's default `http://10.0.2.2:5050`; a physical phone
-   needs the development computer's LAN address:
+4. Start Flutter against that same origin. From the repository root the helper
+   detects it automatically:
+
+   ```powershell
+   .\scripts\run-mobile-android.ps1 -Mode physical-wifi
+   ```
+
+   Or pass it explicitly:
 
    ```powershell
    cd frontend/mobile
    flutter pub get
-   flutter run --dart-define=API_BASE_URL=http://192.168.1.20:5050
+   flutter run --dart-define=API_BASE_URL=http://192.168.1.73:5050
    ```
 
-6. Sign in as an approved renter, choose an available bike, select valid dates,
+5. Sign in as an approved renter, choose an available bike, select valid dates,
    review the locked price, and choose the sandbox wallet.
-7. Use **Open payment page**, finish the provider's test journey in the external
-   browser, return to Bike Buddy, and use **Check payment status** if automatic
-   verification is still pending.
+6. Use **Open payment page**. The provider's own test page opens inside the app
+   with its published test login shown above it. Finish the provider journey;
+   the view closes itself when the provider redirects back. Use **Check payment
+   status** if automatic verification is still pending.
 
 Do not change payment mode, secrets, tunnel origin or database while an attempt
 is pending. Restart with a fresh booking attempt after changing configuration.
@@ -154,9 +189,19 @@ The backend signs the exact ordered eSewa request fields
 `total_amount,transaction_uuid,product_code`, validates the signed Base64 return
 payload, and independently calls eSewa's UAT status endpoint. It accepts only
 `COMPLETE` with the expected `EPAYTEST` product code, reference and amount as
-success. `PENDING` or `AMBIGUOUS` remains on hold; `NOT_FOUND` or `CANCELED`
-fails. A provider-reported refund is recorded for reconciliation but Bike Buddy
-does not initiate eSewa refunds.
+success. `PENDING` or `AMBIGUOUS` remains on hold, and `CANCELED` fails.
+
+`NOT_FOUND` is deliberately **not** a failure on its own. eSewa only learns a
+`transaction_uuid` exists once the payer submits the checkout form, so it
+answers `NOT_FOUND` for the entire period between Bike Buddy issuing a checkout
+and the payer finishing it. Treating that as a failure closed every eSewa
+payment on the first status poll and marked the booking failed before the payer
+saw the provider page. It is now read as "not started yet" for a 30-minute
+attempt window, and only becomes a failure once that window closes or eSewa's
+failure return URL is hit.
+
+A provider-reported refund is recorded for reconciliation but Bike Buddy does
+not initiate eSewa refunds.
 
 ## Test Khalti sandbox
 
@@ -193,8 +238,8 @@ An optional sandbox clip is appropriate only after testing the network, tunnel
 and provider account before recording:
 
 1. Show Bike Buddy's sandbox/no-real-charge badge and locked reference.
-2. Open the external hosted checkout without revealing `.env`, browser password
-   managers, wallet credentials, OTPs or developer logs.
+2. Open the in-app hosted checkout without revealing `.env`, wallet
+   credentials, OTPs or developer logs.
 3. Return to the app and show **Payment verified** from the backend status
    check.
 4. Show the booking as paid but awaiting owner acceptance.
@@ -208,7 +253,7 @@ also offers a manual status check.
 | Symptom                                         | Check                                                                                                                                                                       |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Payment is not configured                       | Confirm `PAYMENT_MODE=sandbox`, the public origins and the selected provider secret are present; restart the backend after edits. `live` always rejects.                    |
-| Callback page cannot open                       | Confirm the HTTPS tunnel is running, still has the same origin and forwards to port `5050`. Do not use a phone/emulator loopback URL as the public origin.                  |
+| Callback page cannot open                       | Confirm `PAYMENT_PUBLIC_BASE_URL` matches the Flutter `API_BASE_URL` and that the phone can open `<origin>/health`. Loopback works only on the device running the browser. |
 | Provider returns unauthorized                   | Replace the merchant secret with the current sandbox/UAT value from the provider's own portal/docs. Do not use a public/client key.                                         |
 | eSewa signature fails                           | Copy the UAT merchant secret exactly, preserve special characters, and initiate a new attempt after restarting. Never alter signed fields in the browser.                   |
 | Khalti rejects the request                      | Check the sandbox key, public `website_url`, callback origin and that the locked amount is at least 1,000 paisa.                                                            |
@@ -221,8 +266,8 @@ also offers a manual status check.
 
 - [ ] `.env` is ignored and no secret appears in Git, Flutter, web code or logs.
 - [ ] Mode is visibly `demo` or `sandbox`; `live` initiation is rejected.
-- [ ] The public callback and website values are stable HTTPS origins.
-- [ ] Flutter opens an external browser, not an embedded WebView or provider SDK.
+- [ ] The callback and website values are stable origins the payer's device can open.
+- [ ] Flutter shows the provider's own hosted page in a WebView, with no provider SDK.
 - [ ] The booking's server-calculated amount/reference match the checkout.
 - [ ] A redirect alone never changes the booking to paid.
 - [ ] eSewa succeeds only after signed response and status verification.
@@ -235,14 +280,15 @@ also offers a manual status check.
 
 - The integration is sandbox/demo only; production merchant onboarding,
   settlement and live endpoints are absent.
-- There is no native eSewa/Khalti SDK and no embedded WebView.
+- There is no native eSewa/Khalti SDK. The WebView only displays the provider's
+  hosted page; the app never reads or scripts it.
 - There is no provider refund initiation. Provider-reported refund states are
   status/reconciliation records only.
 - There is no operating-system background payment push. Automatic checks run
   only while the relevant Flutter UI/app is active; renters can check again
   later.
-- A public HTTPS tunnel and internet access are required for hosted sandbox
-  checkout. Tunnel reliability and provider availability are outside Bike
-  Buddy's control.
+- Internet access is required for hosted sandbox checkout, and provider
+  availability is outside Bike Buddy's control. A public HTTPS tunnel is only
+  needed when the payer's device cannot reach the backend's LAN address.
 - Sandbox credentials and provider behaviour can change. Use the linked
   official documentation at test time.

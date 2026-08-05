@@ -53,6 +53,7 @@ const bookingTypeSchema = z.object({
       completedAt: z.date().nullish(),
     })
     .nullish(),
+  rideStartedAt: z.date().nullish(),
   returnedAt: z.date().nullish(),
   lateMinutes: z.number().nullish(),
   lateFeeAmount: z.number().nullish(),

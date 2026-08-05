@@ -62,6 +62,22 @@
         "physical-usb"
       ],
       "problemMatcher": []
+    },
+    {
+      "label": "Bike Buddy: run physical Android (Wi-Fi)",
+      "detail": "Detects this computer's LAN address and launches the phone against it. No adb reverse, no editing ApiEndpoints.",
+      "type": "process",
+      "command": "powershell.exe",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}/../../scripts/run-mobile-android.ps1",
+        "-Mode",
+        "physical-wifi"
+      ],
+      "problemMatcher": []
     }
   ]
 }

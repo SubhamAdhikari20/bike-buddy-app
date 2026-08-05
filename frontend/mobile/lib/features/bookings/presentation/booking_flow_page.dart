@@ -258,6 +258,17 @@ class _BookingFlowPageState extends ConsumerState<BookingFlowPage> {
         return;
       }
 
+      // A sandbox intent without a checkout URL is a real server state, not a
+      // misconfiguration: Khalti initiation may still be in flight or awaiting
+      // reconciliation. Surface the server's own explanation instead of
+      // telling the renter that payments are broken.
+      if (intent.isSandbox) {
+        throw AppException(
+          intent.notice ??
+              'The wallet checkout is still being prepared. Wait a moment and try again.',
+        );
+      }
+
       throw const AppException(
         'Payment is not configured safely. Use local demo mode or ask the administrator to enable a sandbox provider.',
       );

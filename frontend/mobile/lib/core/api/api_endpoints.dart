@@ -2,24 +2,42 @@ import 'package:flutter/foundation.dart';
 
 /// Single source of truth for Bike Buddy server addresses and API paths.
 ///
-/// Host selection:
-/// - Android emulator: [androidEmulatorServerUrl] (the default on Android).
-/// - iOS simulator, desktop and web: [localServerUrl].
-/// - Physical Android over USB: run `adb reverse tcp:5050 tcp:5050` and pass
-///   `--dart-define=API_BASE_URL=http://127.0.0.1:5050`.
-/// - Physical Android/iPhone over Wi-Fi: pass the computer's reachable LAN
-///   address reported by the launch helper; never commit a changing LAN IP.
+/// Host selection, highest priority first:
+/// 1. `--dart-define=API_BASE_URL=<origin>` always wins. The checked-in launch
+///    profiles and `scripts/run-mobile-android.ps1` pass it automatically, so
+///    a launched run never depends on the constants below.
+/// 2. [isPhysicalDevice] with [physicalDeviceHost] — this computer's LAN
+///    address, used by a real phone or tablet on the same Wi-Fi.
+/// 3. Platform default: [androidEmulatorServerUrl] on Android,
+///    [localServerUrl] for the iOS simulator, desktop and web.
 ///
-/// A compile-time value is intentional: a phone cannot reliably discover
-/// which computer on its network is running the coursework backend. Do not
-/// add a source-code `isPhysicalDevice` switch; use the checked-in launch
-/// profiles so device-specific addresses never become stale application code.
+/// Step 2 exists because a plain `flutter run -d <phone-serial>` passes no
+/// dart-define, and `10.0.2.2` is an emulator-only alias that a physical
+/// device can never reach. Update [physicalDeviceHost] when the computer's
+/// Wi-Fi address changes, or launch through the helper script, which detects
+/// the current LAN address and passes it as `API_BASE_URL` instead.
+///
+/// Physical Android over USB stays supported: run
+/// `adb reverse tcp:5050 tcp:5050` and pass
+/// `--dart-define=API_BASE_URL=http://127.0.0.1:5050`.
 class ApiEndpoints {
   ApiEndpoints._();
 
-  static const String androidEmulatorServerUrl = 'http://10.0.2.2:5050';
-  static const String usbPhysicalDeviceServerUrl = 'http://127.0.0.1:5050';
-  static const String localServerUrl = 'http://localhost:5050';
+  /// Set to `false` when developing only against emulators or simulators.
+  static const bool isPhysicalDevice = true;
+
+  /// This computer's LAN address, as printed by the backend on startup
+  /// ("Physical device: --dart-define=API_BASE_URL=http://<address>:5050").
+  static const String physicalDeviceHost = '192.168.1.73';
+
+  static const int serverPort = 5050;
+
+  static const String androidEmulatorServerUrl = 'http://10.0.2.2:$serverPort';
+  static const String usbPhysicalDeviceServerUrl =
+      'http://127.0.0.1:$serverPort';
+  static const String localServerUrl = 'http://localhost:$serverPort';
+  static const String physicalDeviceServerUrl =
+      'http://$physicalDeviceHost:$serverPort';
   static const String apiPrefix = '/api/v1';
 
   static const String _configuredServerUrl = String.fromEnvironment(
@@ -27,10 +45,20 @@ class ApiEndpoints {
   );
 
   static String get defaultServerUrl {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return androidEmulatorServerUrl;
-    }
-    return localServerUrl;
+    if (kIsWeb) return localServerUrl;
+
+    final isMobile =
+        defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+    if (!isMobile) return localServerUrl;
+
+    // A LAN address is also reachable from an emulator, so this stays correct
+    // when the same build is dropped onto either target.
+    if (isPhysicalDevice) return physicalDeviceServerUrl;
+
+    return defaultTargetPlatform == TargetPlatform.android
+        ? androidEmulatorServerUrl
+        : localServerUrl;
   }
 
   /// Returns a normalized server origin, accepting an optional trailing
@@ -91,8 +119,10 @@ class ApiEndpoints {
   static String get mediaServerUrl => serverUrl;
   static String get healthUrl => '$serverUrl/health';
 
-  static const Duration connectionTimeout = Duration(seconds: 10);
-  static const Duration receiveTimeout = Duration(seconds: 15);
+  // Generous enough for a phone on Wi-Fi, where the first request after a
+  // cold start also pays for DNS, the TCP handshake and a Mongo connection.
+  static const Duration connectionTimeout = Duration(seconds: 20);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 
   static String absoluteUrl(String endpoint) {
     if (!endpoint.startsWith('/')) {
@@ -183,6 +213,27 @@ class ApiEndpoints {
 
   // Sandbox wallets.
   static const String initiatePayment = '/payments/initiate';
+
+  /// Where eSewa and Khalti send the payer's browser once their hosted test
+  /// checkout finishes. The in-app checkout view watches for these so it can
+  /// close and ask the server for a verified result; the redirect itself is
+  /// never treated as proof of payment.
+  static const String paymentCallbackPath = '$apiPrefix/payments/callback/';
+
+  static bool isPaymentCallbackUrl(Uri uri) {
+    final server = Uri.parse(serverUrl);
+    return uri.host == server.host && uri.path.startsWith(paymentCallbackPath);
+  }
+
+  /// eSewa returns to a `/failure` variant when the payer cancels or the
+  /// provider declines. Khalti reports cancellation in its query string.
+  static bool isPaymentCancelledCallbackUrl(Uri uri) {
+    if (!isPaymentCallbackUrl(uri)) return false;
+    if (uri.path.endsWith('/failure')) return true;
+    final status = uri.queryParameters['status']?.toLowerCase() ?? '';
+    return status.contains('cancel') || status == 'expired';
+  }
+
   static String paymentStatus(String paymentId) =>
       '/payments/${_segment(paymentId)}/status';
   static String confirmDemoPayment(String paymentId) =>

@@ -312,6 +312,45 @@ export const bookingRepository = {
       { $set: payload },
       { new: true, runValidators: true },
     ),
+  startEligibleRide: (
+    bookingId: string,
+    startedAt: Date,
+    preRideChecklist: Record<string, unknown>,
+  ) =>
+    BookingModel.findOneAndUpdate(
+      {
+        _id: bookingId,
+        status: "confirmed",
+        paymentStatus: "paid",
+        rideStartedAt: null,
+        "preRideChecklist.completedAt": null,
+      },
+      {
+        $set: {
+          preRideChecklist,
+          rideStartedAt: startedAt,
+        },
+      },
+      { new: true, runValidators: true },
+    ),
+  completeStartedRide: (
+    bookingId: string,
+    payload: Record<string, unknown>,
+  ) =>
+    BookingModel.findOneAndUpdate(
+      {
+        _id: bookingId,
+        status: "confirmed",
+        paymentStatus: "paid",
+        returnedAt: null,
+        $or: [
+          { rideStartedAt: { $ne: null } },
+          { "preRideChecklist.completedAt": { $ne: null } },
+        ],
+      },
+      { $set: payload },
+      { new: true, runValidators: true },
+    ),
   markWalletRefunded: (
     bookingId: string,
     paymentMode: "demo" | "sandbox" | "live",
@@ -354,7 +393,7 @@ export const bookingRepository = {
   ) =>
     BookingModel.find(filter)
       .select(
-        "_id bikeId startDate endDate status paymentStatus paymentMode paymentMethod holdExpiresAt holdExpiredAt totalAmount currency returnedAt lateMinutes lateFeeAmount createdAt updatedAt",
+        "_id bikeId startDate endDate status paymentStatus paymentMode paymentMethod holdExpiresAt holdExpiredAt totalAmount currency rideStartedAt returnedAt lateMinutes lateFeeAmount createdAt updatedAt",
       )
       .sort(sort)
       .skip(skip)

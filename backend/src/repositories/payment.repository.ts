@@ -72,6 +72,7 @@ export const paymentRepository = {
     paymentId: string,
     tokenHash: string,
     expiresAt: Date,
+    attemptExpiresAt: Date,
   ) =>
     PaymentModel.findOneAndUpdate(
       {
@@ -84,6 +85,9 @@ export const paymentRepository = {
         checkoutTokenHash: tokenHash,
         checkoutExpiresAt: expiresAt,
         checkoutOpenedAt: null,
+        // How long eSewa's NOT_FOUND still counts as "not started yet" rather
+        // than an abandoned attempt. Separate from the short bridge-link life.
+        providerExpiresAt: attemptExpiresAt,
       },
       { new: true, runValidators: true },
     ),

@@ -51,6 +51,59 @@ void main() {
     expect(() => ApiEndpoints.upload('unknown'), throwsArgumentError);
   });
 
+  test('provider return URLs are recognised, checkout URLs are not', () {
+    final server = Uri.parse(ApiEndpoints.serverUrl);
+    Uri onServer(String path) => server.replace(path: path);
+
+    expect(
+      ApiEndpoints.isPaymentCallbackUrl(onServer('/api/v1/payments/callback/khalti')),
+      isTrue,
+    );
+    expect(
+      ApiEndpoints.isPaymentCallbackUrl(
+        onServer('/api/v1/payments/callback/esewa/BB-1'),
+      ),
+      isTrue,
+    );
+    // The eSewa bridge lives on the same origin; closing the checkout view on
+    // it would abort the payment before the provider ever saw it.
+    expect(
+      ApiEndpoints.isPaymentCallbackUrl(
+        onServer('/api/v1/payments/checkout/esewa/abc'),
+      ),
+      isFalse,
+    );
+    expect(
+      ApiEndpoints.isPaymentCallbackUrl(
+        Uri.parse('https://evil.example/api/v1/payments/callback/khalti'),
+      ),
+      isFalse,
+    );
+
+    expect(
+      ApiEndpoints.isPaymentCancelledCallbackUrl(
+        onServer('/api/v1/payments/callback/esewa/BB-1/failure'),
+      ),
+      isTrue,
+    );
+    expect(
+      ApiEndpoints.isPaymentCancelledCallbackUrl(
+        onServer(
+          '/api/v1/payments/callback/khalti',
+        ).replace(queryParameters: {'status': 'User canceled'}),
+      ),
+      isTrue,
+    );
+    expect(
+      ApiEndpoints.isPaymentCancelledCallbackUrl(
+        onServer(
+          '/api/v1/payments/callback/khalti',
+        ).replace(queryParameters: {'status': 'Completed'}),
+      ),
+      isFalse,
+    );
+  });
+
   test('checkout URLs allow HTTPS and only configured local HTTP', () {
     final local = Uri.parse(ApiEndpoints.serverUrl);
     final rewritten = ApiEndpoints.trustedCheckoutUri(

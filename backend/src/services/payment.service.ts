@@ -3,12 +3,14 @@ import AppError from "../errors/AppError.ts";
 import {
   ESEWA_SANDBOX_SECRET_KEY,
   KHALTI_SANDBOX_SECRET_KEY,
+  PAYMENT_ALLOW_LOCAL_CALLBACK,
   PAYMENT_CHECKOUT_SIGNING_SECRET,
   PAYMENT_LOOKUP_INTERVAL_MS,
   PAYMENT_MODE,
   PAYMENT_PROVIDER_TIMEOUT_MS,
   PAYMENT_PUBLIC_BASE_URL,
   PAYMENT_WEBSITE_URL,
+  isPrivateLanHostname,
 } from "../config/index.ts";
 import { bookingRepository } from "../repositories/booking.repository.ts";
 import { paymentRepository } from "../repositories/payment.repository.ts";
@@ -55,6 +57,22 @@ const ensurePaymentAccess = (auth: PaymentAuth, booking: any) => {
 
 const createTransactionReference = () =>
   `BB-${crypto.randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}`;
+
+/**
+ * How long an issued eSewa checkout stays "waiting for the payer". Matches the
+ * 30 minutes Khalti allows its own sandbox links, so both providers behave the
+ * same way in the app. Only after this does an untouched checkout become a
+ * failure rather than a pending attempt.
+ */
+const ESEWA_ATTEMPT_WINDOW_MS = 30 * 60 * 1000;
+
+/** eSewa has no per-attempt expiry of its own, so fall back to creation time. */
+const esewaAttemptExpired = (payment: any, now: Date) => {
+  const deadline = payment.providerExpiresAt
+    ? new Date(payment.providerExpiresAt).getTime()
+    : new Date(payment.createdAt ?? now).getTime() + ESEWA_ATTEMPT_WINDOW_MS;
+  return deadline <= now.getTime();
+};
 
 const paymentIdOf = (payment: any) =>
   toDocumentId(payment?._id) ?? String(payment?._id ?? "");
@@ -162,34 +180,37 @@ const requireSandboxCallbackBase = () => {
   if (!PAYMENT_PUBLIC_BASE_URL) {
     throw new AppError(
       503,
-      "Sandbox checkout needs PAYMENT_PUBLIC_BASE_URL set to a public HTTPS tunnel or deployment origin.",
+      "Sandbox checkout needs PAYMENT_PUBLIC_BASE_URL set to this computer's LAN origin (with PAYMENT_ALLOW_LOCAL_CALLBACK=true) or to a public HTTPS origin.",
       "PAYMENT_SANDBOX_NOT_CONFIGURED",
     );
   }
   const parsed = new URL(PAYMENT_PUBLIC_BASE_URL);
   const hostname = parsed.hostname.toLowerCase();
-  const privateIpv4 =
-    /^10\./.test(hostname) ||
-    /^192\.168\./.test(hostname) ||
-    /^169\.254\./.test(hostname) ||
-    (() => {
-      const match = /^172\.(\d+)\./.exec(hostname);
-      return match ? Number(match[1]) >= 16 && Number(match[1]) <= 31 : false;
-    })();
-  if (
+  const unreachableFromAnyDevice =
+    hostname === "0.0.0.0" || /^\[(?:fc|fd|fe8|fe9|fea|feb)/.test(hostname);
+  const deviceLocal =
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
     hostname === "::1" ||
-    hostname === "[::1]" ||
-    hostname === "0.0.0.0" ||
-    hostname.endsWith(".local") ||
-    hostname === "host.docker.internal" ||
-    /^\[(?:fc|fd|fe8|fe9|fea|feb)/.test(hostname) ||
-    privateIpv4
-  ) {
+    hostname === "[::1]";
+
+  if (unreachableFromAnyDevice) {
     throw new AppError(
       503,
-      "Payment providers cannot return to localhost. Configure PAYMENT_PUBLIC_BASE_URL with a public HTTPS tunnel.",
+      "PAYMENT_PUBLIC_BASE_URL must be an address a payer's browser can open.",
+      "PAYMENT_CALLBACK_NOT_PUBLIC",
+    );
+  }
+
+  // Loopback only ever resolves on the device running the browser, so it works
+  // for a desktop browser or an emulator but never for a phone on Wi-Fi. A
+  // private LAN address works for both, which is why it is the documented
+  // coursework setting.
+  const local = deviceLocal || isPrivateLanHostname(hostname);
+  if (local && !PAYMENT_ALLOW_LOCAL_CALLBACK) {
+    throw new AppError(
+      503,
+      "Payment providers cannot return to a local address unless PAYMENT_ALLOW_LOCAL_CALLBACK=true is set for development. Otherwise configure PAYMENT_PUBLIC_BASE_URL with a public HTTPS origin.",
       "PAYMENT_CALLBACK_NOT_PUBLIC",
     );
   }
@@ -407,6 +428,7 @@ const lookupSandboxPayment = async (paymentId: string) => {
       transactionRef: payment.transactionRef,
       amountMinor: payment.amountMinor,
       timeoutMs: PAYMENT_PROVIDER_TIMEOUT_MS,
+      attemptExpired: esewaAttemptExpired(payment, now),
     });
   } else {
     throw new AppError(
@@ -432,6 +454,7 @@ const issueEsewaCheckout = async (payment: any) => {
     paymentIdOf(payment),
     hashCheckoutToken(token),
     expiresAt,
+    new Date(Date.now() + ESEWA_ATTEMPT_WINDOW_MS),
   );
   if (!updated) {
     throw new AppError(
@@ -979,8 +1002,22 @@ const paymentService = {
         "INVALID_CALLBACK",
       );
     }
+
+    // Ask eSewa first: a late settlement must still win over the payer's
+    // failure redirect, so this can only ever close an attempt eSewa itself
+    // has no completed record of.
     const resolved = await lookupSandboxPayment(paymentIdOf(payment));
-    return toPaymentStatus(resolved);
+    if (!resolved) throw new AppError(404, "Payment not found", "NOT_FOUND");
+    if (resolved.status !== "pending") return toPaymentStatus(resolved);
+
+    const cancelled = await applyProviderVerification(paymentIdOf(payment), {
+      state: "failed",
+      providerStatus: "CANCELED",
+      providerTransactionId: null,
+      message:
+        "The eSewa test checkout was cancelled or declined. No money was charged.",
+    });
+    return toPaymentStatus(cancelled ?? resolved);
   },
 
   async updatePaymentStatus(

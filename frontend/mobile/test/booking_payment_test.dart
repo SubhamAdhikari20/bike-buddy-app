@@ -2,6 +2,7 @@ import 'package:bike_buddy/core/api/api_endpoints.dart';
 import 'package:bike_buddy/core/widgets/secure_badge.dart';
 import 'package:bike_buddy/features/bookings/data/booking_model.dart';
 import 'package:bike_buddy/features/bookings/presentation/payment_awaiting_sheet.dart';
+import 'package:bike_buddy/features/bookings/presentation/wallet_checkout_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -203,7 +204,7 @@ void main() {
             }),
             openPaymentPage: () async {
               openCount += 1;
-              return true;
+              return WalletCheckoutOutcome.returned;
             },
             pollingInterval: const Duration(days: 1),
             maxAutomaticChecks: 0,
@@ -223,7 +224,57 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(openCount, 1);
-    expect(find.textContaining('Test checkout opened'), findsOneWidget);
+    expect(
+      find.textContaining('Returned from the test checkout'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a cancelled provider return never claims the payment worked', (
+    tester,
+  ) async {
+    final intent = PaymentIntent.fromJson({
+      'paymentId': 'payment-cancelled',
+      'transactionRef': 'BB-SBX-CANCEL',
+      'amount': 4200,
+      'currency': 'NPR',
+      'provider': 'esewa',
+      'mode': 'sandbox',
+      'paymentUrl': 'https://test-pay.khalti.example/checkout',
+      'demoConfirmationRequired': false,
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PaymentAwaitingSheet(
+            intent: intent,
+            checkStatus: () async => PaymentStatus.fromJson({
+              'paymentId': 'payment-cancelled',
+              'bookingId': 'booking-1',
+              'provider': 'esewa',
+              'mode': 'sandbox',
+              'status': 'pending',
+              'paid': false,
+              'terminal': false,
+              'message': 'eSewa has not recorded this test payment yet.',
+            }),
+            openPaymentPage: () async => WalletCheckoutOutcome.cancelled,
+            pollingInterval: const Duration(days: 1),
+            maxAutomaticChecks: 0,
+          ),
+        ),
+      ),
+    );
+
+    await tester.ensureVisible(find.byKey(const Key('open-sandbox-payment')));
+    await tester.tap(find.byKey(const Key('open-sandbox-payment')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('was cancelled'), findsOneWidget);
+    // The server is still the authority: a cancelled redirect leaves the sheet
+    // showing the pending server status rather than a failure of its own.
+    expect(find.text('Payment pending'), findsOneWidget);
   });
 
   testWidgets('terminal sandbox failure offers retry without a new booking', (

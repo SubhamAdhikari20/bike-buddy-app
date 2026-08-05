@@ -15,6 +15,13 @@ final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 class ApiClient {
   static const _authenticatedKey = 'bikeBuddyAuthenticatedRequest';
 
+  /// Backoff between read retries; its length also sets the retry count.
+  static const List<Duration> _readRetryDelays = [
+    Duration(milliseconds: 350),
+    Duration(seconds: 1),
+    Duration(seconds: 2),
+  ];
+
   late final Dio dio;
 
   ApiClient() {
@@ -117,7 +124,10 @@ class ApiClient {
       throw AppException(configurationError, code: 'INVALID_API_BASE_URL');
     }
 
-    final attempts = retryConnectionFailure ? 2 : 1;
+    // Only reads retry. A phone on Wi-Fi drops packets far more often than an
+    // emulator on loopback, but replaying a booking or payment POST would
+    // charge the renter twice.
+    final attempts = retryConnectionFailure ? _readRetryDelays.length + 1 : 1;
     for (var attempt = 0; attempt < attempts; attempt++) {
       try {
         final response = await request();
@@ -131,7 +141,7 @@ class ApiClient {
         return data.cast<String, dynamic>();
       } on DioException catch (error) {
         if (attempt + 1 < attempts && _isTransientConnectionFailure(error)) {
-          await Future<void>.delayed(const Duration(milliseconds: 350));
+          await Future<void>.delayed(_readRetryDelays[attempt]);
           continue;
         }
         throw _toAppException(error);
@@ -165,7 +175,14 @@ class ApiClient {
     }
 
     if (status == null) {
-      final endpoint = kDebugMode ? '\nServer: ${ApiEndpoints.serverUrl}' : '';
+      // Naming the address turns "it just fails" into a one-line fix: either
+      // the backend is down or the phone is pointed at the wrong host.
+      final endpoint = kDebugMode
+          ? '\nServer: ${ApiEndpoints.serverUrl}'
+                '\nOn a physical device this must be the computer\'s LAN '
+                'address (ApiEndpoints.physicalDeviceHost or '
+                '--dart-define=API_BASE_URL).'
+          : '';
       final message = switch (e.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.sendTimeout ||
