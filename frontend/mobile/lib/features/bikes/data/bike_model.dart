@@ -83,6 +83,8 @@ class Bike {
   final List<String> imageUrls;
   final String status;
   final bool verifiedBike;
+  final int? safetyScore;
+  final String? inspectionNotes;
   final double averageRating;
   final int ratingCount;
   final double? distanceKm;
@@ -114,6 +116,8 @@ class Bike {
     required this.imageUrls,
     required this.status,
     required this.verifiedBike,
+    this.safetyScore,
+    this.inspectionNotes,
     required this.averageRating,
     required this.ratingCount,
     this.distanceKm,
@@ -132,13 +136,31 @@ class Bike {
   bool get isAvailable => status == 'available';
 
   factory Bike.fromJson(Map<String, dynamic> json) {
-    final images = (json['images'] as List? ?? const [])
-        .map((img) => (img as Map)['url'] as String? ?? '')
+    final conditionInfo = (json['conditionInfo'] as Map?)
+        ?.cast<String, dynamic>();
+    final conditionPhotos = (conditionInfo?['photos'] as List? ?? const [])
+        .whereType<Map>()
+        .map(
+          (photo) => (
+            url: resolveMediaUrl(photo['url'] as String? ?? ''),
+            takenAt: DateTime.tryParse(photo['takenAt'] as String? ?? ''),
+          ),
+        )
+        .where((photo) => photo.url.isNotEmpty)
+        .toList(growable: false);
+
+    final primaryImages = (json['images'] as List? ?? const [])
+        .whereType<Map>()
+        .map((img) => img['url'] as String? ?? '')
         .where((url) => url.isNotEmpty)
         // Owner-uploaded photos are stored against the backend's own host,
         // which the emulator cannot reach as "localhost".
         .map(resolveMediaUrl)
         .toList();
+    final images = <String>{
+      ...primaryImages,
+      ...conditionPhotos.map((photo) => photo.url),
+    }.toList(growable: false);
 
     return Bike(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
@@ -159,6 +181,11 @@ class Bike {
       imageUrls: images,
       status: json['status'] as String? ?? 'available',
       verifiedBike: json['verifiedBike'] as bool? ?? false,
+      safetyScore: (json['safetyScore'] as num?)?.round(),
+      inspectionNotes: switch (json['inspectionNotes']) {
+        final String note when note.trim().isNotEmpty => note.trim(),
+        _ => null,
+      },
       averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0,
       ratingCount: (json['ratingCount'] as num?)?.toInt() ?? 0,
       distanceKm: (json['distanceKm'] as num?)?.toDouble(),
@@ -174,20 +201,10 @@ class Bike {
       helmetIncluded:
           (json['specs'] as Map?)?['helmetIncluded'] as bool? ?? false,
       serviceDate: DateTime.tryParse(
-        (json['conditionInfo'] as Map?)?['serviceDate'] as String? ?? '',
+        conditionInfo?['serviceDate'] as String? ?? '',
       ),
-      odometerKm: ((json['conditionInfo'] as Map?)?['odometerKm'] as num?)
-          ?.toInt(),
-      conditionPhotos:
-          ((json['conditionInfo'] as Map?)?['photos'] as List? ?? const [])
-              .map(
-                (photo) => (
-                  url: resolveMediaUrl((photo as Map)['url'] as String? ?? ''),
-                  takenAt: DateTime.tryParse(photo['takenAt'] as String? ?? ''),
-                ),
-              )
-              .where((photo) => photo.url.isNotEmpty)
-              .toList(),
+      odometerKm: (conditionInfo?['odometerKm'] as num?)?.toInt(),
+      conditionPhotos: conditionPhotos,
     );
   }
 }

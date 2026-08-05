@@ -21,6 +21,12 @@ import '../../data/bike_model.dart';
 import '../providers/bikes_provider.dart';
 import '../widgets/bike_image_carousel.dart';
 
+String _readableValue(String value) {
+  final normalized = value.trim().replaceAll(RegExp(r'[_-]+'), ' ');
+  if (normalized.isEmpty) return 'Not specified';
+  return normalized[0].toUpperCase() + normalized.substring(1);
+}
+
 /// Bike detail: photos, verified owner badge (TR-01), pickup card with
 /// landmark and walk time (MAP-01/04), damage policy (TR-06) and real
 /// renter reviews (TR-02). Booking starts here and the draft is saved
@@ -238,11 +244,13 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
       ),
       bottomNavigationBar: bikeAsync.maybeWhen(
         data: (bike) => SafeArea(
+          key: const ValueKey('bike-booking-action-bar'),
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
                 Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -280,8 +288,19 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
   Widget _buildDetail(Bike bike) {
     final textTheme = Theme.of(context).textTheme;
     final reviews = ref.watch(bikeReviewsProvider(bike.id));
+    final hasCoordinates =
+        bike.location.latitude != null && bike.location.longitude != null;
+    final hasConditionDetails =
+        bike.verifiedBike ||
+        bike.safetyScore != null ||
+        bike.inspectionNotes != null ||
+        bike.serviceDate != null ||
+        bike.odometerKm != null ||
+        bike.conditionPhotos.isNotEmpty;
+    final reviewNoun = bike.ratingCount == 1 ? 'review' : 'reviews';
 
     return ListView(
+      key: const ValueKey('bike-details-list'),
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       children: [
         BikeImageCarousel(
@@ -323,16 +342,26 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                 ],
               ),
               const SizedBox(height: 4),
-              Row(
+              Wrap(
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.xs,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  if (bike.ratingCount > 0) ...[
-                    const Icon(Icons.star, size: 18, color: AppColors.warning),
-                    Text(
-                      ' ${bike.averageRating.toStringAsFixed(1)} (${bike.ratingCount} reviews)',
-                      style: textTheme.bodyMedium,
+                  if (bike.ratingCount > 0)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          size: 18,
+                          color: AppColors.warning,
+                        ),
+                        Text(
+                          ' ${bike.averageRating.toStringAsFixed(1)} (${bike.ratingCount} $reviewNoun)',
+                          style: textTheme.bodyMedium,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                  ],
                   Text(
                     '${bike.brand} · ${bike.year}',
                     style: textTheme.bodyMedium,
@@ -341,6 +370,29 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               ),
               const SizedBox(height: AppSpacing.xs),
               _LiveAvailability(bikeId: bike.id),
+              if (bike.verifiedBike || bike.safetyScore != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    if (bike.verifiedBike)
+                      const _TrustBadge(
+                        icon: Icons.verified_user_outlined,
+                        label: 'Bike verified',
+                        color: AppColors.success,
+                      ),
+                    if (bike.safetyScore case final score?)
+                      _TrustBadge(
+                        icon: Icons.health_and_safety_outlined,
+                        label: 'Safety $score/100',
+                        color: score >= 80
+                            ? AppColors.success
+                            : AppColors.warning,
+                      ),
+                  ],
+                ),
+              ],
               const SizedBox(height: AppSpacing.md),
 
               // Verified owner badge (TR-01) - tap for details.
@@ -350,23 +402,34 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                     onTap: () => _showOwnerDetails(bike.owner!),
                     leading: CircleAvatar(
                       backgroundColor: AppColors.primaryLight,
-                      child: const Icon(Icons.person, color: AppColors.primary),
+                      backgroundImage: bike.owner!.profilePictureUrl != null
+                          ? CachedNetworkImageProvider(
+                              bike.owner!.profilePictureUrl!,
+                            )
+                          : null,
+                      child: bike.owner!.profilePictureUrl == null
+                          ? const Icon(Icons.person, color: AppColors.primary)
+                          : null,
                     ),
                     title: Text(bike.owner!.fullName),
                     subtitle: bike.owner!.isVerified
                         ? const Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
                                 Icons.verified,
                                 size: 14,
                                 color: AppColors.success,
                               ),
-                              Text(
-                                ' Verified Owner',
-                                style: TextStyle(
-                                  color: AppColors.success,
-                                  fontSize: 13,
+                              SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  'Verified Owner',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppColors.success,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
                             ],
@@ -450,9 +513,15 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                       ],
                       const SizedBox(height: AppSpacing.sm),
                       OutlinedButton.icon(
-                        onPressed: () => _openDirections(bike),
+                        onPressed: hasCoordinates
+                            ? () => _openDirections(bike)
+                            : null,
                         icon: const Icon(Icons.navigation_outlined, size: 18),
-                        label: const Text('Open Directions in OSM'),
+                        label: Text(
+                          hasCoordinates
+                              ? 'Open Directions in OSM'
+                              : 'Directions unavailable',
+                        ),
                       ),
                     ],
                   ),
@@ -506,7 +575,7 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                     crossAxisCount: 2,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 3.4,
+                    childAspectRatio: 2.2,
                     mainAxisSpacing: AppSpacing.sm,
                     crossAxisSpacing: AppSpacing.sm,
                     children: [
@@ -516,25 +585,29 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                         value: '${bike.engineCc} cc',
                       ),
                       _SpecCell(
+                        icon: Icons.two_wheeler_outlined,
+                        label: 'Model',
+                        value: _readableValue(bike.model),
+                      ),
+                      _SpecCell(
                         icon: Icons.local_gas_station,
                         label: 'Fuel',
-                        value:
-                            bike.fuelType[0].toUpperCase() +
-                            bike.fuelType.substring(1),
+                        value: _readableValue(bike.fuelType),
                       ),
                       _SpecCell(
                         icon: Icons.settings,
                         label: 'Gears',
-                        value: bike.transmission == 'manual'
-                            ? 'Manual'
-                            : 'Automatic',
+                        value: _readableValue(bike.transmission),
                       ),
                       _SpecCell(
                         icon: Icons.category_outlined,
                         label: 'Type',
-                        value:
-                            bike.category[0].toUpperCase() +
-                            bike.category.substring(1),
+                        value: _readableValue(bike.category),
+                      ),
+                      _SpecCell(
+                        icon: Icons.fact_check_outlined,
+                        label: 'Condition',
+                        value: _readableValue(bike.condition),
                       ),
                       if (bike.weightKg != null)
                         _SpecCell(
@@ -562,34 +635,102 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
               ),
               const SizedBox(height: AppSpacing.md),
 
-              // Owner-provided condition details (BC-05, transparency).
-              if (bike.serviceDate != null || bike.odometerKm != null) ...[
-                Text('Condition', style: textTheme.titleLarge),
+              // Administrator inspection and owner condition evidence
+              // (BC-01/05, transparency and visible trust signals).
+              if (hasConditionDetails) ...[
+                Text('Trust & condition', style: textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.sm),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 18,
-                              color: AppColors.success,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Condition details provided by the owner',
-                              style: TextStyle(
+                        if (bike.verifiedBike)
+                          const Row(
+                            children: [
+                              Icon(
+                                Icons.verified_user_outlined,
+                                size: 20,
                                 color: AppColors.success,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
                               ),
+                              SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text(
+                                  'Bike inspection verified by Bike Buddy',
+                                  style: TextStyle(
+                                    color: AppColors.success,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (bike.safetyScore case final score?) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            runSpacing: AppSpacing.xs,
+                            children: [
+                              Text(
+                                'Safety score',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                '$score / 100',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: score >= 80
+                                      ? AppColors.success
+                                      : AppColors.warning,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Semantics(
+                            label: 'Safety score $score out of 100',
+                            child: LinearProgressIndicator(
+                              value: (score.clamp(0, 100) / 100).toDouble(),
+                              minHeight: 8,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                              color: score >= 80
+                                  ? AppColors.success
+                                  : AppColors.warning,
+                              backgroundColor: AppColors.divider,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
+                          ),
+                        ],
+                        if (bike.inspectionNotes != null) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'Inspection note',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            bike.inspectionNotes!,
+                            style: textTheme.bodyMedium,
+                          ),
+                        ],
+                        if (bike.serviceDate != null ||
+                            bike.odometerKm != null) ...[
+                          const Divider(height: AppSpacing.lg),
+                          Text(
+                            'Owner condition record',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                        ],
                         if (bike.serviceDate != null)
                           Row(
                             children: [
@@ -599,9 +740,11 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                                 color: AppColors.textMuted,
                               ),
                               const SizedBox(width: AppSpacing.sm),
-                              Text(
-                                'Last serviced ${DateFormat('d MMM yyyy').format(bike.serviceDate!)}',
-                                style: textTheme.bodyMedium,
+                              Expanded(
+                                child: Text(
+                                  'Last serviced ${DateFormat('d MMM yyyy').format(bike.serviceDate!)}',
+                                  style: textTheme.bodyMedium,
+                                ),
                               ),
                             ],
                           ),
@@ -615,11 +758,45 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                                 color: AppColors.textMuted,
                               ),
                               const SizedBox(width: AppSpacing.sm),
-                              Text(
-                                '${bike.odometerKm} km on the odometer',
-                                style: textTheme.bodyMedium,
+                              Expanded(
+                                child: Text(
+                                  '${bike.odometerKm} km on the odometer',
+                                  style: textTheme.bodyMedium,
+                                ),
                               ),
                             ],
+                          ),
+                        ],
+                        if (bike.conditionPhotos.isNotEmpty) ...[
+                          const Divider(height: AppSpacing.lg),
+                          Text(
+                            'Dated condition photos',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          SizedBox(
+                            height: 132,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: bike.conditionPhotos.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: AppSpacing.sm),
+                              itemBuilder: (context, index) {
+                                final photo = bike.conditionPhotos[index];
+                                final galleryIndex = bike.imageUrls.indexOf(
+                                  photo.url,
+                                );
+                                return _ConditionPhotoCard(
+                                  url: photo.url,
+                                  takenAt: photo.takenAt,
+                                  onTap: galleryIndex < 0
+                                      ? null
+                                      : () => _openGallery(bike, galleryIndex),
+                                );
+                              },
+                            ),
                           ),
                         ],
                       ],
@@ -676,9 +853,12 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                       size: 16,
                       color: AppColors.textMuted,
                     ),
-                    Text(
-                      ' Refundable deposit: ${Formatters.npr(bike.securityDeposit)}',
-                      style: textTheme.bodyMedium,
+                    const SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'Refundable deposit: ${Formatters.npr(bike.securityDeposit)}',
+                        style: textTheme.bodyMedium,
+                      ),
                     ),
                   ],
                 ),
@@ -720,9 +900,14 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Row(
+                                      Wrap(
+                                        spacing: AppSpacing.sm,
+                                        runSpacing: AppSpacing.xs,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
                                         children: [
                                           Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: List.generate(
                                               5,
                                               (i) => Icon(
@@ -734,7 +919,6 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(width: AppSpacing.sm),
                                           if (review.isVerifiedRide)
                                             Container(
                                               padding:
@@ -757,7 +941,6 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
                                                 ),
                                               ),
                                             ),
-                                          const Spacer(),
                                           if (review.createdAt != null)
                                             Text(
                                               DateFormat(
@@ -784,6 +967,117 @@ class _BikeDetailPageState extends ConsumerState<BikeDetailPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TrustBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _TrustBadge({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ConditionPhotoCard extends StatelessWidget {
+  final String url;
+  final DateTime? takenAt;
+  final VoidCallback? onTap;
+
+  const _ConditionPhotoCard({
+    required this.url,
+    required this.takenAt,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dateLabel = takenAt == null
+        ? 'Date not recorded'
+        : DateFormat('d MMM yyyy').format(takenAt!);
+
+    return Semantics(
+      button: onTap != null,
+      label: 'Condition photo, $dateLabel',
+      child: SizedBox(
+        width: 144,
+        child: Material(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.medium),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: CachedNetworkImage(
+                    imageUrl: url,
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) => const ColoredBox(
+                      color: AppColors.primaryLight,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => const ColoredBox(
+                      color: AppColors.primaryLight,
+                      child: Icon(
+                        Icons.broken_image_outlined,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    dateLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -845,25 +1139,32 @@ class _LiveAvailabilityState extends ConsumerState<_LiveAvailability> {
         ? 'Next available at ${DateFormat('EEE h:mm a').format(_nextAvailableAt!)}'
         : 'Currently in use';
 
-    return Row(
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.xs,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Icon(
-          Icons.circle,
-          size: 10,
-          color: available ? AppColors.success : AppColors.warning,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.circle,
+              size: 10,
+              color: available ? AppColors.success : AppColors.warning,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: available ? AppColors.success : AppColors.warning,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: available ? AppColors.success : AppColors.warning,
-          ),
-        ),
-        const SizedBox(width: 6),
         const Text(
-          '· refreshes live',
+          'Updates every 30 seconds',
           style: TextStyle(fontSize: 11, color: AppColors.textMuted),
         ),
       ],
@@ -915,12 +1216,15 @@ class _PriceTierCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            'Rs. ${price.toStringAsFixed(0)}',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              'NPR ${price.toStringAsFixed(0)}',
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
             ),
           ),
           Text(
