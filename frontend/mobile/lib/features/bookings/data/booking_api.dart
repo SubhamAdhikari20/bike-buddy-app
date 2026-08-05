@@ -3,14 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_endpoints.dart';
+import '../../auth/presentation/providers/auth_provider.dart';
 import 'booking_model.dart';
 
 final bookingApiProvider = Provider<BookingApi>(
   (ref) => BookingApi(ref.watch(apiClientProvider)),
 );
 
-/// The signed-in user's bookings.
-final myBookingsProvider = FutureProvider<List<Booking>>((ref) {
+/// The signed-in renter's bookings.
+final myBookingsProvider = FutureProvider<List<Booking>>((ref) async {
+  final auth = await ref.watch(authProvider.future);
+  if (auth == null) return const [];
   return ref.watch(bookingApiProvider).listMine();
 });
 
@@ -192,9 +195,9 @@ class BookingApi {
     final res = await _client.post(
       ApiEndpoints.sos,
       data: {
-        'bookingId': ?bookingId,
-        'latitude': ?latitude,
-        'longitude': ?longitude,
+        if (bookingId != null) 'bookingId': bookingId,
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
       },
     );
     return (res['data'] as Map).cast<String, dynamic>();
