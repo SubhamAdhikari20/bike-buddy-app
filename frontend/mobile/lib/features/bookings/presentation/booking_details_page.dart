@@ -164,10 +164,7 @@ class _BookingDetailsBody extends StatelessWidget {
                             style: textTheme.titleLarge,
                           ),
                         ),
-                        _StatusChip(
-                          label: booking.status,
-                          color: statusColor(booking.status),
-                        ),
+                        _StatusChip(label: _statusLabel, color: _statusColor),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xs),
@@ -219,6 +216,14 @@ class _BookingDetailsBody extends StatelessWidget {
                       ? '${booking.checklistItemCount} checks and ${booking.checklistPhotoCount} photos recorded'
                       : 'Not completed',
                   complete: booking.checklistDone,
+                ),
+                _TimelineRow(
+                  icon: Icons.play_circle_outline,
+                  title: 'Ride started',
+                  detail: booking.rideStartedAt == null
+                      ? 'Not started yet'
+                      : Formatters.nptTime(booking.rideStartedAt!),
+                  complete: booking.rideStartedAt != null,
                 ),
                 _TimelineRow(
                   icon: Icons.keyboard_return,
@@ -339,7 +344,9 @@ class _BookingDetailsBody extends StatelessWidget {
               ),
               icon: const Icon(Icons.route_outlined),
               label: Text(
-                booking.checklistDone ? 'Manage active ride' : 'Start handover',
+                booking.checklistDone
+                    ? 'Manage active ride'
+                    : 'Start ride handover',
               ),
             ),
           ),
@@ -364,6 +371,18 @@ class _BookingDetailsBody extends StatelessWidget {
       ],
     );
   }
+
+  String get _statusLabel => switch (booking.status) {
+    'confirmed' when booking.isRideInProgress => 'In progress',
+    'confirmed' when booking.isRideReadyToStart => 'Ready to start',
+    _ => booking.status,
+  };
+
+  Color get _statusColor => switch (booking.status) {
+    'confirmed' when booking.isRideInProgress => AppColors.success,
+    'confirmed' when booking.isRideReadyToStart => AppColors.primary,
+    _ => statusColor(booking.status),
+  };
 }
 
 class _StatusChip extends StatelessWidget {

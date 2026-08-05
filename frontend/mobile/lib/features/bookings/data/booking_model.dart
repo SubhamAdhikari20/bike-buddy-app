@@ -45,6 +45,7 @@ class Booking {
   final PriceBreakdown? priceBreakdown;
   final DateTime? priceLockedAt;
   final DateTime? createdAt;
+  final DateTime? rideStartedAt;
   final bool checklistDone;
   final int checklistItemCount;
   final int checklistPhotoCount;
@@ -74,6 +75,7 @@ class Booking {
     this.priceBreakdown,
     this.priceLockedAt,
     this.createdAt,
+    this.rideStartedAt,
     this.checklistDone = false,
     this.checklistItemCount = 0,
     this.checklistPhotoCount = 0,
@@ -87,22 +89,35 @@ class Booking {
     this.extensionAmount = 0,
   });
 
+  bool get hasStartedRide => rideStartedAt != null;
+
+  bool get hasReturnedRide => returnedAt != null || status == 'completed';
+
+  bool get isRideInProgress => hasStartedRide && !hasReturnedRide;
+
+  bool get isRideReadyToStart =>
+      status == 'confirmed' &&
+      paymentStatus == 'paid' &&
+      !hasStartedRide &&
+      !hasReturnedRide;
+
   bool get isActive {
-    final now = DateTime.now();
-    return status == 'confirmed' &&
-        now.isAfter(startDate) &&
-        now.isBefore(endDate);
+    return isRideInProgress || isRideReadyToStart;
   }
 
   bool get isUpcoming =>
-      (status == 'confirmed' || status == 'pending') &&
+      (status == 'pending' ||
+          (status == 'confirmed' && paymentStatus != 'paid')) &&
+      !hasStartedRide &&
+      !hasReturnedRide &&
       DateTime.now().isBefore(startDate);
 
   bool get isPast =>
+      hasReturnedRide ||
       status == 'completed' ||
       status == 'cancelled' ||
       status == 'rejected' ||
-      DateTime.now().isAfter(endDate);
+      status == 'expired';
 
   factory Booking.fromJson(Map<String, dynamic> json) {
     final bikeField = json['bikeId'];
@@ -138,6 +153,7 @@ class Booking {
           : null,
       priceLockedAt: DateTime.tryParse(json['priceLockedAt'] as String? ?? ''),
       createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
+      rideStartedAt: DateTime.tryParse(json['rideStartedAt'] as String? ?? ''),
       checklistDone: checklist?['completedAt'] != null,
       checklistItemCount: (checklist?['items'] as List?)?.length ?? 0,
       checklistPhotoCount: (checklist?['photos'] as List?)?.length ?? 0,

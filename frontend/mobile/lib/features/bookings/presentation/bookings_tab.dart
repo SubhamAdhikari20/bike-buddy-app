@@ -108,7 +108,8 @@ class BookingsTab extends ConsumerWidget {
                       children: [
                         _BookingList(
                           bookings: active,
-                          emptyText: 'No active ride right now.',
+                          emptyText:
+                              'No active or ready-to-start ride right now.',
                         ),
                         _BookingList(
                           bookings: upcoming,
@@ -408,7 +409,14 @@ class _BookingCard extends ConsumerWidget {
   }
 
   (String, Color) get _statusChip => switch (booking.status) {
-    'confirmed' when booking.isActive => ('In Progress', AppColors.success),
+    'confirmed' when booking.isRideInProgress => (
+      'In Progress',
+      AppColors.success,
+    ),
+    'confirmed' when booking.isRideReadyToStart => (
+      'Ready to start',
+      AppColors.primary,
+    ),
     'confirmed' => ('Confirmed', AppColors.primary),
     'pending'
         when booking.paymentStatus == 'paid' ||
@@ -525,7 +533,9 @@ class _BookingCard extends ConsumerWidget {
                 ),
                 if (booking.isActive)
                   Text(
-                    _timeLeft(booking.endDate),
+                    booking.isRideReadyToStart
+                        ? 'Start the handover checklist to begin the ride'
+                        : _timeLeft(booking.endDate),
                     style: const TextStyle(
                       color: AppColors.accent,
                       fontWeight: FontWeight.w600,
@@ -562,7 +572,9 @@ class _BookingCard extends ConsumerWidget {
                           ? booking.paymentMethod == 'cash' &&
                                     booking.paymentStatus == 'pending'
                                 ? 'Cash due at pickup'
-                                : 'Manage Ride'
+                                : booking.checklistDone
+                                ? 'Manage Ride'
+                                : 'Start Ride'
                           : booking.paymentStatus == 'paid'
                           ? 'View Details'
                           : booking.paymentMethod == 'cash' &&
